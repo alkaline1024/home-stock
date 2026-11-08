@@ -18,7 +18,10 @@ const titles = {
   shopping: "รายการซื้อ",
   meals: "แผนทำอาหาร",
   recipes: "เมนูที่บันทึกไว้",
+  settings: "การตั้งค่า",
 };
+const animationModes = ["full", "minimal", "off"];
+const animationStorageKey = "home-stock-animation";
 const dateFormat = new Intl.DateTimeFormat("th-TH", {
   day: "numeric",
   month: "short",
@@ -88,10 +91,19 @@ let calendarMonth = new Date().getMonth();
 let selectedCalendarDate = "";
 const idleAfter = 5 * 60 * 1000;
 let pantryLoadingStartedAt = 0;
+let animationMode = (() => {
+  try {
+    const saved = localStorage.getItem(animationStorageKey);
+    return animationModes.includes(saved) ? saved : "full";
+  } catch (error) {
+    console.error("อ่านการตั้งค่าแอนิเมชันไม่ได้", error);
+    return "full";
+  }
+})();
 
 function showPantryLoading() {
   const loader = $("#pantry-loading");
-  if (!loader.hidden) return;
+  if (animationMode === "off" || !loader.hidden) return;
   pantryLoadingStartedAt = Date.now();
   loader.classList.remove("is-opening");
   loader.classList.remove("is-fading");
@@ -118,7 +130,7 @@ function hidePantryLoading() {
 
 async function revealPantry(current) {
   const loader = $("#pantry-loading");
-  if (loader.hidden) return;
+  if (animationMode === "off" || loader.hidden) return;
   const minimumWait = 250;
   const wait = Math.max(
     0,
@@ -128,9 +140,7 @@ async function revealPantry(current) {
   if (current !== generation || loader.hidden) return;
   const openingDuration = 1400;
   const fadeDuration = 350;
-  loader.style.setProperty("--pantry-open-duration", openingDuration + "ms");
   loader.style.setProperty("--pantry-fade-duration", fadeDuration + "ms");
-  $("#app").style.setProperty("--pantry-open-duration", openingDuration + "ms");
   const animationFinished = new Promise((resolve) => {
     const finish = (event) => {
       if (event.target !== loader || event.animationName !== "pantry-scene-fade")
@@ -145,6 +155,14 @@ async function revealPantry(current) {
     }, openingDuration + fadeDuration + 300);
     loader.addEventListener("animationend", finish);
   });
+  if (animationMode === "minimal") {
+    loader.classList.add("is-fading");
+    await animationFinished;
+    if (current === generation) hidePantryLoading();
+    return;
+  }
+  loader.style.setProperty("--pantry-open-duration", openingDuration + "ms");
+  $("#app").style.setProperty("--pantry-open-duration", openingDuration + "ms");
   $("#app").classList.add("pantry-content-approach");
   loader.classList.add("is-opening");
   await new Promise((resolve) =>
@@ -1275,6 +1293,39 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
   );
 }
 
+function settingsContent() {
+  const choices = [
+    ["full", "เต็ม", "เปิดประตู ซูมเข้า และขยายเนื้อหาแบบ parallax"],
+    [
+      "minimal",
+      "แบบย่อ",
+      "แสดงประตูกับลูกบิดหมุนระหว่างโหลด แล้วค่อย ๆ จางหาย",
+    ],
+    ["off", "ปิด", "ไม่แสดงฉากแอนิเมชันตอนโหลด"],
+  ];
+  return (
+    '<section class="settings-panel"><h2>แอนิเมชันตอนเปิดแอป</h2>' +
+    '<p class="form-help">เลือกรูปแบบฉากระหว่างรอโหลด และระบบจะจดจำการตั้งค่านี้ไว้ในอุปกรณ์</p>' +
+    '<fieldset class="animation-options"><legend>รูปแบบแอนิเมชัน</legend>' +
+    choices
+      .map(
+        ([value, title, description]) =>
+          '<label class="animation-choice"><input type="radio" name="animation-mode" value="' +
+          value +
+          '"' +
+          (animationMode === value ? " checked" : "") +
+          '><span><strong>' +
+          title +
+          "</strong><small>" +
+          description +
+          "</small></span></label>",
+      )
+      .join("") +
+    '</fieldset><p id="settings-error" class="error" role="alert"></p>' +
+    '<button type="button" class="secondary settings-logout" data-action="logout">ออกจากระบบ</button></section>'
+  );
+}
+
 function draw() {
   if (!stock) return;
   const page = tab();
@@ -1284,6 +1335,9 @@ function draw() {
       if (link.dataset.tab === page) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     });
+  if (page === "settings")
+    $(".settings-link").setAttribute("aria-current", "page");
+  else $(".settings-link").removeAttribute("aria-current");
   const today = new Date();
   const todayKey = calendarDateKey(
     today.getFullYear(),
@@ -1297,7 +1351,9 @@ function draw() {
     day: "numeric",
     year: "numeric",
   }).format(today);
+  $("#date-label").hidden = page === "settings";
   $("#screen-title").textContent = titles[page];
+  $("#page-add").hidden = page === "settings";
   $("#page-add").innerHTML =
     page === "shopping"
       ? paperPlusLabel("จดรายการซื้อ")
@@ -1319,6 +1375,10 @@ function draw() {
   else delete $("#page-add").dataset.id;
   $("#shopping-count").textContent = stock.shopping.length;
   $("#tools").hidden = page !== "stock";
+  if (page === "settings") {
+    $("#content").innerHTML = settingsContent();
+    return;
+  }
   const sorted = [...stock.items].sort(byDate);
   let html = "";
   if (page === "today") {
@@ -3154,6 +3214,25 @@ document.addEventListener("keydown", (event) => {
 $("#query").addEventListener("input", draw);
 $("#category-filter").addEventListener("change", draw);
 $("#location-filter").addEventListener("change", draw);
+document.addEventListener("change", (event) => {
+  const input = event.target;
+  if (!input.matches?.('input[name="animation-mode"]')) return;
+  if (!animationModes.includes(input.value)) return;
+  try {
+    localStorage.setItem(animationStorageKey, input.value);
+    animationMode = input.value;
+    $("#settings-error").textContent = "";
+  } catch (error) {
+    console.error("บันทึกการตั้งค่าแอนิเมชันไม่ได้", error);
+    $("#settings-error").textContent =
+      "บันทึกการตั้งค่าไม่ได้ เบราว์เซอร์อาจปิดการใช้พื้นที่จัดเก็บ";
+    document
+      .querySelectorAll('input[name="animation-mode"]')
+      .forEach((choice) => {
+        choice.checked = choice.value === animationMode;
+      });
+  }
+});
 window.addEventListener("hashchange", () => {
   $(".excel-dropdown").open = false;
   draw();

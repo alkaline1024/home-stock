@@ -12,8 +12,10 @@ const headers = [
   "ชื่อของ", "จำนวน", "หน่วย", "หมวด", "ที่เก็บ", "วันที่ (ถ้ามี)", "ติดตามวันที่",
 ];
 
-function app(items = [], useBrowserExcel = false) {
+function app(items = [], useBrowserExcel = false, initialStorage = {}) {
   const elements = new Map();
+  const documentListeners = new Map();
+  const storedValues = new Map(Object.entries(initialStorage));
   const element = (selector) => {
     if (!elements.has(selector)) elements.set(selector, {
       open: false, hidden: true, value: "", textContent: "", disabled: false,
@@ -29,6 +31,10 @@ function app(items = [], useBrowserExcel = false) {
   let downloaded;
   const context = vm.createContext({
     Intl, Date, Blob, structuredClone, crypto: { randomUUID },
+    localStorage: {
+      getItem(key) { return storedValues.get(key) ?? null; },
+      setItem(key, value) { storedValues.set(key, String(value)); },
+    },
     setImmediate,
     console, location: { hash: "#stock" },
     setTimeout(callback, delay) {
@@ -44,7 +50,12 @@ function app(items = [], useBrowserExcel = false) {
     },
     document: {
       querySelector: element, querySelectorAll: () => [],
-      addEventListener() {}, createElement: () => element("link"),
+      addEventListener(type, callback) {
+        const listeners = documentListeners.get(type) || [];
+        listeners.push(callback);
+        documentListeners.set(type, listeners);
+      },
+      createElement: () => element("link"),
       body: { append() {}, classList: { add() {}, remove() {} } },
     },
     window: {
@@ -57,7 +68,15 @@ function app(items = [], useBrowserExcel = false) {
   vm.runInContext(source, context);
   context.initial = { items, shopping: [], recipes: [], mealPlans: [], version: randomUUID() };
   vm.runInContext("stock = initial; draw = () => {};", context);
-  return { context, element, getDownload: () => downloaded };
+  return {
+    context,
+    element,
+    getDownload: () => downloaded,
+    storedValues,
+    dispatchDocumentEvent(type, event) {
+      for (const listener of documentListeners.get(type) || []) listener(event);
+    },
+  };
 }
 
 function workbook(rows) {
@@ -69,6 +88,45 @@ function workbook(rows) {
 }
 
 const row = ["ข้าว", 1.125, "ถุง", "ของแห้ง", "ชั้นวาง", "", ""];
+
+test("animation mode defaults to full and only restores supported saved values", () => {
+  const defaultApp = app();
+  assert.equal(vm.runInContext("animationMode", defaultApp.context), "full");
+  assert.equal(
+    vm.runInContext(
+      "animationMode",
+      app([], false, { "home-stock-animation": "minimal" }).context,
+    ),
+    "minimal",
+  );
+  assert.equal(
+    vm.runInContext(
+      "animationMode",
+      app([], false, { "home-stock-animation": "unknown" }).context,
+    ),
+    "full",
+  );
+});
+
+test("animation mode changes persist to local storage", () => {
+  const { context, storedValues, dispatchDocumentEvent } = app();
+  const input = {
+    value: "minimal",
+    matches: (selector) => selector === 'input[name="animation-mode"]',
+  };
+  dispatchDocumentEvent("change", { target: input });
+  assert.equal(vm.runInContext("animationMode", context), "minimal");
+  assert.equal(storedValues.get("home-stock-animation"), "minimal");
+});
+
+test("off animation mode skips the loading scene", () => {
+  const { context, element } = app();
+  vm.runInContext(
+    'hidePantryLoading(); animationMode = "off"; showPantryLoading();',
+    context,
+  );
+  assert.equal(element("#pantry-loading").hidden, true);
+});
 
 test("template round-trips with named dropdowns through row 2001 and existing units/locations", async () => {
   const { context, getDownload } = app([
