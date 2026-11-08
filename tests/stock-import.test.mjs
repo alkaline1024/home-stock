@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 import ExcelJS from "exceljs";
-import { validatedStock } from "../lib/inventory.js";
+import { itemIconIds, validatedStock } from "../lib/inventory.js";
 
 const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
 const browserExcel = readFileSync(new URL("../node_modules/exceljs/dist/exceljs.min.js", import.meta.url), "utf8");
@@ -275,4 +275,155 @@ test("shopping actions and navigation share the cart icon instead of the saved-r
   for (const path of paths) assert.ok(navigation.includes(path));
   assert.notEqual(icon, recipe);
   assert.doesNotMatch(navigation, /M5 8h14/);
+});
+
+const mediaItem = () => ({
+  id: randomUUID(), name: 'ข้าว <"ใหม่">', qty: 2.125, unit: "ถุง",
+  category: "ของแห้ง", location: "ตู้กับข้าว", date: "2026-12-31",
+  dateKind: "expiry", photo: null,
+});
+
+test("generated icon catalog matches server validation and rejects arbitrary markup", () => {
+  const { context } = app();
+  const ids = vm.runInContext("Object.keys(itemIcons)", context);
+  assert.deepEqual(Array.from(ids), itemIconIds);
+  assert.equal(context.itemIconSvg("__proto__"), "");
+  for (const icon of itemIconIds) {
+    const data = { items: [{ ...mediaItem(), icon }], shopping: [], version: null };
+    assert.equal(validatedStock(data).items[0].icon, icon);
+    assert.match(context.itemIconSvg(icon), /<svg[^>]+aria-hidden="true"/);
+  }
+  for (const icon of ["<svg onload=alert(1)>", "__proto__", 1, {}, []]) {
+    assert.throws(() => validatedStock({
+      items: [{ ...mediaItem(), icon }], shopping: [], version: null,
+    }), /ไอคอน/);
+  }
+  assert.throws(() => validatedStock({
+    items: [{ ...mediaItem(), icon: "egg", photo: randomUUID() }],
+    shopping: [], version: null,
+  }), /อย่างใดอย่างหนึ่ง/);
+  const old = validatedStock({ items: [mediaItem()], shopping: [], version: null }).items[0];
+  assert.equal(Object.hasOwn(old, "icon"), false);
+});
+
+test("stock placeholders are keyboard-accessible buttons; other pages remain unchanged", () => {
+  const item = mediaItem();
+  const { context } = app([item]);
+  const placeholder = context.thumb(item, true);
+  assert.match(placeholder, /<button type="button"/);
+  assert.match(placeholder, /data-action="choose-item-media"/);
+  assert.doesNotMatch(placeholder, /item-media-add|>\+</);
+  assert.match(placeholder, /&lt;&quot;ใหม่&quot;&gt;/);
+  assert.doesNotMatch(context.thumb(item), /<button/);
+  assert.doesNotMatch(context.thumb({ ...item, icon: "egg" }, true), /item-media-add/);
+  assert.match(context.thumb({ ...item, icon: "egg" }), /item-icon/);
+  assert.match(context.row(item), /choose-item-media/);
+  context.location.hash = "#today";
+  assert.doesNotMatch(context.row(item), /choose-item-media/);
+  context.location.hash = "#shopping";
+  assert.doesNotMatch(context.row(item, true), /choose-item-media/);
+});
+
+test("media chooser deduplicates current photos and does not upload generated icons", async () => {
+  const photo = randomUUID();
+  const first = { ...mediaItem(), photo };
+  const target = mediaItem();
+  const { context, element } = app([first, { ...mediaItem(), photo }, target]);
+  context.startItemMedia(target);
+  assert.equal(element("#item-media-dialog").open, true);
+  assert.equal((element("#item-media-photos").innerHTML.match(/select-item-photo/g) || []).length, 1);
+  assert.match(element("#item-media-icons").innerHTML, /select-item-icon/);
+  let calls = 0, written;
+  context.request = async (path, options) => {
+    calls++;
+    assert.equal(path, "stock");
+    written = JSON.parse(options.body);
+    validatedStock(written);
+    return { version: randomUUID() };
+  };
+  context.selectItemMedia(null, "egg");
+  await context.saveItemMedia();
+  assert.equal(calls, 1);
+  assert.deepEqual(written.items[2], { ...target, icon: "egg" });
+  assert.deepEqual(written.items[0], first);
+  assert.equal(element("#item-media-dialog").open, false);
+});
+
+test("reusing a photo and clearing an icon save only the selected item's media", async () => {
+  const photo = randomUUID();
+  const original = { ...mediaItem(), photo };
+  const target = { ...mediaItem(), icon: "grain" };
+  const { context } = app([original, target]);
+  let written;
+  context.request = async (path, options) => {
+    assert.equal(path, "stock");
+    written = JSON.parse(options.body);
+    validatedStock(written);
+    return { version: randomUUID() };
+  };
+  context.startItemMedia(target);
+  context.selectItemMedia(photo, null);
+  await context.saveItemMedia();
+  assert.deepEqual(written.items[1], { ...target, photo, icon: null });
+  assert.deepEqual(written.items[0], original);
+  context.startItemMedia(written.items[1]);
+  context.selectItemMedia(null, null);
+  await context.saveItemMedia();
+  assert.deepEqual(written.items[1], { ...target, photo: null, icon: null });
+});
+
+test("new media uploads use the existing JPEG endpoint before saving the stock", async () => {
+  const target = mediaItem();
+  const { context } = app([target]);
+  context.startItemMedia(target);
+  const blob = new Blob(["test"], { type: "image/jpeg" });
+  context.blob = blob;
+  vm.runInContext("mediaDraft.blob = blob;", context);
+  const photo = randomUUID(), paths = [];
+  context.request = async (path, options) => {
+    paths.push(path);
+    if (path === "photo") {
+      assert.equal(options.headers["Content-Type"], "image/jpeg");
+      assert.equal(options.body, blob);
+      return { id: photo };
+    }
+    const written = JSON.parse(options.body);
+    assert.deepEqual(written.items[0], { ...target, photo, icon: null });
+    return { version: randomUUID() };
+  };
+  await context.saveItemMedia();
+  assert.deepEqual(paths, ["photo", "stock"]);
+});
+
+for (const status of [409, 0, 500, 401]) {
+  test(`media save reports status ${status} and does not overwrite local stock`, async () => {
+    const target = mediaItem();
+    const { context, element } = app([target]);
+    context.startItemMedia(target);
+    context.selectItemMedia(null, "fruit");
+    context.request = vm.runInContext(`async () => { throw new ApiError(${status}, "test"); }`, context);
+    context.refresh = async () => {};
+    await context.saveItemMedia();
+    if (status === 401) {
+      assert.equal(element("#item-media-dialog").open, false);
+      assert.equal(element("#login").hidden, false);
+    } else {
+      assert.equal(element("#item-media-save").disabled, true);
+      assert.match(element("#item-media-error").textContent, /ตัวเลือกรูปใหม่/);
+      assert.equal(vm.runInContext("stock.items[0].icon", context), undefined);
+    }
+  });
+}
+
+test("editing ordinary item fields preserves an existing icon", () => {
+  const target = { ...mediaItem(), icon: "grain" };
+  const { context, element } = app([target]);
+  context.target = target;
+  vm.runInContext('draft = { mode: "edit-item", sourceId: target.id, photo: null, icon: target.icon };', context);
+  for (const [id, value] of [
+    ["f-name", target.name], ["f-unit", target.unit], ["f-qty", String(target.qty)],
+    ["f-category", target.category], ["f-location", target.location],
+    ["f-date", target.date], ["f-kind", target.dateKind],
+  ]) element("#" + id).value = value;
+  assert.deepEqual(JSON.parse(JSON.stringify(context.formItem())), target);
 });

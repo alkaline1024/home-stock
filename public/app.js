@@ -46,6 +46,28 @@ let mealDraft = null;
 let mealIngredientSequence = 0;
 let excelJsPromise = null;
 let pendingStockImport = null;
+let mediaDraft = null;
+const itemIcons = {
+  box: { label: "กล่อง", paths: '<path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/>' },
+  vegetables: { label: "ผัก", paths: '<path d="M12 21V11m-5 6 5-3 5 3"/><path d="M7 14a4 4 0 0 1-3-7 4 4 0 0 1 5-4 4 4 0 0 1 7 0 4 4 0 0 1 4 6 4 4 0 0 1-3 5Z"/>' },
+  fruit: { label: "ผลไม้", paths: '<path d="M12 7c-8-5-12 4-7 12 2 3 4 2 7 1 3 1 5 2 7-1 5-8 1-17-7-12ZM12 7V4m0 0c1-3 5-3 6-2-1 3-4 4-6 2Z"/>' },
+  meat: { label: "เนื้อสัตว์", paths: '<path d="M8 5c6-5 16 4 12 10-3 5-9 3-12 0L5 18l-3-3 4-4c-2-2-1-4 2-6Z"/><ellipse cx="14" cy="9" rx="3" ry="2" transform="rotate(35 14 9)"/>' },
+  fish: { label: "ปลา", paths: '<path d="M6 12c4-7 11-7 15 0-4 7-11 7-15 0ZM6 12l-4-5v10l4-5Z"/><circle cx="17" cy="11" r="1"/><path d="m12 8-2-4m2 12-2 4"/>' },
+  egg: { label: "ไข่", paths: '<path d="M20 14a8 8 0 0 1-16 0C4 9 9 2 12 2s8 7 8 12Z"/><path d="M8 14a4 4 0 0 0 4 4"/>' },
+  milk: { label: "นม", paths: '<path d="M7 2h10l3 5v14H4V7l3-5ZM4 7h16M7 2l3 5v14"/><path d="M14 11h3m-3 4h3"/>' },
+  bottle: { label: "ขวด", paths: '<path d="M9 2h6v4l3 4v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V10l3-4V2ZM9 6h6M6 12h12M6 18h12"/>' },
+  grain: { label: "ข้าวและธัญพืช", paths: '<path d="M12 22V3m0 4C6 7 6 3 6 3s6 0 6 4Zm0 5c-6 0-6-4-6-4s6 0 6 4Zm0 5c-6 0-6-4-6-4s6 0 6 4Zm0-10c6 0 6-4 6-4s-6 0-6 4Zm0 5c6 0 6-4 6-4s-6 0-6 4Zm0 5c6 0 6-4 6-4s-6 0-6 4Z"/>' },
+  meal: { label: "อาหารปรุงสุก", paths: '<path d="M3 12h18M5 12a7 7 0 0 0 14 0M12 3v4M7 4l1 3m9-3-1 3"/>' },
+  snowflake: { label: "ของแช่แข็ง", paths: '<path d="M12 2v20M3 7l18 10M3 17 21 7M9 4l3 3 3-3M9 20l3-3 3 3M3 10l4-1-1-4m15 9-4 1 1 4M3 14l4 1-1 4m15-9-4-1 1-4"/>' },
+  cleaning: { label: "ของใช้ทำความสะอาด", paths: '<path d="M8 3h9v4H8V3Zm2 4v3l-4 4v7h13V10l-4-3M17 3h4v4M6 16h13"/><path d="M3 4v4M1 6h4"/>' },
+};
+
+function itemIconSvg(id, className = "item-icon") {
+  if (!Object.hasOwn(itemIcons, id)) return "";
+  const icon = itemIcons[id];
+  return '<svg class="' + className + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    icon.paths + "</svg>";
+}
 const stockImportHeaders = [
   "ชื่อของ",
   "จำนวน",
@@ -163,6 +185,7 @@ function entry(mode, message = "") {
   if ($("#editor").open) $("#editor").close();
   if ($("#meal-editor").open) $("#meal-editor").close();
   if ($("#excel-import-dialog").open) $("#excel-import-dialog").close();
+  if ($("#item-media-dialog").open) $("#item-media-dialog").close();
   $(".excel-dropdown").open = false;
   $("#app").hidden = true;
   $("#entry").hidden = false;
@@ -180,7 +203,7 @@ async function refresh(force = false) {
   if (
     !force &&
     (busy || $("#editor").open || $("#meal-editor").open ||
-      $("#excel-import-dialog").open)
+      $("#excel-import-dialog").open || $("#item-media-dialog").open)
   ) return;
   if (!force && Date.now() - lastReadStarted < 3000) return;
   lastReadStarted = Date.now();
@@ -628,14 +651,19 @@ $("#excel-import-confirm").addEventListener("click", () => {
     alertUser("นำเข้าของแล้ว " + items.length + " รายการ");
   });
 });
-function thumb(item) {
-  return item.photo
+function thumb(item, editable = false) {
+  const content = item.photo
     ? '<img class="thumb" decoding="async" loading="lazy" alt="" src="/api/photo?id=' +
         encodeURIComponent(item.photo) +
         '">'
     : '<span aria-hidden="true" class="thumb placeholder">' +
-        esc([...item.name][0] || "·") +
+        (itemIconSvg(item.icon) || esc([...item.name][0] || "·")) +
         "</span>";
+  if (!editable) return content;
+  return '<button type="button" class="item-media-trigger" data-action="choose-item-media" data-id="' +
+    esc(item.id) + '" aria-label="' +
+    esc((item.photo || item.icon ? "เปลี่ยนรูปหรือไอคอนของ " : "เพิ่มรูปหรือไอคอนของ ") + item.name) +
+    '">' + content + "</button>";
 }
 const badgeDetails = {
   category: {
@@ -733,7 +761,7 @@ function row(item, shopping = false) {
       "</div>";
   return (
     '<article class="line-item">' +
-    thumb(item) +
+    thumb(item, !shopping && tab() === "stock") +
     '<div class="item-info"><div class="item-name">' +
     esc(item.name) +
     ' <span class="qty">· ' +
@@ -2141,6 +2169,7 @@ function startEditor(mode, data = {}, sourceId = "") {
     initial: base,
     version: stock.version,
     photo: base.photo,
+    icon: base.icon,
     blob: null,
     photoTask: 0,
     processing: false,
@@ -2241,8 +2270,120 @@ function renderPhoto() {
       esc(src) +
       '">' +
       button("remove-photo", "ลบรูป", "", "text-button")
-    : "";
+    : draft.icon
+      ? '<span class="thumb placeholder">' + itemIconSvg(draft.icon) + "</span>" +
+        button("remove-photo", "ลบไอคอน", "", "text-button")
+      : "";
 }
+function renderItemMediaPreview() {
+  if (!mediaDraft) return;
+  const src = mediaDraft.preview ||
+    (mediaDraft.photo ? "/api/photo?id=" + encodeURIComponent(mediaDraft.photo) : "");
+  $("#item-media-preview").innerHTML = src
+    ? '<img alt="รูปของที่เลือก" src="' + esc(src) + '">'
+    : '<span class="thumb placeholder">' +
+      (itemIconSvg(mediaDraft.icon) || esc([...mediaDraft.name][0] || "·")) + "</span>";
+  document.querySelectorAll(".item-media-choice").forEach((choice) => {
+    const selected = choice.dataset.action === "select-item-photo"
+      ? !mediaDraft.blob && mediaDraft.photo === choice.dataset.id
+      : mediaDraft.icon === choice.dataset.id;
+    choice.setAttribute("aria-pressed", String(selected));
+  });
+  $("#item-media-save").disabled = Boolean(mediaDraft.processing || mediaDraft.stale);
+}
+
+function startItemMedia(item) {
+  if (busy || !stock) return;
+  ++generation;
+  mediaDraft = {
+    id: item.id, name: item.name, version: stock.version,
+    photo: item.photo || null, icon: item.icon || null,
+    blob: null, preview: "", task: 0, processing: false, stale: false,
+  };
+  $("#item-media-name").textContent = item.name;
+  $("#item-media-error").textContent = "";
+  $("#item-media-file").value = "";
+  const photos = [...new Map(stock.items.filter((entry) => entry.photo)
+    .map((entry) => [entry.photo, entry])).values()];
+  $("#item-media-photos").innerHTML = photos.length
+    ? photos.map((entry) => button("select-item-photo",
+      thumb(entry) + "<span>" + esc(entry.name) + "</span>", entry.photo,
+      "item-media-choice")).join("")
+    : '<p class="form-help">ยังไม่มีรูปที่เคยอัปโหลด</p>';
+  $("#item-media-icons").innerHTML = Object.entries(itemIcons).map(([id, icon]) =>
+    button("select-item-icon", itemIconSvg(id) + "<span>" + esc(icon.label) +
+      "</span>", id, "item-media-choice")).join("");
+  renderItemMediaPreview();
+  $("#item-media-dialog").showModal();
+}
+
+function selectItemMedia(photo, icon) {
+  if (!mediaDraft || mediaDraft.stale) return;
+  ++mediaDraft.task;
+  if (mediaDraft.preview) URL.revokeObjectURL(mediaDraft.preview);
+  Object.assign(mediaDraft, { photo, icon, blob: null, preview: "", processing: false });
+  $("#item-media-file").value = "";
+  $("#item-media-error").textContent = "";
+  renderItemMediaPreview();
+}
+
+$("#item-media-file").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file || !mediaDraft || busy || mediaDraft.stale) return;
+  const editing = mediaDraft, token = ++editing.task;
+  editing.processing = true;
+  $("#item-media-save").disabled = true;
+  $("#item-media-error").textContent = "กำลังเตรียมรูป…";
+  try {
+    const blob = await jpeg(file);
+    if (mediaDraft !== editing || editing.task !== token) return;
+    if (editing.preview) URL.revokeObjectURL(editing.preview);
+    Object.assign(editing, {
+      blob, photo: null, icon: null, preview: URL.createObjectURL(blob),
+    });
+    $("#item-media-error").textContent = "";
+  } catch (error) {
+    if (mediaDraft === editing && editing.task === token)
+      $("#item-media-error").textContent = error.message || "เตรียมรูปไม่ได้";
+  } finally {
+    if (mediaDraft === editing && editing.task === token) {
+      editing.processing = false;
+      renderItemMediaPreview();
+      event.target.value = "";
+    }
+  }
+});
+$("#item-media-dialog").addEventListener("cancel", (event) => {
+  if (busy) event.preventDefault();
+});
+$("#item-media-dialog").addEventListener("close", () => {
+  if (mediaDraft?.preview) URL.revokeObjectURL(mediaDraft.preview);
+  mediaDraft = null;
+  $("#item-media-file").value = "";
+});
+
+async function saveItemMedia() {
+  if (!mediaDraft || busy || mediaDraft.processing || mediaDraft.stale) return;
+  const editing = mediaDraft;
+  $("#item-media-error").textContent = "";
+  await mutation(async (next) => {
+    const item = next.items.find((entry) => entry.id === editing.id);
+    if (!item) throw new Error("ไม่พบรายการนี้ กรุณาโหลดของในบ้านใหม่");
+    if (editing.blob) {
+      const uploaded = await request("photo", {
+        method: "POST", headers: { "Content-Type": "image/jpeg" }, body: editing.blob,
+      });
+      editing.photo = uploaded.id;
+      editing.blob = null;
+    }
+    item.photo = editing.photo;
+    item.icon = editing.icon;
+  }, editing.version, () => {
+    $("#item-media-dialog").close();
+    alertUser("บันทึกรูปหรือไอคอนแล้ว");
+  });
+}
+
 async function jpeg(file) {
   if (file.size > 25 * 1024 * 1024)
     throw new Error("กรุณาเลือกรูปขนาดไม่เกิน 25 MB");
@@ -2304,6 +2445,7 @@ $("#fields").addEventListener("change", async (event) => {
     previewUrl = URL.createObjectURL(blob);
     editing.blob = blob;
     editing.photo = null;
+    editing.icon = null;
     $("#form-error").textContent = "";
     renderPhoto();
   } catch (error) {
@@ -2349,6 +2491,7 @@ function formItem() {
     date: $("#f-date").value,
     dateKind: $("#f-kind").value,
     photo: draft.photo,
+    ...(draft.icon !== undefined ? { icon: draft.icon } : {}),
   };
 }
 
@@ -2356,10 +2499,15 @@ async function mutation(change, expected, done) {
   if (busy || !stock) return;
   const inDialog = $("#editor").open;
   const inImportDialog = $("#excel-import-dialog").open;
+  const inMediaDialog = $("#item-media-dialog").open;
   busy = true;
   ++generation;
   if (inDialog) $("#save").disabled = true;
   if (inImportDialog) $("#excel-import-confirm").disabled = true;
+  if (inMediaDialog) {
+    $("#item-media-save").disabled = true;
+    $("#item-media-file").disabled = true;
+  }
   try {
     if (stock.version !== expected) throw new ApiError(409, "");
     const next = structuredClone(stock);
@@ -2396,6 +2544,12 @@ async function mutation(change, expected, done) {
         $("#excel-import-error").textContent +=
           " · กรุณาตรวจของในบ้านก่อนอัปโหลดใหม่ เพื่อไม่ให้นำเข้าซ้ำ";
       }
+    } else if (inMediaDialog && $("#item-media-dialog").open) {
+      $("#item-media-error").textContent = message;
+      if (mediaDraft && (conflict || error.status === 0 || error.status >= 500)) {
+        mediaDraft.stale = true;
+        $("#item-media-error").textContent += " · กรุณาปิดแล้วเปิดตัวเลือกรูปใหม่";
+      }
     } else if (stock) alertUser(message);
   } finally {
     busy = false;
@@ -2405,6 +2559,11 @@ async function mutation(change, expected, done) {
       $("#excel-import-confirm").disabled = Boolean(
         !pendingStockImport || pendingStockImport.stale ||
         pendingStockImport.errors.length,
+      );
+    $("#item-media-file").disabled = false;
+    if ($("#item-media-dialog").open)
+      $("#item-media-save").disabled = Boolean(
+        !mediaDraft || mediaDraft.processing || mediaDraft.stale,
       );
   }
 }
@@ -2731,6 +2890,20 @@ document.addEventListener("click", async (event) => {
   }
   closeItemMenus();
   if (!stock) return;
+  if (action === "choose-item-media" && item) return startItemMedia(item);
+  if (action === "close-item-media") {
+    if ($("#item-media-dialog").open) $("#item-media-dialog").close();
+    return;
+  }
+  if (action === "select-item-photo" && mediaDraft) {
+    if (!stock.items.some((entry) => entry.photo === id))
+      return alertUser("ไม่พบรูปนี้ กรุณาปิดแล้วเปิดตัวเลือกรูปใหม่");
+    return selectItemMedia(id, null);
+  }
+  if (action === "select-item-icon" && mediaDraft && Object.hasOwn(itemIcons, id))
+    return selectItemMedia(null, id);
+  if (action === "clear-item-media") return selectItemMedia(null, null);
+  if (action === "save-item-media") return saveItemMedia();
   if (action === "close-excel-import") {
     if ($("#excel-import-dialog").open) $("#excel-import-dialog").close();
     return;
@@ -2864,6 +3037,7 @@ document.addEventListener("click", async (event) => {
     $("#save").disabled = false;
     draft.blob = null;
     draft.photo = null;
+    draft.icon = null;
     $("#f-photo").value = "";
     $("#form-error").textContent = "";
     if (previewUrl) URL.revokeObjectURL(previewUrl);

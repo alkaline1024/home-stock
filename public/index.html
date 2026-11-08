@@ -284,6 +284,26 @@
         </div>
       </form>
     </dialog>
+    <dialog id="item-media-dialog" aria-labelledby="item-media-title">
+      <div class="dialog-head">
+        <h2 id="item-media-title">รูปหรือไอคอนของ</h2>
+        <button type="button" class="close" aria-label="ปิด" data-action="close-item-media">×</button>
+      </div>
+      <p id="item-media-name" class="form-help"></p>
+      <div id="item-media-preview" class="item-media-preview"></div>
+      <label>อัปโหลดรูปใหม่<input id="item-media-file" type="file" accept="image/*"></label>
+      <h3 class="item-media-heading">เลือกจากรูปที่เคยอัปโหลด</h3>
+      <p class="form-help">รูปที่ยังใช้อยู่ในของในบ้าน เลือกใช้ร่วมกันได้</p>
+      <div id="item-media-photos" class="item-media-grid"></div>
+      <h3 class="item-media-heading">เลือกไอคอน ไม่ต้องอัปโหลดรูป</h3>
+      <div id="item-media-icons" class="item-media-grid"></div>
+      <button type="button" class="text-button" data-action="clear-item-media">ใช้ตัวอักษรเดิม</button>
+      <p id="item-media-error" role="alert" class="error"></p>
+      <div class="dialog-actions">
+        <button type="button" class="secondary" data-action="close-item-media">ยกเลิก</button>
+        <button type="button" id="item-media-save" class="primary" data-action="save-item-media">บันทึก</button>
+      </div>
+    </dialog>
     <dialog id="meal-editor" aria-labelledby="meal-editor-title">
       <div class="dialog-head">
         <h2 id="meal-editor-title">วางแผนทำอาหาร</h2>
