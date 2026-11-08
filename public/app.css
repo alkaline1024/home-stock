@@ -78,6 +78,78 @@ label > select {
   font-size: 1rem;
   font-weight: 400;
 }
+.search-select {
+  position: relative;
+  display: block;
+  margin-top: 4px;
+  font-size: 1rem;
+  font-weight: 400;
+}
+.search-select-native {
+  display: none !important;
+}
+.search-select-input {
+  padding-right: 46px;
+  cursor: text;
+}
+.search-select-toggle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0 7px 7px 0;
+  background: transparent;
+}
+.search-select-chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 140ms ease;
+}
+.search-select-toggle[aria-expanded="true"] .search-select-chevron {
+  transform: translateY(2px) rotate(225deg);
+}
+.search-select-panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  max-height: 230px;
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(25 54 39 / 14%);
+}
+.search-select-option {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.search-select-option:hover,
+.search-select-option[data-active="true"] {
+  background: var(--mint);
+}
+.search-select-option[aria-selected="true"] {
+  color: var(--green);
+  font-weight: 600;
+}
+.search-select-empty {
+  padding: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
 .primary,
 .secondary,
 .text-button,

@@ -370,6 +370,7 @@ function draw() {
       '<option value="">ทุกที่เก็บ</option>' +
       locations.map((x) => "<option>" + esc(x) + "</option>").join("");
     if (locations.includes(selected)) roomsSelect.value = selected;
+    refreshSearchSelect(roomsSelect);
     const query = key($("#query").value);
     const filtered = sorted.filter(
       (i) =>
@@ -439,6 +440,369 @@ function opts(values, selected) {
     )
     .join("");
 }
+let selectId = 0;
+const openSearchDropdowns = new Set();
+document.addEventListener("pointerdown", (event) => {
+  for (const root of [...openSearchDropdowns]) {
+    if (!root.contains(event.target)) root.closeSearchDropdown();
+  }
+});
+
+function enhanceSelect(select) {
+  if (select.dataset.searchSelect === "true") return;
+  select.dataset.searchSelect = "true";
+  const label = select.closest("label");
+  const labelName =
+    label?.querySelector(":scope > span")?.textContent.trim() ||
+    [...(label?.childNodes || [])]
+      .find(
+        (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
+      )
+      ?.textContent.trim() ||
+    "ตัวเลือก";
+  const listId = "search-select-list-" + ++selectId;
+  const root = document.createElement("div");
+  root.className = "search-select";
+  root.dataset.searchSelectRoot = "";
+  select.classList.add("search-select-native");
+  select.hidden = true;
+
+  const input = document.createElement("input");
+  input.type = "search";
+  input.className = "search-select-input";
+  input.autocomplete = "off";
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-haspopup", "listbox");
+  input.setAttribute("aria-expanded", "false");
+  input.setAttribute("aria-controls", listId);
+  input.setAttribute("aria-label", "ค้นหา" + labelName);
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "search-select-toggle";
+  toggle.setAttribute("aria-label", "เปิดตัวเลือก " + labelName);
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.innerHTML =
+    '<span class="search-select-chevron" aria-hidden="true"></span>';
+
+  const panel = document.createElement("div");
+  panel.className = "search-select-panel";
+  panel.hidden = true;
+  const list = document.createElement("div");
+  list.id = listId;
+  list.className = "search-select-options";
+  list.setAttribute("role", "listbox");
+  panel.append(list);
+
+  select.replaceWith(root);
+  root.append(select, input, toggle, panel);
+
+  let open = false;
+  let activeIndex = -1;
+  let visibleOptions = [];
+
+  function renderOptions(query = "") {
+    const normalized = key(query);
+    visibleOptions = [...select.options].filter((option) =>
+      key(option.textContent).includes(normalized),
+    );
+    activeIndex = -1;
+    list.innerHTML = visibleOptions.length
+      ? visibleOptions
+          .map(
+            (option, index) =>
+              '<div class="search-select-option" id="' +
+              listId +
+              "-" +
+              index +
+              '" role="option" data-index="' +
+              index +
+              '" aria-selected="' +
+              (option.value === select.value) +
+              '">' +
+              esc(option.textContent) +
+              "</div>",
+          )
+          .join("")
+      : '<div class="search-select-empty">ไม่พบตัวเลือก</div>';
+  }
+
+  function refresh() {
+    if (open) renderOptions(input.value);
+    else input.value = select.selectedOptions[0]?.textContent || "";
+  }
+
+  function close() {
+    open = false;
+    openSearchDropdowns.delete(root);
+    panel.hidden = true;
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+    toggle.setAttribute("aria-expanded", "false");
+    input.value = select.selectedOptions[0]?.textContent || "";
+  }
+  root.closeSearchDropdown = close;
+
+  function show() {
+    if (open) return;
+    open = true;
+    openSearchDropdowns.add(root);
+    panel.hidden = false;
+    input.value = "";
+    input.setAttribute("aria-expanded", "true");
+    toggle.setAttribute("aria-expanded", "true");
+    renderOptions();
+  }
+
+  function activate(index) {
+    if (!visibleOptions.length) return;
+    activeIndex = Math.max(0, Math.min(index, visibleOptions.length - 1));
+    const options = list.querySelectorAll('[role="option"]');
+    options.forEach((option, optionIndex) => {
+      option.dataset.active = String(optionIndex === activeIndex);
+    });
+    const active = options[activeIndex];
+    input.setAttribute("aria-activedescendant", active.id);
+    active.scrollIntoView({ block: "nearest" });
+  }
+
+  function choose(index) {
+    const option = visibleOptions[index];
+    if (!option) return;
+    select.value = option.value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    close();
+  }
+
+  input.addEventListener("focus", show);
+  input.addEventListener("click", show);
+  input.addEventListener("input", () => renderOptions(input.value));
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (!open) show();
+      activate(activeIndex + 1);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!open) show();
+      activate(activeIndex < 0 ? visibleOptions.length - 1 : activeIndex - 1);
+    } else if (event.key === "Home" && open) {
+      event.preventDefault();
+      activate(0);
+    } else if (event.key === "End" && open) {
+      event.preventDefault();
+      activate(visibleOptions.length - 1);
+    } else if (event.key === "Enter" && open) {
+      event.preventDefault();
+      choose(activeIndex < 0 ? 0 : activeIndex);
+    } else if (event.key === "Escape" && open) {
+      event.preventDefault();
+      close();
+    } else if (event.key === "Tab" && open) close();
+  });
+  toggle.addEventListener("pointerdown", (event) => event.preventDefault());
+  toggle.addEventListener("click", () => {
+    if (open) close();
+    else {
+      input.focus();
+      show();
+    }
+  });
+  list.addEventListener("pointerdown", (event) => {
+    if (event.target.closest('[role="option"]')) event.preventDefault();
+  });
+  list.addEventListener("click", (event) => {
+    const option = event.target.closest('[role="option"]');
+    if (option) {
+      event.preventDefault();
+      choose(Number(option.dataset.index));
+    }
+  });
+  select.addEventListener("change", refresh);
+  root.refreshSearchSelect = refresh;
+  refresh();
+}
+
+function enhanceSelects(container) {
+  container.querySelectorAll("select").forEach(enhanceSelect);
+}
+
+function enhanceDatalist(input) {
+  if (input.dataset.searchList === "true" || !input.list) return;
+  const datalist = input.list;
+  const options = [
+    ...new Set([...datalist.options].map((option) => option.value)),
+  ];
+  if (!options.length) return;
+  input.dataset.searchList = "true";
+  input.removeAttribute("list");
+  const label = input.closest("label");
+  const labelName =
+    label?.querySelector(":scope > span")?.textContent.trim() ||
+    [...(label?.childNodes || [])]
+      .find(
+        (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
+      )
+      ?.textContent.trim() ||
+    "ตัวเลือก";
+  const listId = "search-suggestions-" + ++selectId;
+  const root = document.createElement("div");
+  root.className = "search-select search-autocomplete";
+  input.classList.add("search-select-input");
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-haspopup", "listbox");
+  input.setAttribute("aria-expanded", "false");
+  input.setAttribute("aria-controls", listId);
+  input.setAttribute("aria-label", "ค้นหา" + labelName);
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "search-select-toggle";
+  toggle.setAttribute("aria-label", "แสดงคำแนะนำ " + labelName);
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.innerHTML =
+    '<span class="search-select-chevron" aria-hidden="true"></span>';
+  const panel = document.createElement("div");
+  panel.className = "search-select-panel";
+  panel.hidden = true;
+  const list = document.createElement("div");
+  list.id = listId;
+  list.className = "search-select-options";
+  list.setAttribute("role", "listbox");
+  panel.append(list);
+
+  input.replaceWith(root);
+  root.append(input, toggle, panel);
+  datalist.remove();
+  let open = false;
+  let activeIndex = -1;
+  let visibleOptions = [];
+
+  function renderOptions(query = input.value) {
+    const normalized = key(query);
+    visibleOptions = options.filter((option) =>
+      key(option).includes(normalized),
+    );
+    activeIndex = -1;
+    list.innerHTML = visibleOptions.length
+      ? visibleOptions
+          .map(
+            (option, index) =>
+              '<div class="search-select-option" id="' +
+              listId +
+              "-" +
+              index +
+              '" role="option" data-index="' +
+              index +
+              '" aria-selected="' +
+              (option === input.value) +
+              '">' +
+              esc(option) +
+              "</div>",
+          )
+          .join("")
+      : '<div class="search-select-empty">ไม่พบคำแนะนำ</div>';
+  }
+
+  function close() {
+    open = false;
+    openSearchDropdowns.delete(root);
+    panel.hidden = true;
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+    toggle.setAttribute("aria-expanded", "false");
+  }
+  root.closeSearchDropdown = close;
+
+  function show() {
+    if (open) return;
+    open = true;
+    openSearchDropdowns.add(root);
+    panel.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    toggle.setAttribute("aria-expanded", "true");
+    renderOptions();
+  }
+
+  function activate(index) {
+    if (!visibleOptions.length) return;
+    activeIndex = Math.max(0, Math.min(index, visibleOptions.length - 1));
+    const choices = list.querySelectorAll('[role="option"]');
+    choices.forEach((choice, choiceIndex) => {
+      choice.dataset.active = String(choiceIndex === activeIndex);
+    });
+    const active = choices[activeIndex];
+    input.setAttribute("aria-activedescendant", active.id);
+    active.scrollIntoView({ block: "nearest" });
+  }
+
+  function choose(index) {
+    const option = visibleOptions[index];
+    if (option === undefined) return;
+    input.value = option;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    close();
+  }
+
+  input.addEventListener("focus", show);
+  input.addEventListener("click", show);
+  input.addEventListener("input", () => renderOptions(input.value));
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (!open) show();
+      activate(activeIndex + 1);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!open) show();
+      activate(activeIndex < 0 ? visibleOptions.length - 1 : activeIndex - 1);
+    } else if (event.key === "Home" && open) {
+      event.preventDefault();
+      activate(0);
+    } else if (event.key === "End" && open) {
+      event.preventDefault();
+      activate(visibleOptions.length - 1);
+    } else if (event.key === "Enter" && open && activeIndex >= 0) {
+      event.preventDefault();
+      choose(activeIndex);
+    } else if (event.key === "Escape" && open) {
+      event.preventDefault();
+      close();
+    } else if (event.key === "Tab" && open) close();
+  });
+  toggle.addEventListener("pointerdown", (event) => event.preventDefault());
+  toggle.addEventListener("click", () => {
+    if (open) close();
+    else {
+      input.focus();
+      show();
+    }
+  });
+  list.addEventListener("pointerdown", (event) => {
+    if (event.target.closest('[role="option"]')) event.preventDefault();
+  });
+  list.addEventListener("click", (event) => {
+    const option = event.target.closest('[role="option"]');
+    if (option) {
+      event.preventDefault();
+      choose(Number(option.dataset.index));
+    }
+  });
+}
+
+function enhanceDatalists(container) {
+  container.querySelectorAll("input[list]").forEach(enhanceDatalist);
+}
+
+function refreshSearchSelect(select) {
+  select.closest("[data-search-select-root]")?.refreshSearchSelect();
+}
+
+enhanceSelects(document);
+
 function editorFields(data, isShopping) {
   const names = [...new Set(stock.items.map((i) => i.name))];
   const base =
@@ -569,6 +933,8 @@ function startEditor(mode, data = {}, sourceId = "") {
         "</div>";
   }
   $("#fields").innerHTML = fields;
+  enhanceSelects($("#fields"));
+  enhanceDatalists($("#fields"));
   renderPhoto();
   $("#save").disabled = false;
   if (!$("#editor").open) $("#editor").showModal();
