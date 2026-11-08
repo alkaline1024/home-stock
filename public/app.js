@@ -1,7 +1,7 @@
 "use strict";
 
 const $ = (selector) => document.querySelector(selector);
-const categories = ["อาหารสด", "อาหารแห้ง", "อื่น ๆ"];
+const categories = ["เนื้อสัตว์", "ผัก", "อาหารสด", "อาหารแห้ง", "อื่น ๆ"];
 const rooms = ["ตู้เย็น", "ช่องแช่แข็ง", "ตู้กับข้าว"];
 const titles = { today: "วันนี้", stock: "ของในบ้าน", shopping: "รายการซื้อ" };
 const dateFormat = new Intl.DateTimeFormat("th-TH", {
@@ -54,7 +54,7 @@ function daysLeft(value) {
 }
 
 function dateLabel(item) {
-  if (!item.date) return "ไม่ระบุวันที่";
+  if (!item.date) return "";
   const days = daysLeft(item.date);
   const prefix = item.dateKind === "plan" ? "ตั้งใจใช้" : "หมดอายุ";
   const relative = days === 0 ? "วันนี้" : days === 1 ? "พรุ่งนี้" : "";
@@ -204,6 +204,7 @@ function alertUser(text, action, label, secondaryAction, secondaryLabel) {
 }
 
 function button(action, label, id = "", className = "action") {
+  const role = className === "item-menu-option" ? ' role="menuitem"' : "";
   return (
     '<button type="button" class="' +
     className +
@@ -211,7 +212,9 @@ function button(action, label, id = "", className = "action") {
     action +
     '" data-id="' +
     esc(id) +
-    '">' +
+    '"' +
+    role +
+    ">" +
     label +
     "</button>"
   );
@@ -225,6 +228,38 @@ function thumb(item) {
         esc([...item.name][0] || "·") +
         "</span>";
 }
+const badgeDetails = {
+  category: {
+    เนื้อสัตว์: { icon: "🥩", tone: "meat" },
+    ผัก: { icon: "🥦", tone: "vegetables" },
+    อาหารสด: { icon: "🧺", tone: "fresh" },
+    อาหารแห้ง: { icon: "🌾", tone: "dry" },
+    "อื่น ๆ": { icon: "📦", tone: "other" },
+    ทุกหมวด: { icon: "✦", tone: "all" },
+  },
+  location: {
+    ตู้เย็น: { icon: "🧊", tone: "fridge" },
+    ช่องแช่แข็ง: { icon: "❄️", tone: "freezer" },
+    ตู้กับข้าว: { icon: "🗄️", tone: "pantry" },
+    ทุกที่เก็บ: { icon: "✦", tone: "all" },
+  },
+};
+function valueBadge(value, type) {
+  const detail =
+    badgeDetails[type][value] ||
+    (type === "location"
+      ? { icon: "📍", tone: "custom" }
+      : { icon: "📦", tone: "other" });
+  return (
+    '<span class="stock-badge stock-badge--' +
+    detail.tone +
+    '"><span class="stock-badge-icon" aria-hidden="true">' +
+    detail.icon +
+    "</span><span>" +
+    esc(value) +
+    "</span></span>"
+  );
+}
 function row(item, shopping = false) {
   let meta, detail, actions;
   if (shopping) {
@@ -236,16 +271,30 @@ function row(item, shopping = false) {
       button("edit-shopping", "แก้ไข", item.id, "action small");
   } else {
     detail = amount(item);
-    meta = [item.location, item.category].filter(Boolean).join(" · ");
+    meta = [
+      item.location && valueBadge(item.location, "location"),
+      item.category && valueBadge(item.category, "category"),
+    ]
+      .filter(Boolean)
+      .join("");
     actions =
       button(
         "use",
-        item.qty < 1 ? "ใช้หมด" : "ใช้ 1 " + esc(item.unit),
+        item.qty < 1 ? "- ใช้หมด" : "- 1 " + esc(item.unit),
         item.id,
       ) +
-      button("edit-item", "แก้ไข", item.id, "action small") +
-      button("custom-use", "ระบุจำนวนที่ใช้", item.id, "action small") +
-      button("shopping-from-item", "จดซื้อเพิ่ม", item.id, "action small");
+      button("custom-use", "- ระบุจำนวน", item.id, "action small") +
+      '<div class="item-menu-wrap"><button type="button" class="item-menu-trigger" data-action="toggle-item-menu" data-id="' +
+      esc(item.id) +
+      '" aria-label="ตัวเลือกเพิ่มเติม" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">⋮</span></button><div class="item-menu" role="menu" hidden>' +
+      button("edit-item", "แก้ไข", item.id, "item-menu-option") +
+      button(
+        "shopping-from-item",
+        "+ เพิ่มไปในรายการซื้อ",
+        item.id,
+        "item-menu-option",
+      ) +
+      "</div></div>";
   }
   const date = shopping
     ? ""
@@ -263,8 +312,10 @@ function row(item, shopping = false) {
     esc(detail) +
     "</span></div>" +
     date +
-    '<div class="meta">' +
-    esc(meta) +
+    '<div class="meta' +
+    (shopping ? "" : " item-badges") +
+    '">' +
+    (shopping ? esc(meta) : meta) +
     '</div></div><div class="item-actions">' +
     actions +
     "</div></article>"
@@ -504,6 +555,12 @@ function enhanceSelect(select) {
 
   function renderOptions(query = "") {
     const normalized = key(query);
+    const badgeType =
+      select.id === "category-filter" || select.id === "f-category"
+        ? "category"
+        : select.id === "location-filter"
+          ? "location"
+          : null;
     visibleOptions = [...select.options].filter((option) =>
       key(option.textContent).includes(normalized),
     );
@@ -521,7 +578,9 @@ function enhanceSelect(select) {
               '" aria-selected="' +
               (option.value === select.value) +
               '">' +
-              esc(option.textContent) +
+              (badgeType
+                ? valueBadge(option.textContent, badgeType)
+                : esc(option.textContent)) +
               "</div>",
           )
           .join("")
@@ -682,6 +741,7 @@ function enhanceDatalist(input) {
 
   function renderOptions(query = input.value) {
     const normalized = key(query);
+    const badgeType = input.id === "f-location" ? "location" : null;
     visibleOptions = options.filter((option) =>
       key(option).includes(normalized),
     );
@@ -699,7 +759,7 @@ function enhanceDatalist(input) {
               '" aria-selected="' +
               (option === input.value) +
               '">' +
-              esc(option) +
+              (badgeType ? valueBadge(option, badgeType) : esc(option)) +
               "</div>",
           )
           .join("")
@@ -826,7 +886,7 @@ function editorFields(data, isShopping) {
     '<label>หมวด<select id="f-category">' +
     opts(categories, data.category) +
     "</select></label>" +
-    '<label>ที่เก็บ<input id="f-location" maxlength="60" list="rooms" value="' +
+    '<label>ที่เก็บ<input id="f-location" autocomplete="off" maxlength="60" list="rooms" value="' +
     esc(data.location) +
     '"><datalist id="rooms">' +
     opts([
@@ -1278,6 +1338,18 @@ document.addEventListener("click", async (event) => {
     noticeAction = null;
     return run?.();
   }
+  if (action === "toggle-item-menu") {
+    const menu = target.parentElement.querySelector(".item-menu");
+    const shouldOpen = menu.hidden;
+    closeItemMenus();
+    if (shouldOpen) {
+      menu.hidden = false;
+      target.setAttribute("aria-expanded", "true");
+      if (event.detail === 0) menu.querySelector('[role="menuitem"]')?.focus();
+    }
+    return;
+  }
+  closeItemMenus();
   if (!stock) return;
   if (action === "open-stock") {
     location.hash = "stock";
@@ -1333,6 +1405,35 @@ document.addEventListener("click", async (event) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = "";
     renderPhoto();
+  }
+});
+
+function closeItemMenus(restoreFocus = false) {
+  document.querySelectorAll(".item-menu:not([hidden])").forEach((menu) => {
+    const trigger = menu.parentElement.querySelector(".item-menu-trigger");
+    menu.hidden = true;
+    trigger?.setAttribute("aria-expanded", "false");
+    if (restoreFocus) trigger?.focus();
+  });
+}
+
+document.addEventListener("pointerdown", (event) => {
+  if (!event.target.closest(".item-menu-wrap")) closeItemMenus();
+});
+document.addEventListener("keydown", (event) => {
+  const menu = document.querySelector('.item-menu[role="menu"]:not([hidden])');
+  if (!menu) return;
+  const items = [...menu.querySelectorAll('[role="menuitem"]')];
+  const index = items.indexOf(document.activeElement);
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeItemMenus(true);
+  } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const next =
+      index < 0 ? 0 : (index + direction + items.length) % items.length;
+    items[next]?.focus();
   }
 });
 
