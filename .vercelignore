@@ -1,0 +1,5 @@
+.local-stock/
+.env*
+scripts/
+README.md
+.DS_Store
