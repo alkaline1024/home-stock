@@ -1085,15 +1085,43 @@ footer {
   height: 17px;
   flex: none;
 }
-.paper-plus-label {
+.add-action-label {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
 }
-.paper-plus-icon {
-  width: 18px;
-  height: 18px;
+.add-action-icon-wrap {
+  position: relative;
+  width: 24px;
+  height: 24px;
   flex: none;
+  display: inline-grid;
+  place-items: center;
+}
+.add-action-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.add-action-plus {
+  position: absolute;
+  top: -3px;
+  right: -5px;
+  width: 12px;
+  height: 12px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  background: #c65e4d;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.add-action-text {
+  min-width: 0;
 }
 .item-menu-option:hover,
 .item-menu-option:focus-visible {
@@ -1115,9 +1143,104 @@ footer {
 }
 .filters {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(120px, 1fr) minmax(
+      120px,
+      1fr
+    ) auto;
   gap: 12px;
+  align-items: end;
   margin-bottom: 24px;
+}
+.excel-tools {
+  position: relative;
+}
+.excel-dropdown {
+  position: relative;
+}
+.excel-dropdown summary {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+.excel-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+.excel-dropdown summary svg {
+  width: 18px;
+  height: 18px;
+}
+.excel-dropdown summary:hover,
+.excel-dropdown[open] summary {
+  background: var(--mint);
+  border-color: #9db39e;
+}
+.excel-dropdown-menu {
+  position: absolute;
+  z-index: 25;
+  top: calc(100% + 5px);
+  right: 0;
+  width: max-content;
+  min-width: 240px;
+  display: grid;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(25 54 39 / 16%);
+}
+.excel-dropdown-menu button {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+}
+.excel-dropdown-menu button:hover,
+.excel-dropdown-menu button:focus-visible {
+  background: var(--mint);
+}
+.excel-preview {
+  max-height: 36svh;
+  overflow: auto;
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+.excel-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.excel-preview th,
+.excel-preview td {
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+.excel-preview th {
+  position: sticky;
+  top: 0;
+  background: var(--mint);
+}
+.excel-import-count {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 .filters label span {
   font-size: 0.82rem;
@@ -1430,6 +1553,10 @@ dialog::backdrop {
   }
   .filters .search {
     grid-column: 1/-1;
+  }
+  .excel-tools {
+    grid-column: 1/-1;
+    justify-self: end;
   }
   .line-item {
     grid-template-columns: 43px minmax(0, 1fr);

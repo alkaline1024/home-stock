@@ -1,4 +1,5 @@
 node_modules/
+public/exceljs.min.js
 .vercel/
 .env*
 .local-stock/

@@ -44,6 +44,17 @@ let generation = 0;
 let draft = null;
 let mealDraft = null;
 let mealIngredientSequence = 0;
+let excelJsPromise = null;
+let pendingStockImport = null;
+const stockImportHeaders = [
+  "ชื่อของ",
+  "จำนวน",
+  "หน่วย",
+  "หมวด",
+  "ที่เก็บ",
+  "วันที่ (ถ้ามี)",
+  "ติดตามวันที่",
+];
 let previewUrl = "";
 let noticeAction = null;
 let noticeTimer = 0;
@@ -151,6 +162,8 @@ function entry(mode, message = "") {
   stock = null;
   if ($("#editor").open) $("#editor").close();
   if ($("#meal-editor").open) $("#meal-editor").close();
+  if ($("#excel-import-dialog").open) $("#excel-import-dialog").close();
+  $(".excel-dropdown").open = false;
   $("#app").hidden = true;
   $("#entry").hidden = false;
   $("#login").hidden = mode !== "login";
@@ -164,7 +177,11 @@ function entry(mode, message = "") {
 }
 
 async function refresh(force = false) {
-  if (!force && (busy || $("#editor").open || $("#meal-editor").open)) return;
+  if (
+    !force &&
+    (busy || $("#editor").open || $("#meal-editor").open ||
+      $("#excel-import-dialog").open)
+  ) return;
   if (!force && Date.now() - lastReadStarted < 3000) return;
   lastReadStarted = Date.now();
   const current = ++generation;
@@ -225,7 +242,14 @@ function alertUser(text, action, label, secondaryAction, secondaryLabel) {
   for (const [index, [, caption]] of options.entries()) {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = caption;
+    const addKinds = {
+      จดซื้อ: "shopping",
+      เพิ่มของที่ขาด: "shopping",
+      เพิ่มของในบ้าน: "stock",
+    };
+    button.innerHTML = addKinds[caption]
+      ? addActionLabel(addKinds[caption], caption)
+      : esc(caption);
     button.dataset.action = "notice-action";
     button.dataset.index = String(index);
     notice.append(button);
@@ -259,12 +283,350 @@ function button(action, label, id = "", className = "action") {
   );
 }
 function paperPlusLabel(label) {
+  return addActionLabel("shopping", label);
+}
+const addActionIcons = {
+  stock:
+    '<path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>',
+  meal: '<path d="M3 11h18"/><path d="M5 11v6a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-6"/><path d="M12 3v4"/><path d="M7 4l2 3"/><path d="m17 4-2 3"/>',
+  recipe: '<path d="M6 3h12v18l-6-4-6 4V3Z"/><path d="M9 8h6m-6 4h6"/>',
+  shopping: '<path d="M6 3h12v18l-6-4-6 4V3Z"/><path d="M9 8h6m-6 4h6"/>',
+  ingredient:
+    '<path d="M4 20c4-1 6-4 8-8"/><path d="m10 7 7-4 4 4-4 7"/><path d="m13 9 2 2m-5 1 2 2m-5 1 2 2"/>',
+  cooked:
+    '<path d="M3 12h18"/><path d="M5 12a7 7 0 0 0 14 0"/><path d="M12 3v3m-5-2 1 2m9-2-1 2"/>',
+};
+function addActionLabel(kind, label) {
   return (
-    '<span class="paper-plus-label"><svg class="paper-plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6m-3 3h6"/></svg><span>' +
+    '<span class="add-action-label"><span class="add-action-icon-wrap"><svg class="add-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    (addActionIcons[kind] || addActionIcons.stock) +
+    '</svg><span class="add-action-plus" aria-hidden="true">+</span></span><span class="add-action-text">' +
     esc(label) +
     "</span></span>"
   );
 }
+
+async function loadExcelJS() {
+  if (window.ExcelJS) return window.ExcelJS;
+  if (!excelJsPromise) {
+    excelJsPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "/exceljs.min.js";
+      script.onload = () =>
+        window.ExcelJS
+          ? resolve(window.ExcelJS)
+          : reject(new Error("โหลด ExcelJS ไม่สำเร็จ"));
+      script.onerror = () => {
+        script.remove();
+        reject(new Error("โหลด ExcelJS ไม่สำเร็จ กรุณาลองอีกครั้ง"));
+      };
+      document.head.append(script);
+    }).catch((error) => {
+      excelJsPromise = null;
+      throw error;
+    });
+  }
+  return excelJsPromise;
+}
+
+async function downloadStockTemplate() {
+  const ExcelJS = await loadExcelJS();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "home-stock";
+  const sheet = workbook.addWorksheet("นำเข้าของ");
+  const options = workbook.addWorksheet("Lists");
+  options.state = "hidden";
+
+  const lists = [
+    [
+      "ItemNames",
+      [
+        ...new Set(
+          (stock.items || []).map((item) => item.name).filter(Boolean),
+        ),
+      ],
+    ],
+    [
+      "UnitOptions",
+      [...new Set([
+        "ชิ้น", "กล่อง", "ถุง", "ฟอง", "ขวด", "แพ็ก", "กก.", "ลิตร", "ที่",
+        ...stock.items.map((item) => item.unit),
+      ])],
+    ],
+    ["CategoryOptions", categories],
+    [
+      "LocationOptions",
+      [
+        ...new Set([
+          ...rooms,
+          ...(stock.items || []).map((item) => item.location),
+        ]),
+      ]
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "th")),
+    ],
+    ["DateKindOptions", ["วันหมดอายุ", "ตั้งใจใช้ภายใน"]],
+  ];
+  const listColumns = ["A", "B", "C", "D", "E"];
+  for (const [index, [name, values]] of lists.entries()) {
+    const column = listColumns[index];
+    const choices = values.length ? values : [""];
+    choices.forEach((value, row) => {
+      options.getCell(row + 1, index + 1).value = value;
+    });
+    workbook.definedNames.add(
+      `Lists!$${column}$1:$${column}$${choices.length}`,
+      name,
+    );
+  }
+
+  sheet.columns = [
+    { width: 28 },
+    { width: 13 },
+    { width: 16 },
+    { width: 20 },
+    { width: 22 },
+    { width: 18 },
+    { width: 22 },
+  ];
+  sheet.getRow(1).values = stockImportHeaders;
+  sheet.views = [{ state: "frozen", ySplit: 1 }];
+  sheet.autoFilter = { from: "A1", to: "G1" };
+  sheet.getRow(1).height = 24;
+  sheet.getRow(1).eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF235242" },
+    };
+    cell.alignment = { vertical: "middle" };
+  });
+
+  const validations = [
+    [1, "ItemNames", true, false],
+    [3, "UnitOptions", true, false],
+    [4, "CategoryOptions", true, true],
+    [5, "LocationOptions", true, false],
+    [7, "DateKindOptions", true, true],
+  ];
+  for (let row = 2; row <= 2001; row++) {
+    for (const [column, name, allowBlank, showErrorMessage] of validations) {
+      sheet.getCell(row, column).dataValidation = {
+        type: "list",
+        allowBlank,
+        formulae: [name],
+        showErrorMessage,
+        errorStyle: showErrorMessage ? "stop" : "warning",
+        errorTitle: "ค่าที่ไม่อยู่ในรายการ",
+        error: showErrorMessage
+          ? "กรุณาเลือกค่าจาก dropdown"
+          : "เลือกจาก dropdown หรือกรอกค่าใหม่",
+      };
+    }
+    sheet.getCell(row, 2).dataValidation = {
+      type: "decimal",
+      operator: "between",
+      allowBlank: true,
+      formulae: [0.001, 999999],
+      showErrorMessage: true,
+      errorStyle: "stop",
+      errorTitle: "จำนวนไม่ถูกต้อง",
+      error: "กรอกจำนวนมากกว่า 0 และไม่เกิน 999,999",
+    };
+    sheet.getCell(row, 6).numFmt = "dd/mm/yyyy";
+  }
+
+  const help = workbook.addWorksheet("วิธีกรอก");
+  [
+    "กรอกข้อมูลในชีต นำเข้าของ โดยไม่เปลี่ยนหัวตาราง",
+    "รองรับสูงสุด 2,000 รายการ รวมของที่มีอยู่แล้วในบ้าน",
+    "ชื่อของ จำนวน และหน่วย เป็นข้อมูลที่ต้องกรอก",
+    "จำนวนมากกว่า 0 ถึง 999999 ทศนิยมไม่เกิน 3 ตำแหน่ง",
+    "หน่วยและที่เก็บเลือกจาก dropdown หรือพิมพ์ค่าใหม่ได้",
+    "หมวดและติดตามวันที่เลือกจาก dropdown; เว้นว่างใช้ อื่น ๆ และ วันหมดอายุ",
+    "วันที่เว้นว่างได้ หรือกรอกวัน/เดือน/ปี ค.ศ. เช่น 31/12/2026 หรือ 2026-12-31",
+    "ไม่รองรับสูตรในเซลล์ กรุณาวางเป็นค่าแทน",
+    "นำเข้าเป็นรายการใหม่ ไม่มีรูป และไม่แก้ไขหรือลบรายการเดิม",
+    "ตรวจสอบพรีวิวแล้วกดนำเข้า; อัปโหลดไฟล์เดิมซ้ำจะเพิ่มรายการซ้ำ",
+  ].forEach((text) => help.addRow([text]));
+  help.getColumn(1).width = 110;
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const url = URL.createObjectURL(
+    new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "home-stock-import-template.xlsx";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function stockImportValue(cell) {
+  const value = cell.value;
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number" ||
+    value instanceof Date) return value;
+  if (value.richText) return value.richText.map((part) => part.text).join("");
+  throw new Error("ไม่รองรับสูตร ลิงก์ หรือค่าผิดพลาดในเซลล์ กรุณาวางเป็นค่า");
+}
+
+function stockImportDate(value, date1904 = false) {
+  if (value === "" || (typeof value === "string" && !value.trim())) return "";
+  let date;
+  if (value instanceof Date) {
+    if (!Number.isFinite(value.getTime())) throw new Error("วันที่ไม่ถูกต้อง");
+    date = value.toISOString().slice(0, 10);
+  } else if (typeof value === "number") {
+    if (!Number.isFinite(value) || value < (date1904 ? 0 : 1) ||
+      (!date1904 && Math.floor(value) === 60))
+      throw new Error("วันที่ไม่ถูกต้อง");
+    const epoch = Date.UTC(date1904 ? 1904 : 1899, date1904 ? 0 : 11,
+      date1904 ? 1 : 31);
+    const serial = Math.floor(value);
+    const parsed = new Date(epoch +
+      (serial - (!date1904 && serial > 60 ? 1 : 0)) * 86400000);
+    if (!Number.isFinite(parsed.getTime())) throw new Error("วันที่ไม่ถูกต้อง");
+    date = parsed.toISOString().slice(0, 10);
+  } else {
+    const text = String(value).trim();
+    const parts = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text);
+    date = parts
+      ? parts[3] + "-" + parts[2].padStart(2, "0") + "-" + parts[1].padStart(2, "0")
+      : text;
+  }
+  const parsed = new Date(date + "T00:00:00Z");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+    !Number.isFinite(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== date)
+    throw new Error("วันที่ไม่ถูกต้อง ใช้วัน/เดือน/ปี ค.ศ. หรือ YYYY-MM-DD");
+  return date;
+}
+
+function parseStockImport(workbook) {
+  const sheet = workbook.getWorksheet("นำเข้าของ");
+  if (!sheet) throw new Error("ไม่พบชีต นำเข้าของ กรุณาใช้ไฟล์เทมเพลต");
+  if (stockImportHeaders.some((header, index) =>
+    stockImportValue(sheet.getCell(1, index + 1)) !== header))
+    throw new Error("หัวตารางไม่ตรงกับเทมเพลต กรุณาดาวน์โหลดเทมเพลตใหม่");
+  if (sheet.rowCount > 10001)
+    throw new Error("ชีตมีแถวมากเกินไป กรุณาใช้เทมเพลตไม่เกิน 2,000 รายการ");
+  const items = [], errors = [];
+  let count = 0;
+  for (let row = 2; row <= sheet.rowCount; row++) {
+    const cells = stockImportHeaders.map((_, index) => sheet.getCell(row, index + 1));
+    if (cells.every((cell) => cell.value === null || cell.value === undefined ||
+      (typeof cell.value === "string" && !cell.value.trim()))) continue;
+    count++;
+    try {
+      const values = cells.map(stockImportValue);
+      const text = (index, max, required, label) => {
+        if (values[index] instanceof Date) throw new Error(label + "ต้องเป็นข้อความ");
+        const value = String(values[index]).trim();
+        if ((required && !value) || value.length > max)
+          throw new Error(label + "ต้อง" + (required ? "ไม่ว่างและ" : "") +
+            "ยาวไม่เกิน " + max + " ตัวอักษร");
+        return value;
+      };
+      const name = text(0, 80, true, "ชื่อของ");
+      const quantity = String(values[1]).trim();
+      const qty = Number(quantity);
+      if (!/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(quantity) ||
+        !(qty > 0 && qty <= 999999) ||
+        Math.abs(qty * 1000 - Math.round(qty * 1000)) > 0.0000001 ||
+        Math.round(qty * 1000) === 0)
+        throw new Error("จำนวนต้องมากกว่า 0 ถึง 999999 ทศนิยมไม่เกิน 3 ตำแหน่ง");
+      const unit = text(2, 20, true, "หน่วย");
+      const categoryText = text(3, 30, false, "หมวด") || "อื่น ๆ";
+      const category = categoryAliases[categoryText] || categoryText;
+      if (!categories.includes(category)) throw new Error("หมวดไม่อยู่ในรายการ dropdown");
+      const location = text(4, 60, false, "ที่เก็บ");
+      const date = stockImportDate(values[5], workbook.properties.date1904);
+      const kind = text(6, 30, false, "ติดตามวันที่") || "วันหมดอายุ";
+      if (!["วันหมดอายุ", "ตั้งใจใช้ภายใน"].includes(kind))
+        throw new Error("ติดตามวันที่ไม่อยู่ในรายการ dropdown");
+      items.push({
+        id: crypto.randomUUID(), name, qty: round(qty), unit, category, location,
+        date, dateKind: kind === "ตั้งใจใช้ภายใน" ? "plan" : "expiry", photo: null,
+      });
+    } catch (error) {
+      errors.push("แถว " + row + ": " + error.message);
+    }
+  }
+  if (!count) throw new Error("ไฟล์ไม่มีรายการให้นำเข้า");
+  if (count + stock.items.length > 2000)
+    errors.push("รวมของเดิมแล้วเกิน 2,000 รายการ กรุณาลดรายการก่อนนำเข้า");
+  return { items, errors, count, version: stock.version, stale: false };
+}
+
+async function readStockImport(file) {
+  if (!file || busy || !stock) return;
+  busy = true;
+  ++generation;
+  try {
+    if (!/\.xlsx$/i.test(file.name)) throw new Error("กรุณาเลือกไฟล์ .xlsx");
+    if (file.size > 10 * 1024 * 1024) throw new Error("ไฟล์ Excel ต้องไม่เกิน 10 MB");
+    const ExcelJS = await loadExcelJS();
+    const workbook = new ExcelJS.Workbook();
+    try {
+      await workbook.xlsx.load(await file.arrayBuffer());
+    } catch {
+      throw new Error("อ่านไฟล์ Excel ไม่ได้ ไฟล์อาจเสียหายหรือมีรหัสผ่าน");
+    }
+    pendingStockImport = parseStockImport(workbook);
+    const { items, errors, count } = pendingStockImport;
+    $("#excel-import-summary").innerHTML =
+      '<p class="excel-import-count">พบ ' + count +
+      ' รายการ · เพิ่มเป็นรายการใหม่ ไม่ทับของเดิม ไม่มีรูป</p>' +
+      (errors.length ? '<p>กรุณาแก้ไขไฟล์แล้วอัปโหลดใหม่ (' + errors.length +
+        ' ข้อผิดพลาด)</p><ul>' + errors.slice(0, 10).map((error) =>
+        "<li>" + esc(error) + "</li>").join("") + "</ul>" : "") +
+      (items.length ? '<div class="excel-preview"><table><thead><tr>' +
+        stockImportHeaders.map((header) => "<th>" + esc(header) + "</th>").join("") +
+        "</tr></thead><tbody>" + items.slice(0, 20).map((item) => "<tr>" +
+          [item.name, item.qty, item.unit, item.category, item.location, item.date,
+            item.dateKind === "plan" ? "ตั้งใจใช้ภายใน" : "วันหมดอายุ"]
+            .map((value) => "<td>" + esc(value) + "</td>").join("") + "</tr>").join("") +
+        "</tbody></table></div>" +
+        (items.length > 20 ? "<p>แสดงตัวอย่าง 20 รายการแรก</p>" : "") : "");
+    $("#excel-import-error").textContent = "";
+    $("#excel-import-confirm").disabled = errors.length > 0;
+    $("#excel-import-dialog").showModal();
+  } catch (error) {
+    pendingStockImport = null;
+    alertUser(error.message || "อ่านไฟล์นำเข้าไม่ได้");
+  } finally {
+    busy = false;
+    $("#stock-import-file").value = "";
+  }
+}
+
+$("#stock-import-file").addEventListener("change", (event) =>
+  readStockImport(event.target.files[0]));
+$("#excel-import-dialog").addEventListener("cancel", (event) => {
+  if (busy) event.preventDefault();
+});
+$("#excel-import-dialog").addEventListener("close", () => {
+  pendingStockImport = null;
+});
+$("#excel-import-confirm").addEventListener("click", () => {
+  if (!pendingStockImport || pendingStockImport.errors.length ||
+    pendingStockImport.stale) return;
+  const { items, version } = pendingStockImport;
+  mutation(async (next) => {
+    if (next.items.length + items.length > 2000)
+      throw new Error("รวมของเดิมแล้วเกิน 2,000 รายการ");
+    next.items.push(...items);
+  }, version, () => {
+    $("#excel-import-dialog").close();
+    alertUser("นำเข้าของแล้ว " + items.length + " รายการ");
+  });
+});
 function thumb(item) {
   return item.photo
     ? '<img class="thumb" decoding="async" loading="lazy" alt="" src="/api/photo?id=' +
@@ -315,7 +677,7 @@ function row(item, shopping = false) {
     detail = "ซื้อ " + amount(item);
     meta = "ที่บ้านเหลือ " + amountFormat.format(total) + " " + item.unit;
     actions =
-      button("receive", "ซื้อแล้ว", item.id) +
+      button("receive", addActionLabel("stock", "ซื้อแล้ว"), item.id) +
       button("edit-shopping", "แก้ไข", item.id, "action small");
   } else {
     detail = amount(item);
@@ -409,13 +771,19 @@ function section(title, items, options = {}) {
   );
 }
 function empty(title, description, action = "", label = "") {
+  const actionLabel =
+    action === "add"
+      ? addActionLabel("stock", label)
+      : action === "new-shopping"
+        ? addActionLabel("shopping", label)
+        : label;
   return (
     '<section class="empty"><h2>' +
     esc(title) +
     "</h2><p>" +
     esc(description) +
     "</p>" +
-    (action ? button(action, label, "", "secondary") : "") +
+    (action ? button(action, actionLabel, "", "secondary") : "") +
     "</section>"
   );
 }
@@ -450,16 +818,18 @@ function mealShortages(plan, items = stock?.items || []) {
 
 function shortageDropdown(planId) {
   return (
-    '<details class="shortage-dropdown"><summary class="secondary">เพิ่มของที่ขาด</summary><div class="shortage-dropdown-menu" role="menu">' +
+    '<details class="shortage-dropdown"><summary class="secondary">' +
+    addActionLabel("stock", "เพิ่มของที่ขาด") +
+    '</summary><div class="shortage-dropdown-menu" role="menu">' +
     button(
       "add-shortages-inventory",
-      "เพิ่มของในบ้าน",
+      addActionLabel("stock", "เพิ่มของในบ้าน"),
       planId,
       "shortage-menu-option",
     ) +
     button(
       "add-shortages-shopping",
-      "จดรายการซื้อ",
+      addActionLabel("shopping", "จดรายการซื้อ"),
       planId,
       "shortage-menu-option",
     ) +
@@ -485,7 +855,7 @@ function mealPlanCard(plan) {
       (!plan.cookedItemCreated
         ? button(
             "create-cooked-stock",
-            "เพิ่มเข้ารายการปรุงสุก",
+            addActionLabel("cooked", "เพิ่มเข้ารายการปรุงสุก"),
             plan.id,
             "secondary",
           )
@@ -550,7 +920,7 @@ function mealPlanListRow(plan) {
         ? (!plan.cookedItemCreated
             ? button(
                 "create-cooked-stock",
-                "เพิ่มเข้ารายการปรุงสุก",
+                addActionLabel("cooked", "เพิ่มเข้ารายการปรุงสุก"),
                 plan.id,
                 "secondary",
               )
@@ -619,7 +989,12 @@ function mealRecipeCard(recipe) {
     ' ที่</span></div><div class="recipe-ingredients">' +
     ingredients +
     '</div><div class="recipe-card-actions">' +
-    button("plan-recipe", "วางแผนเมนูนี้", recipe.id, "primary") +
+    button(
+      "plan-recipe",
+      addActionLabel("meal", "วางแผนเมนูนี้"),
+      recipe.id,
+      "primary",
+    ) +
     button("edit-recipe", "แก้ไขเมนู", recipe.id, "secondary") +
     button("remove-recipe", "ลบเมนู", recipe.id, "text-button danger") +
     "</div></article>"
@@ -788,7 +1163,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
     '</h3><button type="button" class="calendar-nav" data-action="calendar-next" aria-label="เดือนถัดไป">›</button></div>' +
     button(
       "add-meal-plan",
-      "＋ วางแผนทำอาหาร",
+      addActionLabel("meal", "วางแผนทำอาหาร"),
       selectedCalendarDate || todayKey,
       "secondary calendar-add-plan",
     ) +
@@ -827,10 +1202,10 @@ function draw() {
     page === "shopping"
       ? paperPlusLabel("จดรายการซื้อ")
       : page === "meals"
-        ? '<span aria-hidden="true">🍲</span> วางแผนทำอาหาร'
+        ? addActionLabel("meal", "วางแผนทำอาหาร")
         : page === "recipes"
-          ? "＋ เพิ่มเมนู"
-          : '<span aria-hidden="true">＋</span> เพิ่มของ';
+          ? addActionLabel("recipe", "เพิ่มเมนู")
+          : addActionLabel("stock", "เพิ่มของ");
   $("#page-add").dataset.action =
     page === "shopping"
       ? "new-shopping"
@@ -1481,7 +1856,9 @@ function mealEditorFields(plan, defaultDate, selectedRecipeId = "") {
     servings +
     '"></label><div class="span"><div class="section-head"><h3>วัตถุดิบ</h3></div><div class="meal-ingredient-list" id="meal-ingredients">' +
     ingredients.map(mealIngredientRow).join("") +
-    '</div><button type="button" class="secondary meal-add-ingredient" data-action="add-meal-ingredient">＋ เพิ่มวัตถุดิบ</button></div><label class="span meal-template-save"><input id="meal-save-template" type="checkbox"><span id="meal-template-save-label">' +
+    '</div><button type="button" class="secondary meal-add-ingredient" data-action="add-meal-ingredient">' +
+    addActionLabel("ingredient", "เพิ่มวัตถุดิบ") +
+    '</button></div><label class="span meal-template-save"><input id="meal-save-template" type="checkbox"><span id="meal-template-save-label">' +
     templateSaveLabel +
     "</span></label></div>"
   );
@@ -1496,7 +1873,9 @@ function recipeEditorFields(recipe = null) {
     (recipe?.servings || 2) +
     '"></label><div class="span"><div class="section-head"><h3>วัตถุดิบ</h3></div><div class="meal-ingredient-list" id="meal-ingredients">' +
     ingredients.map(mealIngredientRow).join("") +
-    '</div><button type="button" class="secondary meal-add-ingredient" data-action="add-meal-ingredient">＋ เพิ่มวัตถุดิบ</button></div></div>'
+    '</div><button type="button" class="secondary meal-add-ingredient" data-action="add-meal-ingredient">' +
+    addActionLabel("ingredient", "เพิ่มวัตถุดิบ") +
+    "</button></div></div>"
   );
 }
 
@@ -1975,9 +2354,11 @@ function formItem() {
 async function mutation(change, expected, done) {
   if (busy || !stock) return;
   const inDialog = $("#editor").open;
+  const inImportDialog = $("#excel-import-dialog").open;
   busy = true;
   ++generation;
   if (inDialog) $("#save").disabled = true;
+  if (inImportDialog) $("#excel-import-confirm").disabled = true;
   try {
     if (stock.version !== expected) throw new ApiError(409, "");
     const next = structuredClone(stock);
@@ -2006,11 +2387,24 @@ async function mutation(change, expected, done) {
       $("#form-error").textContent = message;
       if (conflict || (draft && draft.version !== stock?.version))
         draft.stale = true;
+    } else if (inImportDialog && $("#excel-import-dialog").open) {
+      $("#excel-import-error").textContent = message;
+      if (pendingStockImport &&
+        (conflict || error.status === 0 || error.status >= 500)) {
+        pendingStockImport.stale = true;
+        $("#excel-import-error").textContent +=
+          " · กรุณาตรวจของในบ้านก่อนอัปโหลดใหม่ เพื่อไม่ให้นำเข้าซ้ำ";
+      }
     } else if (stock) alertUser(message);
   } finally {
     busy = false;
     if ($("#editor").open)
       $("#save").disabled = Boolean(draft?.stale || draft?.processing);
+    if ($("#excel-import-dialog").open)
+      $("#excel-import-confirm").disabled = Boolean(
+        !pendingStockImport || pendingStockImport.stale ||
+        pendingStockImport.errors.length,
+      );
   }
 }
 
@@ -2336,6 +2730,30 @@ document.addEventListener("click", async (event) => {
   }
   closeItemMenus();
   if (!stock) return;
+  if (action === "close-excel-import") {
+    if ($("#excel-import-dialog").open) $("#excel-import-dialog").close();
+    return;
+  }
+  if (action === "choose-stock-import") {
+    $(".excel-dropdown").open = false;
+    $("#stock-import-file").click();
+    return;
+  }
+  if (action === "download-stock-template") {
+    $(".excel-dropdown").open = false;
+    busy = true;
+    ++generation;
+    target.disabled = true;
+    try {
+      await downloadStockTemplate();
+    } catch (error) {
+      alertUser(error.message || "ดาวน์โหลดเทมเพลตไม่ได้ กรุณาลองอีกครั้ง");
+    } finally {
+      busy = false;
+      target.disabled = false;
+    }
+    return;
+  }
   if (action === "add-recipe") return startRecipeEditor();
   if (action === "edit-recipe" && recipe) return startRecipeEditor(recipe);
   if (action === "remove-recipe" && recipe)
@@ -2464,8 +2882,13 @@ function closeItemMenus(restoreFocus = false) {
 
 document.addEventListener("pointerdown", (event) => {
   if (!event.target.closest(".item-menu-wrap")) closeItemMenus();
+  if (!event.target.closest(".excel-dropdown")) $(".excel-dropdown").open = false;
 });
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && $(".excel-dropdown").open) {
+    $(".excel-dropdown").open = false;
+    $(".excel-dropdown summary").focus();
+  }
   const menu = document.querySelector('.item-menu[role="menu"]:not([hidden])');
   if (!menu) return;
   const items = [...menu.querySelectorAll('[role="menuitem"]')];
@@ -2486,6 +2909,7 @@ $("#query").addEventListener("input", draw);
 $("#category-filter").addEventListener("change", draw);
 $("#location-filter").addEventListener("change", draw);
 window.addEventListener("hashchange", () => {
+  $(".excel-dropdown").open = false;
   draw();
   window.scrollTo(0, 0);
 });
