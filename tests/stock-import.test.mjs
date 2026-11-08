@@ -119,6 +119,14 @@ test("animation mode changes persist to local storage", () => {
   assert.equal(storedValues.get("home-stock-animation"), "minimal");
 });
 
+test("settings lists all animation modes and places logout on that screen", () => {
+  const { context } = app();
+  const html = vm.runInContext("settingsContent()", context);
+  for (const mode of ["full", "minimal", "off"])
+    assert.match(html, new RegExp('value="' + mode + '"'));
+  assert.match(html, /data-action="logout"/);
+});
+
 test("off animation mode skips the loading scene", () => {
   const { context, element } = app();
   vm.runInContext(

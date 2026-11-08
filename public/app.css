@@ -796,7 +796,7 @@ body.pantry-loading-active {
   min-height: 72px;
   gap: 12px;
 }
-.top .text-button {
+.top .settings-link {
   color: #e8eddf;
 }
 .settings-link {
