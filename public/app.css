@@ -167,6 +167,16 @@ label > select {
   background: #fff3bf;
   border-color: #ecd983;
 }
+.stock-badge--frozen {
+  color: #285d91;
+  background: #e5f0fb;
+  border-color: #c9dced;
+}
+.stock-badge--cooked {
+  color: #8a4532;
+  background: #f9e9df;
+  border-color: #e9cbbc;
+}
 .stock-badge--meat {
   color: #963d32;
   background: #fae9e5;
@@ -588,6 +598,33 @@ footer {
 .calendar-nav:hover {
   background: var(--mint);
 }
+.calendar-add-plan {
+  white-space: nowrap;
+}
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.calendar-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.calendar-legend-expiry {
+  background: #c65e4d;
+}
+.calendar-legend-meal {
+  background: #4a8d64;
+}
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -639,19 +676,35 @@ footer {
   font-weight: 600;
 }
 .calendar-day-count {
-  min-width: 22px;
-  padding: 1px 5px;
+  min-width: 19px;
+  padding: 1px 4px;
   border-radius: 999px;
   background: #edf0eb;
-  color: var(--muted);
   font-size: 0.7rem;
   line-height: 1.35;
   text-align: center;
 }
-.calendar-day.has-expiry .calendar-day-count {
+.calendar-expiry-count {
   background: #fae9e5;
   color: #963d32;
   font-weight: 700;
+}
+.calendar-meal-count {
+  background: #e7f1e4;
+  color: #355d37;
+  font-weight: 700;
+}
+.calendar-day-counts {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.calendar-detail-group + .calendar-detail-group {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 .calendar-blank {
   min-height: 1px;
@@ -669,6 +722,66 @@ footer {
   padding: 12px 0;
   color: var(--muted);
   font-size: 0.9rem;
+}
+.meal-plan-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.meal-plan-card {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.meal-plan-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.meal-plan-card h4 {
+  font-size: 1rem;
+}
+.meal-plan-status {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e7f1e4;
+  color: #355d37;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.meal-plan-status.is-cooked {
+  background: #edf0eb;
+  color: var(--muted);
+}
+.meal-plan-summary,
+.meal-plan-ingredients {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.meal-plan-shortage {
+  margin-top: 7px;
+  color: #963d32;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.meal-plan-available {
+  margin-top: 7px;
+  color: #355d37;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.meal-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.meal-plan-actions button {
+  min-height: 40px;
 }
 .line-item {
   display: grid;
@@ -887,6 +1000,49 @@ dialog::backdrop {
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
+.meal-ingredient-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.meal-ingredient-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(82px, 0.65fr) minmax(
+      90px,
+      0.8fr
+    ) 44px;
+  align-items: end;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.meal-ingredient-row label {
+  font-size: 0.8rem;
+}
+.meal-ingredient-row input {
+  min-width: 0;
+}
+.meal-remove-ingredient {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+.meal-add-ingredient {
+  margin-top: 8px;
+}
+.meal-template-save {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.9rem;
+}
+.meal-template-save input {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--green);
+}
 .span {
   grid-column: 1/-1;
 }
@@ -1024,8 +1180,12 @@ dialog::backdrop {
     font-size: 0.8rem;
   }
   .calendar-day-count {
-    min-width: 19px;
+    min-width: 17px;
     padding-inline: 3px;
+    font-size: 0.64rem;
+  }
+  .calendar-day-counts {
+    gap: 2px;
   }
   .filters {
     grid-template-columns: 1fr 1fr;
@@ -1063,6 +1223,20 @@ dialog::backdrop {
   }
   .form-grid {
     grid-template-columns: 1fr;
+  }
+  .meal-ingredient-row {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+  .meal-ingredient-row label:first-child {
+    grid-column: 1;
+  }
+  .meal-ingredient-row label:nth-child(2),
+  .meal-ingredient-row label:nth-child(3) {
+    grid-column: 1;
+  }
+  .meal-ingredient-row .meal-remove-ingredient {
+    grid-column: 2;
+    grid-row: 1 / span 3;
   }
   .page-title {
     gap: 6px;

@@ -76,6 +76,7 @@
         <nav aria-label="เมนูหลัก" class="tabs">
           <a href="#today" data-tab="today">หน้าหลัก</a
           ><a href="#stock" data-tab="stock">ของในบ้าน</a
+          ><a href="#meals" data-tab="meals">แผนทำอาหาร</a
           ><a href="#shopping" data-tab="shopping"
             >รายการซื้อ <span id="shopping-count">0</span></a
           >
@@ -105,8 +106,10 @@
               <option value="">ทุกหมวด</option>
               <option>เนื้อสัตว์</option>
               <option>ผัก</option>
-              <option>อาหารสด</option>
-              <option>อาหารแห้ง</option>
+              <option>ของสด</option>
+              <option>ของแช่แข็ง</option>
+              <option>ของแห้ง</option>
+              <option>อาหารปรุงสุก</option>
               <option>อื่น ๆ</option>
             </select></label
           >
@@ -143,6 +146,33 @@
           <button type="button" class="secondary" data-action="close">
             ยกเลิก</button
           ><button type="submit" id="save" class="primary">บันทึก</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="meal-editor" aria-labelledby="meal-editor-title">
+      <div class="dialog-head">
+        <h2 id="meal-editor-title">วางแผนทำอาหาร</h2>
+        <button
+          type="button"
+          class="close"
+          aria-label="ปิด"
+          data-action="close-meal-editor"
+        >
+          ×
+        </button>
+      </div>
+      <form id="meal-form">
+        <div id="meal-fields"></div>
+        <p id="meal-error" role="alert" class="error"></p>
+        <div class="dialog-actions">
+          <button
+            type="button"
+            class="secondary"
+            data-action="close-meal-editor"
+          >
+            ยกเลิก
+          </button>
+          <button type="submit" id="meal-save" class="primary">วางแผน</button>
         </div>
       </form>
     </dialog>

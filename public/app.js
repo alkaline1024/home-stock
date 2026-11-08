@@ -1,12 +1,22 @@
 "use strict";
 
 const $ = (selector) => document.querySelector(selector);
-const categories = ["เนื้อสัตว์", "ผัก", "อาหารสด", "อาหารแห้ง", "อื่น ๆ"];
+const categories = [
+  "เนื้อสัตว์",
+  "ผัก",
+  "ของสด",
+  "ของแช่แข็ง",
+  "ของแห้ง",
+  "อาหารปรุงสุก",
+  "อื่น ๆ",
+];
+const categoryAliases = { อาหารสด: "ของสด", อาหารแห้ง: "ของแห้ง" };
 const rooms = ["ตู้เย็น", "ช่องแช่แข็ง", "ตู้กับข้าว"];
 const titles = {
   today: "หน้าหลัก",
   stock: "ของในบ้าน",
   shopping: "รายการซื้อ",
+  meals: "แผนทำอาหาร",
 };
 const dateFormat = new Intl.DateTimeFormat("th-TH", {
   day: "numeric",
@@ -31,6 +41,8 @@ let stock = null;
 let busy = false;
 let generation = 0;
 let draft = null;
+let mealDraft = null;
+let mealIngredientSequence = 0;
 let previewUrl = "";
 let noticeAction = null;
 let noticeTimer = 0;
@@ -39,7 +51,7 @@ let lastActive = Date.now();
 let lastReadStarted = 0;
 let calendarYear = new Date().getFullYear();
 let calendarMonth = new Date().getMonth();
-let selectedExpiryDate = "";
+let selectedCalendarDate = "";
 const idleAfter = 5 * 60 * 1000;
 
 function tab() {
@@ -129,7 +141,7 @@ function errorText(error) {
   if (error.status === 429)
     return "มีคำขอมากเกินไป กรุณารอสักครู่แล้วลองอีกครั้ง";
   if (error.status === 400 || error.status === 422)
-    return "บันทึกไม่ได้ กรุณาตรวจชื่อ จำนวน หน่วย และวันที่อีกครั้ง";
+    return error.message || "ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบรายการอีกครั้ง";
   return "ติดต่อบริการไม่สำเร็จ กรุณาลองอีกครั้ง";
 }
 
@@ -137,6 +149,7 @@ function entry(mode, message = "") {
   generation++;
   stock = null;
   if ($("#editor").open) $("#editor").close();
+  if ($("#meal-editor").open) $("#meal-editor").close();
   $("#app").hidden = true;
   $("#entry").hidden = false;
   $("#login").hidden = mode !== "login";
@@ -150,7 +163,7 @@ function entry(mode, message = "") {
 }
 
 async function refresh(force = false) {
-  if (!force && (busy || $("#editor").open)) return;
+  if (!force && (busy || $("#editor").open || $("#meal-editor").open)) return;
   if (!force && Date.now() - lastReadStarted < 3000) return;
   lastReadStarted = Date.now();
   const current = ++generation;
@@ -159,6 +172,10 @@ async function refresh(force = false) {
     if (current !== generation) return;
     if (!Array.isArray(newer.items) || !Array.isArray(newer.shopping))
       throw new Error();
+    newer.items = newer.items.map((item) => ({
+      ...item,
+      category: categoryAliases[item.category] || item.category,
+    }));
     const changed =
       !stock ||
       stock.version !== newer.version ||
@@ -258,8 +275,10 @@ const badgeDetails = {
   category: {
     เนื้อสัตว์: { icon: "🥩", tone: "meat" },
     ผัก: { icon: "🥦", tone: "vegetables" },
-    อาหารสด: { icon: "🧺", tone: "fresh" },
-    อาหารแห้ง: { icon: "🌾", tone: "dry" },
+    ของสด: { icon: "🧺", tone: "fresh" },
+    ของแช่แข็ง: { icon: "🧊", tone: "frozen" },
+    ของแห้ง: { icon: "🌾", tone: "dry" },
+    อาหารปรุงสุก: { icon: "🍲", tone: "cooked" },
     "อื่น ๆ": { icon: "📦", tone: "other" },
     ทุกหมวด: { icon: "✦", tone: "all" },
   },
@@ -398,7 +417,126 @@ function empty(title, description, action = "", label = "") {
   );
 }
 
-function expiryCalendar(items) {
+function mealShortages(plan, items = stock?.items || []) {
+  const required = new Map();
+  for (const ingredient of plan.ingredients) {
+    const groupKey = key(ingredient.name) + "\u0000" + key(ingredient.unit);
+    const group = required.get(groupKey) || {
+      name: ingredient.name,
+      unit: ingredient.unit,
+      qty: 0,
+    };
+    group.qty = round(group.qty + ingredient.qty);
+    required.set(groupKey, group);
+  }
+  return [...required.values()]
+    .map((ingredient) => {
+      const available = round(
+        items
+          .filter(
+            (item) =>
+              key(item.name) === key(ingredient.name) &&
+              key(item.unit) === key(ingredient.unit),
+          )
+          .reduce((sum, item) => sum + item.qty, 0),
+      );
+      return { ...ingredient, missing: round(ingredient.qty - available) };
+    })
+    .filter((ingredient) => ingredient.missing > 0.0001);
+}
+
+function mealPlanCard(plan) {
+  const shortages = plan.status === "planned" ? mealShortages(plan) : [];
+  const ingredients = plan.ingredients
+    .map((item) => esc(item.name) + " " + esc(amount(item)))
+    .join(" · ");
+  let actions = button(
+    "create-cooked-stock",
+    "เพิ่มในของปรุงสุก",
+    plan.id,
+    "secondary",
+  );
+  if (plan.status === "planned") {
+    actions =
+      button("edit-meal-plan", "แก้ไขแผน", plan.id, "secondary action small") +
+      (shortages.length
+        ? button("add-meal-shortages", "เพิ่มของที่ขาด", plan.id, "secondary")
+        : button("mark-meal-cooked", "ทำอาหารแล้ว", plan.id, "primary")) +
+      button("remove-meal-plan", "ลบแผน", plan.id, "text-button danger") +
+      button("create-cooked-stock", "เพิ่มในของปรุงสุก", plan.id, "secondary");
+  }
+  const dateLabel = dateFormat.format(localDay(plan.date));
+  return (
+    '<article class="meal-plan-card"><div class="meal-plan-card-head"><h4>🍲 ' +
+    esc(plan.name) +
+    '</h4><span class="meal-plan-status' +
+    (plan.status === "cooked" ? " is-cooked" : "") +
+    '">' +
+    (plan.status === "cooked" ? "ทำแล้ว" : "วางแผน") +
+    '</span></div><p class="meal-plan-summary">' +
+    esc(dateLabel) +
+    " · " +
+    plan.servings +
+    " ที่ · " +
+    (plan.recipeId ? "จากเมนูที่บันทึกไว้" : "แผนเฉพาะมื้อ") +
+    '</p><p class="meal-plan-ingredients">' +
+    ingredients +
+    "</p>" +
+    (shortages.length
+      ? '<p class="meal-plan-shortage">ของขาด: ' +
+        shortages
+          .map(
+            (item) =>
+              esc(item.name) +
+              " " +
+              amountFormat.format(item.missing) +
+              " " +
+              esc(item.unit),
+          )
+          .join(" · ") +
+        "</p>"
+      : plan.status === "planned"
+        ? '<p class="meal-plan-available">วัตถุดิบครบ</p>'
+        : "") +
+    (actions ? '<div class="meal-plan-actions">' + actions + "</div>" : "") +
+    "</article>"
+  );
+}
+
+function mealRecipeCard(recipe) {
+  const ingredients = recipe.ingredients
+    .map((item) => esc(item.name) + " " + esc(amount(item)))
+    .join(" · ");
+  return (
+    '<article class="meal-plan-card"><div class="meal-plan-card-head"><h4>📖 ' +
+    esc(recipe.name) +
+    '</h4><span class="meal-plan-status">สูตรต้นแบบ</span></div><p class="meal-plan-summary">' +
+    recipe.servings +
+    ' ที่</p><p class="meal-plan-ingredients">' +
+    ingredients +
+    '</p><div class="meal-plan-actions">' +
+    button("plan-recipe", "วางแผนเมนูนี้", recipe.id, "primary") +
+    "</div></article>"
+  );
+}
+
+function mealCollectionSection(title, items, emptyMessage, renderItem) {
+  return (
+    '<section class="section meal-page-section"><div class="section-head"><h2>' +
+    esc(title) +
+    "</h2><span>" +
+    items.length +
+    " รายการ</span></div>" +
+    (items.length
+      ? '<div class="meal-plan-list">' +
+        items.map(renderItem).join("") +
+        "</div>"
+      : '<p class="meal-page-empty">' + esc(emptyMessage) + "</p>") +
+    "</section>"
+  );
+}
+
+function expiryCalendar(items, plans = stock?.mealPlans || []) {
   const firstDay = new Date(calendarYear, calendarMonth, 1);
   const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
   const today = new Date();
@@ -408,9 +546,13 @@ function expiryCalendar(items) {
     today.getDate(),
   );
   const counts = new Map();
+  const planCounts = new Map();
   for (const item of items) {
     if (!item.date || item.dateKind !== "expiry") continue;
     counts.set(item.date, (counts.get(item.date) || 0) + 1);
+  }
+  for (const plan of plans) {
+    planCounts.set(plan.date, (planCounts.get(plan.date) || 0) + 1);
   }
 
   const weekdays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -431,7 +573,24 @@ function expiryCalendar(items) {
     const day = date.getDate();
     const dateKey = calendarDateKey(dateYear, dateMonth, day);
     const count = counts.get(dateKey) || 0;
-    const selected = dateKey === selectedExpiryDate;
+    const mealCount = planCounts.get(dateKey) || 0;
+    const countBadges = [
+      count &&
+        '<span class="calendar-day-count calendar-expiry-count" aria-label="หมดอายุ ' +
+          count +
+          '">' +
+          count +
+          "</span>",
+      mealCount &&
+        '<span class="calendar-day-count calendar-meal-count" aria-label="แผนทำอาหาร ' +
+          mealCount +
+          '">' +
+          mealCount +
+          "</span>",
+    ]
+      .filter(Boolean)
+      .join("");
+    const selected = dateKey === selectedCalendarDate;
     const inCurrentMonth = dateMonth === calendarMonth;
     const dateLabel = new Intl.DateTimeFormat("th-TH", {
       weekday: "long",
@@ -443,43 +602,65 @@ function expiryCalendar(items) {
       '<button type="button" class="calendar-day' +
       (inCurrentMonth ? "" : " is-adjacent") +
       (count ? " has-expiry" : " is-empty") +
+      (mealCount ? " has-meals" : "") +
       (dateKey === todayKey ? " is-today" : "") +
       (selected ? " is-selected" : "") +
       '" data-action="select-expiry-date" data-id="' +
       dateKey +
       '" aria-label="' +
-      esc(dateLabel + ", หมดอายุ " + count + " รายการ") +
+      esc(
+        dateLabel +
+          ", หมดอายุ " +
+          count +
+          " รายการ, แผนทำอาหาร " +
+          mealCount +
+          " เมนู",
+      ) +
       '" aria-pressed="' +
       selected +
       '"' +
       (dateKey === todayKey ? ' aria-current="date"' : "") +
       '"><span class="calendar-day-number">' +
       day +
-      '</span><span class="calendar-day-count">' +
-      count +
-      "</span></button>";
+      "</span>" +
+      (countBadges
+        ? '<span class="calendar-day-counts">' + countBadges + "</span>"
+        : "") +
+      "</button>";
   }
 
   let details = "";
-  if (selectedExpiryDate) {
+  if (selectedCalendarDate) {
     const selectedItems = items.filter(
-      (item) => item.dateKind === "expiry" && item.date === selectedExpiryDate,
+      (item) =>
+        item.dateKind === "expiry" && item.date === selectedCalendarDate,
+    );
+    const selectedPlans = plans.filter(
+      (plan) => plan.date === selectedCalendarDate,
     );
     const selectedLabel = new Intl.DateTimeFormat("th-TH", {
       day: "numeric",
       month: "long",
       year: "numeric",
-    }).format(localDay(selectedExpiryDate));
+    }).format(localDay(selectedCalendarDate));
     details =
-      '<div class="calendar-details" aria-live="polite"><h3>หมดอายุวันที่ ' +
+      '<div class="calendar-details" aria-live="polite"><section class="calendar-detail-group"><h3>หมดอายุวันที่ ' +
       esc(selectedLabel) +
       " · " +
       selectedItems.length +
       " รายการ</h3>" +
       (selectedItems.length
         ? selectedItems.map((item) => row(item)).join("")
-        : '<p class="calendar-no-expiry">ไม่มีของหมดอายุในวันนี้</p>') +
-      "</div>";
+        : '<p class="calendar-no-expiry">ไม่มีของหมดอายุวันนี้</p>') +
+      '</section><section class="calendar-detail-group"><h3>แผนทำอาหาร · ' +
+      selectedPlans.length +
+      " เมนู</h3>" +
+      (selectedPlans.length
+        ? '<div class="meal-plan-list">' +
+          selectedPlans.map(mealPlanCard).join("") +
+          "</div>"
+        : '<p class="calendar-no-expiry">ยังไม่มีแผนทำอาหารวันนี้</p>') +
+      "</section></div>";
   }
 
   const monthLabel = new Intl.DateTimeFormat("th-TH", {
@@ -487,9 +668,16 @@ function expiryCalendar(items) {
     year: "numeric",
   }).format(firstDay);
   return (
-    '<section class="expiry-calendar" aria-labelledby="expiry-calendar-title"><div class="calendar-head"><h2 id="expiry-calendar-title">วันหมดอายุ</h2><div class="calendar-month"><button type="button" class="calendar-nav" data-action="calendar-prev" aria-label="เดือนก่อน">‹</button><h3>' +
+    '<section class="expiry-calendar" aria-labelledby="expiry-calendar-title"><div class="calendar-head"><h2 id="expiry-calendar-title">ปฏิทิน</h2><div class="calendar-month"><button type="button" class="calendar-nav" data-action="calendar-prev" aria-label="เดือนก่อน">‹</button><h3>' +
     esc(monthLabel) +
-    '</h3><button type="button" class="calendar-nav" data-action="calendar-next" aria-label="เดือนถัดไป">›</button></div></div><div class="calendar-grid">' +
+    '</h3><button type="button" class="calendar-nav" data-action="calendar-next" aria-label="เดือนถัดไป">›</button></div>' +
+    button(
+      "add-meal-plan",
+      "＋ วางแผนทำอาหาร",
+      selectedCalendarDate || todayKey,
+      "secondary calendar-add-plan",
+    ) +
+    '</div><div class="calendar-legend"><span><i class="calendar-legend-expiry"></i>วันหมดอายุ</span><span><i class="calendar-legend-meal"></i>แผนทำอาหาร</span></div><div class="calendar-grid">' +
     cells +
     "</div>" +
     details +
@@ -507,6 +695,11 @@ function draw() {
       else link.removeAttribute("aria-current");
     });
   const today = new Date();
+  const todayKey = calendarDateKey(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
   lastDrawDay = today.toDateString();
   $("#date-label").textContent = new Intl.DateTimeFormat("th-TH", {
     weekday: "long",
@@ -518,8 +711,18 @@ function draw() {
   $("#page-add").innerHTML =
     page === "shopping"
       ? paperPlusLabel("จดรายการซื้อ")
-      : '<span aria-hidden="true">＋</span> เพิ่มของ';
-  $("#page-add").dataset.action = page === "shopping" ? "new-shopping" : "add";
+      : page === "meals"
+        ? '<span aria-hidden="true">🍲</span> วางแผนทำอาหาร'
+        : '<span aria-hidden="true">＋</span> เพิ่มของ';
+  $("#page-add").dataset.action =
+    page === "shopping"
+      ? "new-shopping"
+      : page === "meals"
+        ? "add-meal-plan"
+        : "add";
+  if (page === "meals")
+    $("#page-add").dataset.id = selectedCalendarDate || todayKey;
+  else delete $("#page-add").dataset.id;
   $("#shopping-count").textContent = stock.shopping.length;
   $("#tools").hidden = page !== "stock";
   const sorted = [...stock.items].sort(byDate);
@@ -553,7 +756,7 @@ function draw() {
             "add",
             "เพิ่มของชิ้นแรก",
           );
-    html += expiryCalendar(sorted);
+    html += expiryCalendar(sorted, stock.mealPlans || []);
   } else if (page === "stock") {
     const roomsSelect = $("#location-filter"),
       selected = roomsSelect.value;
@@ -607,6 +810,34 @@ function draw() {
             "add",
             "เพิ่มของชิ้นแรก",
           );
+  } else if (page === "meals") {
+    const plans = [...(stock.mealPlans || [])].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
+    const plannedPlans = plans.filter((plan) => plan.status === "planned");
+    const cookedPlans = plans
+      .filter((plan) => plan.status === "cooked")
+      .reverse();
+    const recipes = stock.recipes || [];
+    html += mealCollectionSection(
+      "แผนที่วางไว้",
+      plannedPlans,
+      "ยังไม่มีแผนทำอาหาร กด “วางแผนทำอาหาร” เพื่อเริ่ม",
+      mealPlanCard,
+    );
+    html += mealCollectionSection(
+      "เมนูที่บันทึกไว้",
+      recipes,
+      "ยังไม่มีเมนูต้นแบบ บันทึกเมนูจากหน้าวางแผนเพื่อใช้ซ้ำได้",
+      mealRecipeCard,
+    );
+    if (cookedPlans.length)
+      html += mealCollectionSection(
+        "ทำอาหารแล้ว",
+        cookedPlans,
+        "",
+        mealPlanCard,
+      );
   } else {
     html = stock.shopping.length
       ? section("ของที่จะซื้อ", stock.shopping, { shopping: true })
@@ -780,6 +1011,7 @@ function enhanceSelect(select) {
 
   input.addEventListener("focus", show);
   input.addEventListener("click", show);
+  input.addEventListener("blur", close);
   input.addEventListener("input", () => renderOptions(input.value));
   input.addEventListener("keydown", (event) => {
     if (event.key === "ArrowDown") {
@@ -909,6 +1141,7 @@ function enhanceDatalist(input) {
           )
           .join("")
       : '<div class="search-select-empty">ไม่พบคำแนะนำ</div>';
+    if (!visibleOptions.length) close();
   }
 
   function close() {
@@ -954,7 +1187,11 @@ function enhanceDatalist(input) {
 
   input.addEventListener("focus", show);
   input.addEventListener("click", show);
-  input.addEventListener("input", () => renderOptions(input.value));
+  input.addEventListener("blur", close);
+  input.addEventListener("input", () => {
+    if (!open) show();
+    renderOptions(input.value);
+  });
   input.addEventListener("keydown", (event) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -1053,6 +1290,260 @@ function editorFields(data, isShopping) {
   );
 }
 
+function mealIngredientRow(item = {}) {
+  const rowId = item.id || crypto.randomUUID();
+  const names = [...new Set(stock.items.map((entry) => entry.name))];
+  const units = [
+    ...new Set([
+      "ชิ้น",
+      "กล่อง",
+      "ถุง",
+      "ฟอง",
+      "ขวด",
+      "แพ็ก",
+      "กก.",
+      "ลิตร",
+      ...stock.items.map((entry) => entry.unit),
+    ]),
+  ];
+  const nameList = "meal-name-options-" + rowId;
+  const unitList = "meal-unit-options-" + rowId;
+  return (
+    '<div class="meal-ingredient-row" data-ingredient-id="' +
+    esc(rowId) +
+    '"><label>วัตถุดิบ<input class="meal-ingredient-name" required autocomplete="off" maxlength="80" list="' +
+    nameList +
+    '" value="' +
+    esc(item.name || "") +
+    '"></label><datalist id="' +
+    nameList +
+    '">' +
+    opts(names) +
+    '</datalist><label>จำนวน<input class="meal-ingredient-qty" required type="number" inputmode="decimal" min=".001" max="999999" step=".001" value="' +
+    esc(item.qty ?? 1) +
+    '"></label><label>หน่วย<input class="meal-ingredient-unit" required autocomplete="off" maxlength="20" list="' +
+    unitList +
+    '" value="' +
+    esc(item.unit || "ชิ้น") +
+    '"></label><datalist id="' +
+    unitList +
+    '">' +
+    opts(units) +
+    '</datalist><button type="button" class="meal-remove-ingredient text-button danger" data-action="remove-meal-ingredient" aria-label="ลบวัตถุดิบ">×</button></div>'
+  );
+}
+
+function mealEditorFields(plan, defaultDate, selectedRecipeId = "") {
+  const recipes = stock.recipes || [];
+  const templateId = plan?.recipeId || selectedRecipeId;
+  const sourceRecipe = recipes.find((recipe) => recipe.id === templateId);
+  const ingredients = plan?.ingredients || sourceRecipe?.ingredients || [{}];
+  const name = plan?.name || sourceRecipe?.name || "";
+  const servings = plan?.servings || sourceRecipe?.servings || 2;
+  const templateOptions = recipes
+    .map(
+      (recipe) =>
+        '<option value="' +
+        esc(recipe.id) +
+        '"' +
+        (recipe.id === templateId ? " selected" : "") +
+        ">" +
+        esc(recipe.name) +
+        "</option>",
+    )
+    .join("");
+  const templateSaveLabel = templateId
+    ? "อัปเดตเมนูต้นแบบด้วย"
+    : "บันทึกเมนูนี้ไว้ใช้ครั้งต่อไป";
+  return (
+    '<div class="form-grid"><label class="span">เริ่มจากเมนูที่บันทึกไว้<select id="meal-template"><option value="">สร้างแผนใหม่</option>' +
+    templateOptions +
+    '</select></label><label class="span">ชื่อเมนู<input required id="meal-name" maxlength="80" value="' +
+    esc(name) +
+    '"></label><label>วันที่ทำเมนู<input required id="meal-date" type="date" value="' +
+    esc(plan?.date || defaultDate) +
+    '"></label><label>จำนวนเสิร์ฟ<input required id="meal-servings" type="number" min="1" max="100" step="1" value="' +
+    servings +
+    '"></label><div class="span"><div class="section-head"><h3>วัตถุดิบ</h3></div><div class="meal-ingredient-list" id="meal-ingredients">' +
+    ingredients.map(mealIngredientRow).join("") +
+    '</div><button type="button" class="secondary meal-add-ingredient" data-action="add-meal-ingredient">＋ เพิ่มวัตถุดิบ</button></div><label class="span meal-template-save"><input id="meal-save-template" type="checkbox"><span id="meal-template-save-label">' +
+    templateSaveLabel +
+    "</span></label></div>"
+  );
+}
+
+function startMealEditor(
+  plan = null,
+  date = selectedCalendarDate,
+  recipeId = "",
+) {
+  if (!stock || busy) return;
+  mealDraft = {
+    planId: plan?.id || "",
+    version: stock.version,
+    stale: false,
+  };
+  const today = new Date();
+  const defaultDate =
+    date ||
+    calendarDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  $("#meal-editor-title").textContent = plan
+    ? "แก้ไขแผนทำอาหาร"
+    : "วางแผนทำอาหาร";
+  $("#meal-error").textContent = "";
+  $("#meal-save").textContent = plan ? "บันทึกแผน" : "วางแผน";
+  $("#meal-save").disabled = false;
+  $("#meal-fields").innerHTML = mealEditorFields(plan, defaultDate, recipeId);
+  enhanceSelects($("#meal-fields"));
+  enhanceDatalists($("#meal-fields"));
+  if (!$("#meal-editor").open) $("#meal-editor").showModal();
+}
+
+function mealFormIngredients() {
+  const rows = [
+    ...$("#meal-ingredients").querySelectorAll(".meal-ingredient-row"),
+  ];
+  if (!rows.length) throw new Error("เพิ่มวัตถุดิบอย่างน้อย 1 รายการ");
+  return rows.map((row) => {
+    const name = row.querySelector(".meal-ingredient-name")?.value.trim();
+    const qty = Number(row.querySelector(".meal-ingredient-qty")?.value);
+    const unit = row.querySelector(".meal-ingredient-unit")?.value.trim();
+    if (!name || !unit || !(qty > 0 && qty <= 999999))
+      throw new Error("กรุณาตรวจชื่อ จำนวน และหน่วยของวัตถุดิบ");
+    return {
+      id: row.dataset.ingredientId || crypto.randomUUID(),
+      name,
+      qty: round(qty),
+      unit,
+    };
+  });
+}
+
+async function mealMutation(change, done) {
+  if (busy || !stock || !mealDraft) return;
+  busy = true;
+  ++generation;
+  $("#meal-save").disabled = true;
+  try {
+    if (stock.version !== mealDraft.version) throw new ApiError(409, "");
+    const next = structuredClone(stock);
+    await change(next);
+    const result = await post("stock", next);
+    next.version = result.version;
+    stock = next;
+    if ($("#meal-editor").open) $("#meal-editor").close();
+    draw();
+    if (done) done();
+  } catch (error) {
+    if (error.status === 401) {
+      entry("login", errorText(error));
+      return;
+    }
+    const conflict = error.status === 409;
+    const message = conflict
+      ? "ข้อมูลเปลี่ยนจากอีกอุปกรณ์ กรุณาโหลดแล้วแก้แผนใหม่"
+      : error instanceof ApiError
+        ? errorText(error)
+        : error.message || "บันทึกแผนไม่ได้";
+    if (conflict || error.status === 0 || error.status >= 500)
+      await refresh(true);
+    if ($("#meal-editor").open) {
+      $("#meal-error").textContent = message;
+      if (conflict) mealDraft.stale = true;
+    } else if (stock) alertUser(message);
+  } finally {
+    busy = false;
+    if ($("#meal-editor").open)
+      $("#meal-save").disabled = Boolean(mealDraft?.stale);
+  }
+}
+
+$("#meal-fields").addEventListener("change", (event) => {
+  if (event.target.id !== "meal-template") return;
+  const recipe = stock.recipes?.find((item) => item.id === event.target.value);
+  if (!recipe) {
+    $("#meal-template-save-label").textContent =
+      "บันทึกเมนูนี้ไว้ใช้ครั้งต่อไป";
+    return;
+  }
+  $("#meal-name").value = recipe.name;
+  $("#meal-servings").value = recipe.servings;
+  $("#meal-ingredients").innerHTML = recipe.ingredients
+    .map(mealIngredientRow)
+    .join("");
+  $("#meal-save-template").checked = false;
+  $("#meal-template-save-label").textContent = "อัปเดตเมนูต้นแบบด้วย";
+  enhanceDatalists($("#meal-ingredients"));
+});
+
+$("#meal-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!mealDraft || mealDraft.stale || busy) return;
+  $("#meal-error").textContent = "";
+  let ingredients;
+  try {
+    ingredients = mealFormIngredients();
+  } catch (error) {
+    $("#meal-error").textContent = error.message;
+    return;
+  }
+  const name = $("#meal-name").value.trim();
+  const date = $("#meal-date").value;
+  const servings = Number($("#meal-servings").value);
+  const selectedRecipeId = $("#meal-template").value || null;
+  const saveTemplate = $("#meal-save-template").checked;
+  if (
+    !name ||
+    !date ||
+    !Number.isInteger(servings) ||
+    servings < 1 ||
+    servings > 100
+  ) {
+    $("#meal-error").textContent = "กรุณาตรวจชื่อเมนู วันที่ และจำนวนเสิร์ฟ";
+    return;
+  }
+  await mealMutation(
+    (next) => {
+      next.recipes ||= [];
+      next.mealPlans ||= [];
+      let recipeId = selectedRecipeId;
+      if (saveTemplate) {
+        if (recipeId) {
+          const recipe = next.recipes.find((item) => item.id === recipeId);
+          if (recipe) Object.assign(recipe, { name, servings, ingredients });
+          else {
+            recipeId = crypto.randomUUID();
+            next.recipes.push({ id: recipeId, name, servings, ingredients });
+          }
+        } else {
+          recipeId = crypto.randomUUID();
+          next.recipes.push({ id: recipeId, name, servings, ingredients });
+        }
+      }
+      const existing = next.mealPlans.find(
+        (item) => item.id === mealDraft.planId,
+      );
+      const plan = {
+        id: mealDraft.planId || crypto.randomUUID(),
+        recipeId,
+        name,
+        date,
+        servings,
+        status: existing?.status || "planned",
+        ingredients,
+      };
+      const index = next.mealPlans.findIndex((item) => item.id === plan.id);
+      if (index < 0) next.mealPlans.push(plan);
+      else next.mealPlans[index] = plan;
+      selectedCalendarDate = date;
+      const planDate = localDay(date);
+      calendarYear = planDate.getFullYear();
+      calendarMonth = planDate.getMonth();
+    },
+    () => alertUser("บันทึกแผนทำอาหารแล้ว"),
+  );
+});
+
 function startEditor(mode, data = {}, sourceId = "") {
   if (!stock || busy) return;
   ++generation;
@@ -1148,6 +1639,12 @@ $("#editor").addEventListener("close", () => {
   if (previewUrl) URL.revokeObjectURL(previewUrl);
   previewUrl = "";
   draft = null;
+});
+$("#meal-editor").addEventListener("cancel", (event) => {
+  if (busy) event.preventDefault();
+});
+$("#meal-editor").addEventListener("close", () => {
+  mealDraft = null;
 });
 
 function renderPhoto() {
@@ -1445,6 +1942,96 @@ $("#editor-form").addEventListener("submit", async (event) => {
   );
 });
 
+function addMealShortagesToShopping(plan) {
+  if (!plan) return;
+  const missing = mealShortages(plan);
+  if (!missing.length) return alertUser("วัตถุดิบของเมนูนี้มีครบแล้ว");
+  mutation(
+    async (next) => {
+      for (const ingredient of missing) {
+        next.shopping = addShopping(next.shopping, {
+          id: crypto.randomUUID(),
+          name: ingredient.name,
+          unit: ingredient.unit,
+          qty: ingredient.missing,
+        });
+      }
+    },
+    stock.version,
+    () => alertUser("เพิ่มวัตถุดิบที่ขาดในรายการซื้อแล้ว"),
+  );
+}
+
+async function finishMealPlan(plan, createCookedStock = false) {
+  if (!plan) return;
+  if (plan.status === "cooked") {
+    if (createCookedStock)
+      startEditor("add", {
+        name: plan.name,
+        qty: plan.servings,
+        unit: "ที่",
+        category: "อาหารปรุงสุก",
+      });
+    return;
+  }
+  const missing = mealShortages(plan);
+  if (missing.length) {
+    return alertUser(
+      "วัตถุดิบยังไม่พอสำหรับ " + plan.name,
+      () => startMealEditor(plan),
+      "แก้ไขแผน",
+      () => addMealShortagesToShopping(plan),
+      "เพิ่มของที่ขาด",
+    );
+  }
+  await mutation(
+    async (next) => {
+      const current = next.mealPlans.find((item) => item.id === plan.id);
+      if (!current || current.status !== "planned") return;
+      for (const ingredient of current.ingredients) {
+        let remaining = ingredient.qty;
+        const batches = next.items
+          .filter(
+            (item) =>
+              key(item.name) === key(ingredient.name) &&
+              key(item.unit) === key(ingredient.unit),
+          )
+          .sort((a, b) => {
+            const dateA = a.dateKind === "expiry" ? a.date || "9999" : "9999";
+            const dateB = b.dateKind === "expiry" ? b.date || "9999" : "9999";
+            return (
+              dateA.localeCompare(dateB) || a.name.localeCompare(b.name, "th")
+            );
+          });
+        for (const batch of batches) {
+          if (remaining <= 0.0001) break;
+          const used = Math.min(batch.qty, remaining);
+          batch.qty = round(batch.qty - used);
+          remaining = round(remaining - used);
+        }
+        next.items = next.items.filter((item) => item.qty > 0.0001);
+      }
+      current.status = "cooked";
+    },
+    stock.version,
+    createCookedStock
+      ? null
+      : () => alertUser(plan.name + " ทำเสร็จแล้ว และตัดวัตถุดิบจากสต็อกแล้ว"),
+  );
+  if (
+    createCookedStock &&
+    stock?.mealPlans?.some(
+      (item) => item.id === plan.id && item.status === "cooked",
+    )
+  )
+    startEditor("add", {
+      name: plan.name,
+      qty: plan.servings,
+      unit: "ที่",
+      category: "อาหารปรุงสุก",
+    });
+}
+
 document.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-action]");
   if (!target || busy) return;
@@ -1452,6 +2039,8 @@ document.addEventListener("click", async (event) => {
     id = target.dataset.id;
   const item = stock?.items.find((i) => i.id === id);
   const wanted = stock?.shopping.find((i) => i.id === id);
+  const mealPlan = stock?.mealPlans?.find((plan) => plan.id === id);
+  const recipe = stock?.recipes?.find((item) => item.id === id);
   if (action === "retry") {
     entry("checking");
     return refresh(true);
@@ -1470,6 +2059,10 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "close") return closeEditor();
+  if (action === "close-meal-editor") {
+    if (!busy && $("#meal-editor").open) $("#meal-editor").close();
+    return;
+  }
   if (action === "notice-action") {
     const run = noticeAction?.[Number(target.dataset.index)];
     $("#notice").hidden = true;
@@ -1489,20 +2082,52 @@ document.addEventListener("click", async (event) => {
   }
   closeItemMenus();
   if (!stock) return;
+  if (action === "add-meal-plan") return startMealEditor(null, id);
+  if (action === "plan-recipe" && recipe)
+    return startMealEditor(null, selectedCalendarDate, recipe.id);
+  if (action === "add-meal-ingredient" && $("#meal-editor").open) {
+    $("#meal-ingredients").insertAdjacentHTML("beforeend", mealIngredientRow());
+    enhanceDatalists($("#meal-ingredients"));
+    return;
+  }
+  if (action === "remove-meal-ingredient") {
+    target.closest(".meal-ingredient-row")?.remove();
+    return;
+  }
   if (action === "calendar-prev" || action === "calendar-next") {
     const direction = action === "calendar-prev" ? -1 : 1;
     const month = new Date(calendarYear, calendarMonth + direction, 1);
     calendarYear = month.getFullYear();
     calendarMonth = month.getMonth();
-    selectedExpiryDate = "";
+    selectedCalendarDate = "";
     return draw();
   }
   if (action === "select-expiry-date") {
-    selectedExpiryDate = id;
+    selectedCalendarDate = id;
     const selectedDate = localDay(id);
     calendarYear = selectedDate.getFullYear();
     calendarMonth = selectedDate.getMonth();
     return draw();
+  }
+  if (action === "edit-meal-plan" && mealPlan) return startMealEditor(mealPlan);
+  if (action === "add-meal-shortages" && mealPlan)
+    return addMealShortagesToShopping(mealPlan);
+  if (action === "mark-meal-cooked" && mealPlan)
+    return finishMealPlan(mealPlan);
+  if (action === "create-cooked-stock" && mealPlan)
+    return finishMealPlan(mealPlan, true);
+  if (
+    action === "remove-meal-plan" &&
+    mealPlan &&
+    window.confirm("ลบแผนทำอาหาร “" + mealPlan.name + "” ใช่ไหม")
+  ) {
+    return mutation(
+      async (next) => {
+        next.mealPlans = next.mealPlans.filter((plan) => plan.id !== id);
+      },
+      stock.version,
+      () => alertUser("ลบแผนทำอาหารแล้ว"),
+    );
   }
   if (action === "open-stock") {
     location.hash = "stock";
