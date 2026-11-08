@@ -5,10 +5,6 @@
   --green: #235242;
   --teal: #285d4d;
   --mint: #e0ebda;
-  .meal-plan-table-list {
-    display: grid;
-    margin-top: 4px;
-  }
   --muted: #596b60;
   --line: #d6dbcf;
   --orange: #b24d24;
@@ -474,7 +470,7 @@ label > select {
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-height: 58px;
   padding: 8px 1px;
   text-decoration: none;
@@ -482,11 +478,19 @@ label > select {
   font-weight: 600;
   border-bottom: 3px solid transparent;
 }
+.tab-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.tab-label {
+  min-width: 0;
+}
 .tabs a[aria-current="page"] {
   border-color: var(--green);
   color: var(--green);
 }
-.tabs span {
+.tabs .tab-count {
   font-size: 0.77rem;
   padding: 0 7px;
   border-radius: 20px;
@@ -1267,6 +1271,9 @@ dialog::backdrop {
   min-height: 40px;
 }
 @media (max-width: 650px) {
+  body:has(dialog[open]) .tabs {
+    display: none;
+  }
   .entry {
     grid-template-columns: 1fr;
     align-content: start;
@@ -1323,13 +1330,81 @@ dialog::backdrop {
     min-height: 60px;
   }
   .tabs {
-    gap: 18px;
+    position: fixed;
+    z-index: 40;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    overflow: visible;
+    padding: 5px 5px calc(5px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
+    background: #fff;
+    box-shadow: 0 -4px 18px rgb(25 54 39 / 8%);
   }
   .tabs a {
-    min-height: 49px;
+    min-width: 0;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px 2px 2px;
+    border-top: 2px solid transparent;
+    border-bottom: 0;
+    white-space: normal;
+  }
+  .tabs a[aria-current="page"] {
+    border-top-color: var(--green);
+  }
+  .tabs .tab-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .tabs .tab-label {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    color: inherit;
+    font-size: 0.62rem;
+    line-height: 1.15;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tabs .tab-count {
+    display: none;
+  }
+  .workspace {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
   .page-title {
     margin: 22px 0;
+  }
+  .calendar-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+    gap: 8px;
+  }
+  .calendar-head h2 {
+    grid-column: 1;
+  }
+  .calendar-month {
+    justify-self: end;
+    gap: 4px;
+  }
+  .calendar-month h3 {
+    min-width: 130px;
+  }
+  .calendar-add-plan {
+    justify-self: end;
+    min-height: 40px;
+    padding: 7px 10px;
+    font-size: 0.86rem;
   }
   .calendar-grid {
     gap: 3px;
@@ -1378,7 +1453,8 @@ dialog::backdrop {
 }
 @media (max-width: 360px) {
   .tabs {
-    gap: 10px;
+    padding-right: 3px;
+    padding-left: 3px;
   }
   .wrap {
     width: calc(100% - 22px);
@@ -1432,13 +1508,9 @@ dialog::backdrop {
     font-size: 26px;
   }
   .calendar-head {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: start;
   }
   .calendar-month {
-    align-self: flex-end;
-  }
-  .calendar-month h3 {
-    min-width: 130px;
+    align-self: auto;
   }
 }

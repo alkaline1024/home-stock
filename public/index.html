@@ -74,13 +74,27 @@
       </header>
       <main class="wrap workspace">
         <nav aria-label="เมนูหลัก" class="tabs">
-          <a href="#today" data-tab="today">หน้าหลัก</a
-          ><a href="#stock" data-tab="stock">ของในบ้าน</a
-          ><a href="#meals" data-tab="meals">แผนทำอาหาร</a
-          ><a href="#recipes" data-tab="recipes">เมนูที่บันทึกไว้</a
-          ><a href="#shopping" data-tab="shopping"
-            >รายการซื้อ <span id="shopping-count">0</span></a
-          >
+          <a href="#today" data-tab="today">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9"/><path d="M9 21v-8h6v8"/></svg>
+            <span class="tab-label">หน้าหลัก</span>
+          </a>
+          <a href="#stock" data-tab="stock">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
+            <span class="tab-label">ของในบ้าน</span>
+          </a>
+          <a href="#meals" data-tab="meals">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11h18"/><path d="M5 11v6a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-6"/><path d="M12 3v4"/><path d="M7 4l2 3"/><path d="m17 4-2 3"/></svg>
+            <span class="tab-label">แผนทำอาหาร</span>
+          </a>
+          <a href="#recipes" data-tab="recipes">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4V3Z"/><path d="M9 8h6m-6 4h6"/></svg>
+            <span class="tab-label">เมนูที่บันทึกไว้</span>
+          </a>
+          <a href="#shopping" data-tab="shopping">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 13H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+            <span class="tab-label">รายการซื้อ</span>
+            <span id="shopping-count" class="tab-count">0</span>
+          </a>
         </nav>
         <p id="sync-error" role="alert" class="sync-error" hidden></p>
         <div class="page-title">

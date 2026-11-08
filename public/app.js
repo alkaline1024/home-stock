@@ -2338,22 +2338,8 @@ document.addEventListener("click", async (event) => {
   if (!stock) return;
   if (action === "add-recipe") return startRecipeEditor();
   if (action === "edit-recipe" && recipe) return startRecipeEditor(recipe);
-  if (
-    action === "remove-recipe" &&
-    recipe &&
-    window.confirm("ลบเมนูต้นแบบ “" + recipe.name + "” ใช่ไหม")
-  ) {
-    return mutation(
-      async (next) => {
-        next.recipes = (next.recipes || []).filter((item) => item.id !== id);
-        next.mealPlans = (next.mealPlans || []).map((plan) =>
-          plan.recipeId === id ? { ...plan, recipeId: null } : plan,
-        );
-      },
-      stock.version,
-      () => alertUser("ลบเมนูต้นแบบแล้ว"),
-    );
-  }
+  if (action === "remove-recipe" && recipe)
+    return startEditor("remove-recipe", recipe, id);
   if (action === "add-meal-plan") return startMealEditor(null, id);
   if (action === "plan-recipe" && recipe)
     return startMealEditor(null, selectedCalendarDate, recipe.id);
