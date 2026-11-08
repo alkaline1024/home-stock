@@ -2192,11 +2192,20 @@ dialog::backdrop {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  dialog,
-  dialog[open],
-  dialog::backdrop,
-  dialog[open]::backdrop {
-    transition: none;
+  @media (max-width: 650px) {
+    dialog,
+    dialog::backdrop {
+      transition-duration: 140ms;
+      transition-timing-function: ease-out;
+    }
+    dialog[open],
+    dialog[open]::backdrop {
+      transition-duration: 180ms;
+      transition-timing-function: ease-out;
+    }
+    dialog.sheet-dragging {
+      transition: none;
+    }
   }
   .pantry-loading:not(.is-opening) .pantry-knob-wrap {
     animation-duration: 1100ms;
