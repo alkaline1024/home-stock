@@ -11,7 +11,7 @@ const categories = [
   "อื่น ๆ",
 ];
 const categoryAliases = { อาหารสด: "ของสด", อาหารแห้ง: "ของแห้ง" };
-const rooms = ["ตู้เย็น", "ช่องแช่แข็ง", "ตู้กับข้าว"];
+const rooms = ["ตู้เย็น", "ช่องแช่แข็ง", "ชั้นวาง"];
 const titles = {
   today: "หน้าหลัก",
   stock: "ของในบ้าน",
@@ -679,7 +679,7 @@ const badgeDetails = {
   location: {
     ตู้เย็น: { icon: "🧊", tone: "fridge" },
     ช่องแช่แข็ง: { icon: "❄️", tone: "freezer" },
-    ตู้กับข้าว: { icon: "🗄️", tone: "pantry" },
+    ชั้นวาง: { icon: "🗄️", tone: "pantry" },
     ทุกที่เก็บ: { icon: "✦", tone: "all" },
   },
 };

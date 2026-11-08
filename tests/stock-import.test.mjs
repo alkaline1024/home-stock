@@ -62,7 +62,7 @@ function workbook(rows) {
   return book;
 }
 
-const row = ["ข้าว", 1.125, "ถุง", "ของแห้ง", "ตู้กับข้าว", "", ""];
+const row = ["ข้าว", 1.125, "ถุง", "ของแห้ง", "ชั้นวาง", "", ""];
 
 test("template round-trips with named dropdowns through row 2001 and existing units/locations", async () => {
   const { context, getDownload } = app([
@@ -86,6 +86,7 @@ test("template round-trips with named dropdowns through row 2001 and existing un
   }
   assert.ok(book.getWorksheet("Lists").getColumn(2).values.includes("กระสอบ"));
   assert.ok(book.getWorksheet("Lists").getColumn(4).values.includes("ชั้นบน"));
+  assert.ok(book.getWorksheet("Lists").getColumn(4).values.includes("ชั้นวาง"));
   assert.equal(sheet.getCell("D2").dataValidation.errorStyle, "stop");
   assert.equal(sheet.getCell("F2").numFmt, "dd/mm/yyyy");
   assert.ok(book.getWorksheet("วิธีกรอก"));
@@ -279,7 +280,7 @@ test("shopping actions and navigation share the cart icon instead of the saved-r
 
 const mediaItem = () => ({
   id: randomUUID(), name: 'ข้าว <"ใหม่">', qty: 2.125, unit: "ถุง",
-  category: "ของแห้ง", location: "ตู้กับข้าว", date: "2026-12-31",
+  category: "ของแห้ง", location: "ชั้นวาง", date: "2026-12-31",
   dateKind: "expiry", photo: null,
 });
 
