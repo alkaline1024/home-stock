@@ -2390,6 +2390,84 @@ $("#meal-editor").addEventListener("close", () => {
   mealDraft = null;
 });
 
+function initializeDialogSheets() {
+  document.querySelectorAll("dialog").forEach((dialog) => {
+    const mobile = window.matchMedia("(max-width: 650px)");
+    const handle = document.createElement("button");
+    handle.type = "button";
+    handle.className = "sheet-handle";
+    handle.setAttribute("aria-label", "ปิดหน้าต่าง (ลากลงเพื่อปิด)");
+    dialog.prepend(handle);
+    let gesture = null;
+    let suppressClick = false;
+
+    const dismiss = () => {
+      if (!dialog.open || busy) return;
+      // Use the same cancellation guards and close cleanup as Escape.
+      if (dialog.dispatchEvent(new Event("cancel", { cancelable: true })))
+        dialog.close();
+    };
+    const reset = () => {
+      const active = gesture;
+      gesture = null;
+      dialog.classList.remove("sheet-dragging");
+      dialog.style.removeProperty("--sheet-offset");
+      if (active && active.surface.hasPointerCapture(active.id))
+        active.surface.releasePointerCapture(active.id);
+    };
+    const start = (event) => {
+      if (!gesture) suppressClick = false;
+      if (!mobile.matches || !dialog.open || busy || gesture ||
+          !event.isPrimary || event.button !== 0 ||
+          (event.currentTarget !== handle &&
+            event.target.closest("button, input, select, textarea, a"))) return;
+      gesture = {
+        id: event.pointerId, surface: event.currentTarget,
+        x: event.clientX, y: event.clientY, distance: 0,
+      };
+      gesture.surface.setPointerCapture(gesture.id);
+    };
+    const move = (event) => {
+      if (!gesture || gesture.id !== event.pointerId) return;
+      if (busy || !mobile.matches) return reset();
+      const dx = event.clientX - gesture.x;
+      const dy = event.clientY - gesture.y;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) > 8) suppressClick = true;
+      gesture.distance = Math.abs(dy) > Math.abs(dx) ? Math.max(0, dy) : 0;
+      dialog.classList.add("sheet-dragging");
+      dialog.style.setProperty("--sheet-offset", gesture.distance + "px");
+    };
+    const finish = (event) => {
+      if (!gesture || gesture.id !== event.pointerId) return;
+      const threshold = Math.min(120, Math.max(56, dialog.offsetHeight * 0.2));
+      const shouldClose = gesture.distance >= threshold;
+      reset();
+      if (shouldClose) dismiss();
+    };
+    for (const surface of [handle, dialog.querySelector(".dialog-head")]) {
+      if (!surface) continue;
+      surface.addEventListener("pointerdown", start);
+      surface.addEventListener("pointermove", move);
+      surface.addEventListener("pointerup", finish);
+      surface.addEventListener("pointercancel", reset);
+      surface.addEventListener("lostpointercapture", reset);
+      surface.addEventListener("click", (event) => {
+        if (suppressClick && event.detail !== 0) {
+          event.preventDefault();
+          event.stopPropagation();
+          suppressClick = false;
+        } else if (surface === handle) {
+          suppressClick = false;
+          dismiss();
+        }
+      });
+    }
+    dialog.addEventListener("close", reset);
+    mobile.addEventListener("change", reset);
+  });
+}
+initializeDialogSheets();
+
 function renderPhoto() {
   const holder = $("#photo-preview");
   if (!holder) return;
