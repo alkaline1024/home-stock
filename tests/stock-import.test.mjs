@@ -17,7 +17,9 @@ function app(items = [], useBrowserExcel = false) {
   const element = (selector) => {
     if (!elements.has(selector)) elements.set(selector, {
       open: false, hidden: true, value: "", textContent: "", disabled: false,
-      addEventListener() {}, append() {}, remove() {}, click() {},
+      classList: { add() {}, remove() {} },
+      style: { setProperty() {}, removeProperty() {} },
+      addEventListener() {}, removeEventListener() {}, append() {}, remove() {}, click() {},
       querySelectorAll: () => [],
       showModal() { this.open = true; },
       close() { this.open = false; },
@@ -43,9 +45,13 @@ function app(items = [], useBrowserExcel = false) {
     document: {
       querySelector: element, querySelectorAll: () => [],
       addEventListener() {}, createElement: () => element("link"),
-      body: { append() {} },
+      body: { append() {}, classList: { add() {}, remove() {} } },
     },
-    window: { ExcelJS, addEventListener() {} },
+    window: {
+      ExcelJS,
+      addEventListener() {},
+      matchMedia: () => ({ matches: false }),
+    },
   });
   if (useBrowserExcel) vm.runInContext(browserExcel, context);
   vm.runInContext(source, context);

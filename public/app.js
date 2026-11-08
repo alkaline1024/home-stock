@@ -87,6 +87,76 @@ let calendarYear = new Date().getFullYear();
 let calendarMonth = new Date().getMonth();
 let selectedCalendarDate = "";
 const idleAfter = 5 * 60 * 1000;
+let pantryLoadingStartedAt = 0;
+
+function showPantryLoading() {
+  const loader = $("#pantry-loading");
+  if (!loader.hidden) return;
+  pantryLoadingStartedAt = Date.now();
+  loader.classList.remove("is-opening");
+  loader.classList.remove("is-fading");
+  loader.hidden = false;
+  document.body.classList.add("pantry-loading-active");
+  $("#entry").inert = true;
+  $("#app").inert = true;
+}
+
+function hidePantryLoading() {
+  const loader = $("#pantry-loading");
+  loader.hidden = true;
+  loader.classList.remove("is-opening");
+  loader.classList.remove("is-fading");
+  loader.style.removeProperty("--pantry-open-duration");
+  loader.style.removeProperty("--pantry-fade-duration");
+  $("#app").style.removeProperty("--pantry-open-duration");
+  $("#app").classList.remove("pantry-content-approach");
+  pantryLoadingStartedAt = 0;
+  document.body.classList.remove("pantry-loading-active");
+  $("#entry").inert = false;
+  $("#app").inert = false;
+}
+
+async function revealPantry(current) {
+  const loader = $("#pantry-loading");
+  if (loader.hidden) return;
+  const minimumWait = 250;
+  const wait = Math.max(
+    0,
+    minimumWait - (Date.now() - pantryLoadingStartedAt),
+  );
+  await new Promise((resolve) => setTimeout(resolve, wait));
+  if (current !== generation || loader.hidden) return;
+  const openingDuration = window.matchMedia("(max-width: 650px)").matches
+    ? 2000
+    : 1400;
+  const fadeDuration = 350;
+  loader.style.setProperty("--pantry-open-duration", openingDuration + "ms");
+  loader.style.setProperty("--pantry-fade-duration", fadeDuration + "ms");
+  $("#app").style.setProperty("--pantry-open-duration", openingDuration + "ms");
+  const animationFinished = new Promise((resolve) => {
+    const finish = (event) => {
+      if (event.target !== loader || event.animationName !== "pantry-scene-fade")
+        return;
+      loader.removeEventListener("animationend", finish);
+      clearTimeout(fallback);
+      resolve();
+    };
+    const fallback = setTimeout(() => {
+      loader.removeEventListener("animationend", finish);
+      resolve();
+    }, openingDuration + fadeDuration + 300);
+    loader.addEventListener("animationend", finish);
+  });
+  $("#app").classList.add("pantry-content-approach");
+  loader.classList.add("is-opening");
+  await new Promise((resolve) =>
+    setTimeout(resolve, Math.max(0, openingDuration - 100)),
+  );
+  if (current !== generation || loader.hidden) return;
+  loader.classList.add("is-fading");
+  await animationFinished;
+  if (current === generation) hidePantryLoading();
+}
 
 function tab() {
   const path = location.hash.slice(1);
@@ -181,6 +251,7 @@ function errorText(error) {
 
 function entry(mode, message = "") {
   generation++;
+  hidePantryLoading();
   stock = null;
   if ($("#editor").open) $("#editor").close();
   if ($("#meal-editor").open) $("#meal-editor").close();
@@ -207,6 +278,7 @@ async function refresh(force = false) {
   ) return;
   if (!force && Date.now() - lastReadStarted < 3000) return;
   lastReadStarted = Date.now();
+  if (!stock) showPantryLoading();
   const current = ++generation;
   try {
     const newer = await request("stock");
@@ -226,6 +298,7 @@ async function refresh(force = false) {
     $("#app").hidden = false;
     $("#sync-error").hidden = true;
     if (changed) draw();
+    await revealPantry(current);
   } catch (error) {
     if (current !== generation) return;
     if (error.status === 401) return entry("login");

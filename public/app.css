@@ -428,6 +428,301 @@ label > select {
   color: var(--muted);
   text-underline-offset: 4px;
 }
+body.pantry-loading-active {
+  overflow: hidden;
+}
+.pantry-loading {
+  --pantry-door-width: clamp(190px, 43vw, 260px);
+  --pantry-door-height: clamp(250px, 43vh, 340px);
+  --pantry-zoom-scale: 6;
+  --pantry-content-start-scale: 0.5;
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  overflow: hidden;
+  color: #fbf8e9;
+  background: transparent;
+}
+.pantry-lightwell {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: #b8b59f;
+  background-image:
+    linear-gradient(90deg, transparent 49.5%, rgb(67 83 68 / 7%) 50%, transparent 50.5%),
+    linear-gradient(0deg, transparent 49.5%, rgb(67 83 68 / 6%) 50%, transparent 50.5%),
+    repeating-linear-gradient(90deg, transparent 0 79px, rgb(255 249 222 / 11%) 80px 82px, transparent 83px 160px),
+    linear-gradient(180deg, #c8c5af 0%, #a9ae98 76%, #667a67 76.2%, #526a58 100%);
+  -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0),
+    linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  -webkit-mask-size:
+    100% calc(50% - (var(--pantry-door-height) - 39px) / 2),
+    100% calc(50% - (var(--pantry-door-height) - 39px) / 2),
+    calc(50% - (var(--pantry-door-width) - 34px) / 2) 100%,
+    calc(50% - (var(--pantry-door-width) - 34px) / 2) 100%;
+  -webkit-mask-position: top, bottom, left, right;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0),
+    linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  mask-size:
+    100% calc(50% - (var(--pantry-door-height) - 39px) / 2),
+    100% calc(50% - (var(--pantry-door-height) - 39px) / 2),
+    calc(50% - (var(--pantry-door-width) - 34px) / 2) 100%,
+    calc(50% - (var(--pantry-door-width) - 34px) / 2) 100%;
+  mask-position: top, bottom, left, right;
+  mask-repeat: no-repeat;
+  transform-origin: center;
+  pointer-events: none;
+}
+.pantry-lightwell:before {
+  position: absolute;
+  top: 12%;
+  right: 0;
+  left: 0;
+  height: 13px;
+  border-top: 3px solid #e7dec2;
+  border-bottom: 5px solid #858a74;
+  background: #d8d0b4;
+  box-shadow: 0 4px 10px rgb(34 51 39 / 14%);
+  content: "";
+}
+.pantry-lightwell:after {
+  position: absolute;
+  right: 0;
+  bottom: 8%;
+  left: 0;
+  height: 12px;
+  border-top: 3px solid #d3caab;
+  background: #6b7966;
+  box-shadow: 0 -3px 8px rgb(34 51 39 / 12%);
+  content: "";
+}
+.pantry-room-sign {
+  position: absolute;
+  top: calc(50% - var(--pantry-door-height) / 2 - 52px);
+  left: 50%;
+  min-width: 116px;
+  padding: 5px 16px 7px;
+  border: 3px solid #ead8a8;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #936a42, #755338);
+  box-shadow:
+    0 3px 0 #493d2d,
+    0 5px 12px rgb(30 45 34 / 28%),
+    inset 0 0 0 2px rgb(255 244 206 / 20%);
+  color: #fff3cf;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-shadow: 0 1px 2px rgb(44 34 22 / 55%);
+  transform: translateX(-50%);
+}
+.pantry-stage {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+}
+.pantry-doorway {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--pantry-door-width);
+  height: var(--pantry-door-height);
+  margin: 0;
+  perspective: 700px;
+  perspective-origin: 50% 50%;
+  padding: 12px;
+  border: 5px solid #d5bd8d;
+  border-bottom-width: 10px;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  box-shadow:
+    0 0 0 5px rgb(11 31 25 / 38%),
+    0 20px 55px rgb(0 0 0 / 32%);
+  transform-style: preserve-3d;
+  transform: translate(-50%, -50%);
+}
+.pantry-interior {
+  position: absolute;
+  inset: 12px;
+  background: transparent;
+}
+.pantry-door {
+  position: absolute;
+  inset: 12px 12px 0;
+  transform: rotateY(0);
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  border: 1px solid #e0c895;
+  border-radius: 3px 3px 0 0;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 12%), transparent 12% 88%, rgb(0 0 0 / 16%)),
+    repeating-linear-gradient(90deg, #95683f 0 25%, #9f7248 25% 27%, #896039 27% 50%);
+  box-shadow: 8px 0 15px rgb(0 0 0 / 28%);
+}
+.pantry-panel {
+  position: absolute;
+  right: 14%;
+  left: 14%;
+  border: 2px solid rgb(222 197 151 / 72%);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 3px rgb(58 38 24 / 25%);
+}
+.pantry-panel-top {
+  top: 8%;
+  height: 34%;
+}
+.pantry-panel-bottom {
+  bottom: 8%;
+  height: 37%;
+}
+.pantry-knob-wrap {
+  position: absolute;
+  top: 49%;
+  right: 11%;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e2c994;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d6bd80, #927044);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 32%);
+  transform-origin: center;
+}
+.pantry-knob {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff0bc, #ad8950 72%);
+  box-shadow: 2px 2px 3px rgb(0 0 0 / 36%);
+}
+.pantry-knob:after {
+  position: absolute;
+  top: -8px;
+  left: 5px;
+  width: 4px;
+  height: 10px;
+  border: 1px solid #e6d09b;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #f3dfa9, #a98249);
+  content: "";
+}
+.pantry-loading:not(.is-opening) .pantry-knob-wrap {
+  animation: pantry-knob-turn 800ms ease-in-out infinite alternate;
+}
+.pantry-loading.is-opening .pantry-knob-wrap {
+  animation: pantry-knob-unlock 320ms ease-in-out forwards;
+}
+.pantry-loading-label {
+  position: absolute;
+  top: calc(50% + var(--pantry-door-height) / 2 + 22px);
+  right: 20px;
+  left: 20px;
+  color: #fbf8e9;
+  font-size: clamp(19px, 5vw, 24px);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 25%);
+}
+.pantry-loading.is-opening {
+  pointer-events: none;
+}
+.pantry-loading.is-fading {
+  animation: pantry-scene-fade var(--pantry-fade-duration, 350ms) ease-out
+    forwards;
+}
+.pantry-loading.is-opening .pantry-doorway {
+  animation: pantry-door-approach var(--pantry-open-duration, 1400ms) linear
+    forwards;
+}
+.pantry-loading.is-opening .pantry-lightwell {
+  animation: pantry-lightwell-approach
+    var(--pantry-open-duration, 1400ms) linear forwards;
+}
+.pantry-loading.is-opening .pantry-door {
+  animation: pantry-door-open var(--pantry-open-duration, 1400ms)
+    cubic-bezier(0.35, 0, 0.2, 1) forwards;
+}
+#app.pantry-content-approach {
+  --pantry-content-start-scale: 0.5;
+  transform: scale(var(--pantry-content-start-scale));
+  transform-origin: center;
+  animation: pantry-content-approach var(--pantry-open-duration, 1400ms) linear
+    forwards;
+}
+.pantry-loading.is-opening .pantry-loading-label {
+  animation: pantry-label-fade var(--pantry-open-duration, 1400ms) linear
+    forwards;
+}
+@keyframes pantry-knob-turn {
+  from {
+    transform: rotate(-24deg);
+  }
+  to {
+    transform: rotate(30deg);
+  }
+}
+@keyframes pantry-knob-unlock {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(70deg);
+  }
+}
+@keyframes pantry-door-open {
+  0% {
+    transform: rotateY(0);
+  }
+  50%,
+  to {
+    transform: rotateY(-100deg);
+  }
+}
+@keyframes pantry-door-approach {
+  0%,
+  50% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(var(--pantry-zoom-scale));
+  }
+}
+@keyframes pantry-lightwell-approach {
+  0%,
+  50% {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(var(--pantry-zoom-scale));
+  }
+}
+@keyframes pantry-label-fade {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pantry-scene-fade {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pantry-content-approach {
+  0%,
+  50% {
+    transform: scale(var(--pantry-content-start-scale));
+  }
+  to {
+    transform: scale(1);
+  }
+}
 .error {
   color: #a03924;
   font-size: 0.92rem;
@@ -1457,6 +1752,11 @@ dialog::backdrop {
   min-height: 40px;
 }
 @media (max-width: 650px) {
+  .pantry-loading {
+    --pantry-door-width: clamp(190px, 51vw, 260px);
+    --pantry-door-height: clamp(250px, 43vh, 340px);
+    --pantry-zoom-scale: 3.2;
+  }
   body:has(dialog[open]) .tabs {
     display: none;
   }
@@ -1685,6 +1985,14 @@ dialog::backdrop {
   }
   footer {
     margin-top: 32px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pantry-loading:not(.is-opening) .pantry-knob-wrap {
+    animation-duration: 1100ms;
+  }
+  .pantry-loading.is-opening .pantry-knob-wrap {
+    animation-duration: 420ms;
   }
 }
 @media (max-width: 360px) {
