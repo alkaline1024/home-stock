@@ -65,6 +65,17 @@ test("reproduces exhausted CAS retries with download ETag, then saves with stora
       return { bytes: new Uint8Array(await new Response(result.stream).arrayBuffer()),
         version: result.blob.etag };
     },
+    async write(path, bytes, { version, contentType }) {
+      try {
+        return await fake.sdk.put(path, bytes, {
+          allowOverwrite: version !== null, ifMatch: version, contentType,
+        });
+      } catch (error) {
+        if (error instanceof BlobPreconditionFailedError)
+          throw new HttpError(409, "test precondition mismatch");
+        throw error;
+      }
+    },
   };
   await assert.rejects(mutate(oldStore, (data) => { data.recipes = []; }),
     (error) => error.status === 409 && /ข้อมูลมีการแก้ไขพร้อมกัน/.test(error.message));
@@ -89,7 +100,7 @@ test("metadata brackets uncached content reads and retries if the object changes
     return result;
   };
   const result = await createBlobStore(fake.sdk).read("home-stock/stock.json");
-  assert.equal(JSON.parse(result.bytes).shopping.length, 1);
+  assert.equal(JSON.parse(Buffer.from(result.bytes)).shopping.length, 1);
   assert.equal(result.version, fake.etag);
   assert.equal(fake.calls.filter(([method]) => method === "get").length, 2);
   for (const [method, , options] of fake.calls) {
@@ -146,6 +157,11 @@ test("metadata errors and unusable validators never turn into create-only or ung
   fake.sdk.head = async () => { throw failure; };
   await assert.rejects(createBlobStore(fake.sdk).read("home-stock/stock.json"),
     (error) => error === failure);
+  for (const version of [undefined, "", 'W/"weak"']) {
+    await assert.rejects(createBlobStore(fake.sdk).write(
+      "home-stock/stock.json", Buffer.from("{}"), { version },
+    ), (error) => error.status === 503);
+  }
 });
 
 test("authenticated POST stock persists against the Blob adapter and rejects stale client versions", async () => {
