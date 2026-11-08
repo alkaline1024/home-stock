@@ -126,9 +126,7 @@ async function revealPantry(current) {
   );
   await new Promise((resolve) => setTimeout(resolve, wait));
   if (current !== generation || loader.hidden) return;
-  const openingDuration = window.matchMedia("(max-width: 650px)").matches
-    ? 2000
-    : 1400;
+  const openingDuration = 1400;
   const fadeDuration = 350;
   loader.style.setProperty("--pantry-open-duration", openingDuration + "ms");
   loader.style.setProperty("--pantry-fade-duration", fadeDuration + "ms");

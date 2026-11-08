@@ -449,11 +449,33 @@ body.pantry-loading-active {
   overflow: hidden;
   background-color: #b8b59f;
   background-image:
-    linear-gradient(90deg, transparent 49.5%, rgb(67 83 68 / 7%) 50%, transparent 50.5%),
-    linear-gradient(0deg, transparent 49.5%, rgb(67 83 68 / 6%) 50%, transparent 50.5%),
-    repeating-linear-gradient(90deg, transparent 0 79px, rgb(255 249 222 / 11%) 80px 82px, transparent 83px 160px),
-    linear-gradient(180deg, #c8c5af 0%, #a9ae98 76%, #667a67 76.2%, #526a58 100%);
-  -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0),
+    linear-gradient(
+      90deg,
+      transparent 49.5%,
+      rgb(67 83 68 / 7%) 50%,
+      transparent 50.5%
+    ),
+    linear-gradient(
+      0deg,
+      transparent 49.5%,
+      rgb(67 83 68 / 6%) 50%,
+      transparent 50.5%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 79px,
+      rgb(255 249 222 / 11%) 80px 82px,
+      transparent 83px 160px
+    ),
+    linear-gradient(
+      180deg,
+      #c8c5af 0%,
+      #a9ae98 76%,
+      #667a67 76.2%,
+      #526a58 100%
+    );
+  -webkit-mask-image:
+    linear-gradient(#000 0 0), linear-gradient(#000 0 0),
     linear-gradient(#000 0 0), linear-gradient(#000 0 0);
   -webkit-mask-size:
     100% calc(50% - (var(--pantry-door-height) - 39px) / 2),
@@ -462,7 +484,8 @@ body.pantry-loading-active {
     calc(50% - (var(--pantry-door-width) - 34px) / 2) 100%;
   -webkit-mask-position: top, bottom, left, right;
   -webkit-mask-repeat: no-repeat;
-  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0),
+  mask-image:
+    linear-gradient(#000 0 0), linear-gradient(#000 0 0),
     linear-gradient(#000 0 0), linear-gradient(#000 0 0);
   mask-size:
     100% calc(50% - (var(--pantry-door-height) - 39px) / 2),
@@ -557,8 +580,18 @@ body.pantry-loading-active {
   border: 1px solid #e0c895;
   border-radius: 3px 3px 0 0;
   background:
-    linear-gradient(90deg, rgb(255 255 255 / 12%), transparent 12% 88%, rgb(0 0 0 / 16%)),
-    repeating-linear-gradient(90deg, #95683f 0 25%, #9f7248 25% 27%, #896039 27% 50%);
+    linear-gradient(
+      90deg,
+      rgb(255 255 255 / 12%),
+      transparent 12% 88%,
+      rgb(0 0 0 / 16%)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #95683f 0 25%,
+      #9f7248 25% 27%,
+      #896039 27% 50%
+    );
   box-shadow: 8px 0 15px rgb(0 0 0 / 28%);
 }
 .pantry-panel {
@@ -639,8 +672,8 @@ body.pantry-loading-active {
     forwards;
 }
 .pantry-loading.is-opening .pantry-lightwell {
-  animation: pantry-lightwell-approach
-    var(--pantry-open-duration, 1400ms) linear forwards;
+  animation: pantry-lightwell-approach var(--pantry-open-duration, 1400ms)
+    linear forwards;
 }
 .pantry-loading.is-opening .pantry-door {
   animation: pantry-door-open var(--pantry-open-duration, 1400ms)
@@ -737,13 +770,24 @@ body.pantry-loading-active {
 #unavailable button {
   margin-top: 12px;
 }
+.app-header {
+  position: relative;
+  background: #203f37;
+  color: #fdf9e7;
+}
+#app.pantry-content-approach .app-header::before {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 200vw;
+  height: 200vh;
+  background: #203f37;
+  content: "";
+  transform: translateX(-50%);
+}
 .wrap {
   width: min(960px, calc(100% - 44px));
   margin-inline: auto;
-}
-.app-header {
-  background: #203f37;
-  color: #fdf9e7;
 }
 .top {
   display: flex;
@@ -1501,10 +1545,9 @@ footer {
 }
 .filters {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(120px, 1fr) minmax(
-      120px,
-      1fr
-    ) auto;
+  grid-template-columns:
+    minmax(0, 2fr) minmax(120px, 1fr) minmax(120px, 1fr)
+    auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 24px;
