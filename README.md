@@ -31,4 +31,6 @@
 
 `npm run build` คัดลอก ExcelJS จาก dependency ไปยังไฟล์ static สำหรับเทมเพลตและการนำเข้า โดยโหลดจากเว็บนี้เอง ไม่ใช้ CDN; Vercel เรียก build นี้ก่อน deploy
 
+`.vercelignore` ต้องไม่ตัด `scripts/build.mjs` ออกจาก deployment เพราะ Vercel ใช้ไฟล์นี้ระหว่าง build ยกเว้นเฉพาะ `scripts/local.mjs` ซึ่งใช้รันบนเครื่องเท่านั้น
+
 รัน `npm test` เพื่อตรวจเทมเพลต dropdown การตรวจข้อมูลนำเข้า และการจัดการข้อผิดพลาด/ข้อมูลเปลี่ยนจากอีกอุปกรณ์

@@ -1,5 +1,5 @@
 .local-stock/
 .env*
-scripts/
+scripts/local.mjs
 README.md
 .DS_Store
