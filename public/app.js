@@ -204,7 +204,9 @@ function alertUser(text, action, label, secondaryAction, secondaryLabel) {
 }
 
 function button(action, label, id = "", className = "action") {
-  const role = className === "item-menu-option" ? ' role="menuitem"' : "";
+  const role = className.split(" ").includes("item-menu-option")
+    ? ' role="menuitem"'
+    : "";
   return (
     '<button type="button" class="' +
     className +
@@ -217,6 +219,13 @@ function button(action, label, id = "", className = "action") {
     ">" +
     label +
     "</button>"
+  );
+}
+function paperPlusLabel(label) {
+  return (
+    '<span class="paper-plus-label"><svg class="paper-plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6m-3 3h6"/></svg><span>' +
+    esc(label) +
+    "</span></span>"
   );
 }
 function thumb(item) {
@@ -282,17 +291,34 @@ function row(item, shopping = false) {
         "use",
         item.qty < 1 ? "- ใช้หมด" : "- 1 " + esc(item.unit),
         item.id,
+        "stock-action stock-action-use",
       ) +
-      button("custom-use", "- ระบุจำนวน", item.id, "action small") +
+      button(
+        "custom-use",
+        "- ระบุจำนวน",
+        item.id,
+        "stock-action stock-action-custom",
+      ) +
       '<div class="item-menu-wrap"><button type="button" class="item-menu-trigger" data-action="toggle-item-menu" data-id="' +
       esc(item.id) +
       '" aria-label="ตัวเลือกเพิ่มเติม" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">⋮</span></button><div class="item-menu" role="menu" hidden>' +
-      button("edit-item", "แก้ไข", item.id, "item-menu-option") +
       button(
-        "shopping-from-item",
-        "+ เพิ่มไปในรายการซื้อ",
+        "edit-item",
+        '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><span>แก้ไข</span>',
         item.id,
         "item-menu-option",
+      ) +
+      button(
+        "shopping-from-item",
+        paperPlusLabel("เพิ่มไปในรายการซื้อ"),
+        item.id,
+        "item-menu-option",
+      ) +
+      button(
+        "confirm-remove-item",
+        '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5m4-5v5"/></svg><span>ลบรายการ</span>',
+        item.id,
+        "item-menu-option danger",
       ) +
       "</div></div>";
   }
@@ -375,7 +401,7 @@ function draw() {
   $("#screen-title").textContent = titles[page];
   $("#page-add").innerHTML =
     page === "shopping"
-      ? '<span aria-hidden="true">＋</span> จดรายการซื้อ'
+      ? paperPlusLabel("จดรายการซื้อ")
       : '<span aria-hidden="true">＋</span> เพิ่มของ';
   $("#page-add").dataset.action = page === "shopping" ? "new-shopping" : "add";
   $("#shopping-count").textContent = stock.shopping.length;
@@ -502,6 +528,7 @@ document.addEventListener("pointerdown", (event) => {
 function enhanceSelect(select) {
   if (select.dataset.searchSelect === "true") return;
   select.dataset.searchSelect = "true";
+  select.setAttribute("autocomplete", "off");
   const label = select.closest("label");
   const labelName =
     label?.querySelector(":scope > span")?.textContent.trim() ||
@@ -696,6 +723,7 @@ function enhanceDatalist(input) {
   if (!options.length) return;
   input.dataset.searchList = "true";
   input.removeAttribute("list");
+  input.setAttribute("autocomplete", "off");
   const label = input.closest("label");
   const labelName =
     label?.querySelector(":scope > span")?.textContent.trim() ||
@@ -979,13 +1007,6 @@ function startEditor(mode, data = {}, sourceId = "") {
       "</p>";
   else {
     fields = editorFields(base, mode.includes("shopping"));
-    if (mode === "edit-item")
-      fields +=
-        '<div class="row-buttons">' +
-        button("custom-use", "ระบุจำนวนที่ใช้", sourceId, "secondary") +
-        button("shopping-from-item", "จดซื้อเพิ่ม", sourceId, "secondary") +
-        button("confirm-remove", "ลบรายการ", sourceId, "text-button danger") +
-        "</div>";
     if (mode === "edit-shopping")
       fields +=
         '<div class="row-buttons">' +
@@ -1386,6 +1407,8 @@ document.addEventListener("click", async (event) => {
   if (action === "custom-use" && item) return startEditor("use", item, id);
   if (action === "shopping-from-item" && item)
     return startEditor("new-shopping", { name: item.name, unit: item.unit });
+  if (action === "confirm-remove-item" && item)
+    return startEditor("remove-item", item, id);
   if (action === "confirm-remove") {
     const isItem = draft.mode === "edit-item";
     return startEditor(

@@ -604,6 +604,33 @@ footer {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.stock-action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stock-action-use,
+.stock-action-custom {
+  color: var(--ink);
+  background: #fff;
+  border-color: var(--line);
+}
+.stock-action-use {
+}
+.stock-action-use:hover,
+.stock-action-custom:hover {
+  background: var(--mint);
+  border-color: #9db39e;
+}
 .item-menu-wrap {
   position: relative;
 }
@@ -643,6 +670,9 @@ footer {
 .item-menu-option {
   width: 100%;
   min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 9px 12px;
   border: 0;
   border-radius: 5px;
@@ -652,9 +682,31 @@ footer {
   font-weight: 500;
   text-align: left;
 }
+.item-menu-icon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+.paper-plus-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.paper-plus-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
 .item-menu-option:hover,
 .item-menu-option:focus-visible {
   background: var(--mint);
+}
+.item-menu-option.danger {
+  color: #983a28;
+}
+.item-menu-option.danger:hover,
+.item-menu-option.danger:focus-visible {
+  background: #f8e5e1;
 }
 .action {
   font-size: 0.91rem;
