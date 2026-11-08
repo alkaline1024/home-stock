@@ -290,7 +290,8 @@ const addActionIcons = {
     '<path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>',
   meal: '<path d="M3 11h18"/><path d="M5 11v6a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-6"/><path d="M12 3v4"/><path d="M7 4l2 3"/><path d="m17 4-2 3"/>',
   recipe: '<path d="M6 3h12v18l-6-4-6 4V3Z"/><path d="M9 8h6m-6 4h6"/>',
-  shopping: '<path d="M6 3h12v18l-6-4-6 4V3Z"/><path d="M9 8h6m-6 4h6"/>',
+  shopping:
+    '<path d="M2 3h2l3 12h12l3-9H5"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/>',
   ingredient:
     '<path d="M4 20c4-1 6-4 8-8"/><path d="m10 7 7-4 4 4-4 7"/><path d="m13 9 2 2m-5 1 2 2m-5 1 2 2"/>',
   cooked:
@@ -300,7 +301,7 @@ function addActionLabel(kind, label) {
   return (
     '<span class="add-action-label"><span class="add-action-icon-wrap"><svg class="add-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     (addActionIcons[kind] || addActionIcons.stock) +
-    '</svg><span class="add-action-plus" aria-hidden="true">+</span></span><span class="add-action-text">' +
+    '</svg><svg class="add-action-plus" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM7 4h2v3h3v2H9v3H7V9H4V7h3Z"/></svg></span><span class="add-action-text">' +
     esc(label) +
     "</span></span>"
   );

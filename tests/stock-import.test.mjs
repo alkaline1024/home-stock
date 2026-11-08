@@ -249,3 +249,30 @@ test("oversized, wrong-type and corrupt uploads report errors without a preview"
     assert.equal(vm.runInContext("busy", context), false);
   }
 });
+
+test("all add-action icons use a current-color badge with a transparent plus cutout", () => {
+  const { context } = app();
+  for (const kind of ["stock", "meal", "recipe", "shopping", "ingredient", "cooked"]) {
+    const label = context.addActionLabel(kind, '<ชื่อ "ปุ่ม">');
+    assert.match(label, /<svg class="add-action-plus"[^>]*fill="currentColor"/);
+    assert.match(label, /fill-rule="evenodd"/);
+    assert.doesNotMatch(label, /<span class="add-action-plus"/);
+    assert.match(label, /&lt;ชื่อ &quot;ปุ่ม&quot;&gt;/);
+    assert.match(label, /aria-hidden="true"/);
+  }
+});
+
+test("shopping actions and navigation share the cart icon instead of the saved-recipe icon", () => {
+  const { context } = app();
+  const label = context.paperPlusLabel("จดรายการซื้อ");
+  const icon = label.split("</svg>")[0];
+  const recipe = context.addActionLabel("recipe", "เพิ่มเมนู").split("</svg>")[0];
+  const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+  const navigation = html.split('<a href="#shopping"')[1].split("</a>")[0];
+  const paths = [...icon.matchAll(/<(?:path|circle)[^>]+>/g)].map(([value]) =>
+    value.replace(/\s*\/>$/, "").replace(/\s+/g, " "));
+  assert.equal(paths.length, 3);
+  for (const path of paths) assert.ok(navigation.includes(path));
+  assert.notEqual(icon, recipe);
+  assert.doesNotMatch(navigation, /M5 8h14/);
+});
