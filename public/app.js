@@ -3,7 +3,11 @@
 const $ = (selector) => document.querySelector(selector);
 const categories = ["เนื้อสัตว์", "ผัก", "อาหารสด", "อาหารแห้ง", "อื่น ๆ"];
 const rooms = ["ตู้เย็น", "ช่องแช่แข็ง", "ตู้กับข้าว"];
-const titles = { today: "วันนี้", stock: "ของในบ้าน", shopping: "รายการซื้อ" };
+const titles = {
+  today: "หน้าหลัก",
+  stock: "ของในบ้าน",
+  shopping: "รายการซื้อ",
+};
 const dateFormat = new Intl.DateTimeFormat("th-TH", {
   day: "numeric",
   month: "short",
@@ -33,6 +37,9 @@ let noticeTimer = 0;
 let lastDrawDay = "";
 let lastActive = Date.now();
 let lastReadStarted = 0;
+let calendarYear = new Date().getFullYear();
+let calendarMonth = new Date().getMonth();
+let selectedExpiryDate = "";
 const idleAfter = 5 * 60 * 1000;
 
 function tab() {
@@ -43,6 +50,16 @@ function tab() {
 function localDay(value) {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(year, month - 1, day, 12);
+}
+
+function calendarDateKey(year, month, day) {
+  return (
+    String(year).padStart(4, "0") +
+    "-" +
+    String(month + 1).padStart(2, "0") +
+    "-" +
+    String(day).padStart(2, "0")
+  );
 }
 
 function daysLeft(value) {
@@ -381,6 +398,105 @@ function empty(title, description, action = "", label = "") {
   );
 }
 
+function expiryCalendar(items) {
+  const firstDay = new Date(calendarYear, calendarMonth, 1);
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const today = new Date();
+  const todayKey = calendarDateKey(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  const counts = new Map();
+  for (const item of items) {
+    if (!item.date || item.dateKind !== "expiry") continue;
+    counts.set(item.date, (counts.get(item.date) || 0) + 1);
+  }
+
+  const weekdays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+  let cells = weekdays
+    .map((day) => '<span class="calendar-weekday">' + day + "</span>")
+    .join("");
+  const leadingDays = firstDay.getDay();
+  const gridDays = Math.ceil((leadingDays + daysInMonth) / 7) * 7;
+  for (let index = 0; index < gridDays; index++) {
+    const date = new Date(
+      calendarYear,
+      calendarMonth,
+      index - leadingDays + 1,
+      12,
+    );
+    const dateYear = date.getFullYear();
+    const dateMonth = date.getMonth();
+    const day = date.getDate();
+    const dateKey = calendarDateKey(dateYear, dateMonth, day);
+    const count = counts.get(dateKey) || 0;
+    const selected = dateKey === selectedExpiryDate;
+    const inCurrentMonth = dateMonth === calendarMonth;
+    const dateLabel = new Intl.DateTimeFormat("th-TH", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(date);
+    cells +=
+      '<button type="button" class="calendar-day' +
+      (inCurrentMonth ? "" : " is-adjacent") +
+      (count ? " has-expiry" : " is-empty") +
+      (dateKey === todayKey ? " is-today" : "") +
+      (selected ? " is-selected" : "") +
+      '" data-action="select-expiry-date" data-id="' +
+      dateKey +
+      '" aria-label="' +
+      esc(dateLabel + ", หมดอายุ " + count + " รายการ") +
+      '" aria-pressed="' +
+      selected +
+      '"' +
+      (dateKey === todayKey ? ' aria-current="date"' : "") +
+      '"><span class="calendar-day-number">' +
+      day +
+      '</span><span class="calendar-day-count">' +
+      count +
+      "</span></button>";
+  }
+
+  let details = "";
+  if (selectedExpiryDate) {
+    const selectedItems = items.filter(
+      (item) => item.dateKind === "expiry" && item.date === selectedExpiryDate,
+    );
+    const selectedLabel = new Intl.DateTimeFormat("th-TH", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(localDay(selectedExpiryDate));
+    details =
+      '<div class="calendar-details" aria-live="polite"><h3>หมดอายุวันที่ ' +
+      esc(selectedLabel) +
+      " · " +
+      selectedItems.length +
+      " รายการ</h3>" +
+      (selectedItems.length
+        ? selectedItems.map((item) => row(item)).join("")
+        : '<p class="calendar-no-expiry">ไม่มีของหมดอายุในวันนี้</p>') +
+      "</div>";
+  }
+
+  const monthLabel = new Intl.DateTimeFormat("th-TH", {
+    month: "long",
+    year: "numeric",
+  }).format(firstDay);
+  return (
+    '<section class="expiry-calendar" aria-labelledby="expiry-calendar-title"><div class="calendar-head"><h2 id="expiry-calendar-title">วันหมดอายุ</h2><div class="calendar-month"><button type="button" class="calendar-nav" data-action="calendar-prev" aria-label="เดือนก่อน">‹</button><h3>' +
+    esc(monthLabel) +
+    '</h3><button type="button" class="calendar-nav" data-action="calendar-next" aria-label="เดือนถัดไป">›</button></div></div><div class="calendar-grid">' +
+    cells +
+    "</div>" +
+    details +
+    "</section>"
+  );
+}
+
 function draw() {
   if (!stock) return;
   const page = tab();
@@ -437,6 +553,7 @@ function draw() {
             "add",
             "เพิ่มของชิ้นแรก",
           );
+    html += expiryCalendar(sorted);
   } else if (page === "stock") {
     const roomsSelect = $("#location-filter"),
       selected = roomsSelect.value;
@@ -1372,6 +1489,21 @@ document.addEventListener("click", async (event) => {
   }
   closeItemMenus();
   if (!stock) return;
+  if (action === "calendar-prev" || action === "calendar-next") {
+    const direction = action === "calendar-prev" ? -1 : 1;
+    const month = new Date(calendarYear, calendarMonth + direction, 1);
+    calendarYear = month.getFullYear();
+    calendarMonth = month.getMonth();
+    selectedExpiryDate = "";
+    return draw();
+  }
+  if (action === "select-expiry-date") {
+    selectedExpiryDate = id;
+    const selectedDate = localDay(id);
+    calendarYear = selectedDate.getFullYear();
+    calendarMonth = selectedDate.getMonth();
+    return draw();
+  }
   if (action === "open-stock") {
     location.hash = "stock";
     return;
