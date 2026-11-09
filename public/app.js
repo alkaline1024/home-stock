@@ -1522,6 +1522,13 @@ function opts(values, selected) {
 let selectId = 0;
 const openSearchDropdowns = new Set();
 document.addEventListener("pointerdown", (event) => {
+  const activeRoot = document.activeElement?.closest?.(
+    "[data-search-select-root]",
+  );
+  if (activeRoot && !activeRoot.contains(event.target)) {
+    activeRoot.closeSearchDropdown();
+    document.activeElement.blur();
+  }
   for (const root of [...openSearchDropdowns]) {
     if (!root.contains(event.target)) root.closeSearchDropdown();
   }
@@ -1624,6 +1631,7 @@ function enhanceSelect(select) {
   function close() {
     open = false;
     openSearchDropdowns.delete(root);
+    root.classList.remove("search-select-focused");
     panel.hidden = true;
     input.setAttribute("aria-expanded", "false");
     input.removeAttribute("aria-activedescendant");
@@ -1659,13 +1667,28 @@ function enhanceSelect(select) {
     const option = visibleOptions[index];
     if (!option) return;
     select.value = option.value;
-    select.dispatchEvent(new Event("change", { bubbles: true }));
     close();
+    input.blur();
+    select.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  input.addEventListener("focus", show);
+  input.addEventListener("focus", () => {
+    root.classList.add("search-select-focused");
+    show();
+  });
   input.addEventListener("click", show);
-  input.addEventListener("blur", close);
+  input.addEventListener("blur", (event) => {
+    if (!root.contains(event.relatedTarget))
+      root.classList.remove("search-select-focused");
+    if (event.relatedTarget !== toggle) close();
+  });
+  toggle.addEventListener("focus", () =>
+    root.classList.add("search-select-focused"),
+  );
+  toggle.addEventListener("blur", () => {
+    if (!root.contains(document.activeElement))
+      root.classList.remove("search-select-focused");
+  });
   input.addEventListener("input", () => renderOptions(input.value));
   input.addEventListener("keydown", (event) => {
     if (event.key === "ArrowDown") {
@@ -1690,13 +1713,23 @@ function enhanceSelect(select) {
       close();
     } else if (event.key === "Tab" && open) close();
   });
-  toggle.addEventListener("pointerdown", (event) => event.preventDefault());
+  let toggleShouldClose = false;
+  toggle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    toggleShouldClose = open;
+    input.blur();
+  });
   toggle.addEventListener("click", () => {
-    if (open) close();
-    else {
-      input.focus();
-      show();
-    }
+    if (toggleShouldClose || open) close();
+    else show();
+    toggleShouldClose = false;
+  });
+  toggle.addEventListener("keydown", (event) => {
+    if (!open || (event.key !== "ArrowDown" && event.key !== "ArrowUp"))
+      return;
+    event.preventDefault();
+    input.focus();
+    activate(event.key === "ArrowDown" ? 0 : visibleOptions.length - 1);
   });
   list.addEventListener("pointerdown", (event) => {
     if (event.target.closest('[role="option"]')) event.preventDefault();
@@ -1739,6 +1772,7 @@ function enhanceDatalist(input) {
   const listId = "search-suggestions-" + ++selectId;
   const root = document.createElement("div");
   root.className = "search-select search-autocomplete";
+  root.dataset.searchSelectRoot = "";
   input.classList.add("search-select-input");
   input.setAttribute("role", "combobox");
   input.setAttribute("aria-autocomplete", "list");
@@ -1769,6 +1803,9 @@ function enhanceDatalist(input) {
   let open = false;
   let activeIndex = -1;
   let visibleOptions = [];
+  let focusValue = "";
+  let focusValueChanged = false;
+  let focusSession = false;
 
   function renderOptions(query = input.value) {
     const normalized = key(query);
@@ -1801,6 +1838,12 @@ function enhanceDatalist(input) {
   function close() {
     open = false;
     openSearchDropdowns.delete(root);
+    if (focusSession) {
+      if (!focusValueChanged) input.value = focusValue;
+      focusSession = false;
+      focusValueChanged = false;
+    }
+    root.classList.remove("search-select-focused");
     panel.hidden = true;
     input.setAttribute("aria-expanded", "false");
     input.removeAttribute("aria-activedescendant");
@@ -1816,6 +1859,14 @@ function enhanceDatalist(input) {
     input.setAttribute("aria-expanded", "true");
     toggle.setAttribute("aria-expanded", "true");
     renderOptions();
+  }
+
+  function beginFocusSession() {
+    if (focusSession) return;
+    focusSession = true;
+    focusValue = input.value;
+    focusValueChanged = false;
+    input.value = "";
   }
 
   function activate(index) {
@@ -1834,15 +1885,32 @@ function enhanceDatalist(input) {
     const option = visibleOptions[index];
     if (option === undefined) return;
     input.value = option;
+    focusValueChanged = true;
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
     close();
+    input.blur();
   }
 
-  input.addEventListener("focus", show);
+  input.addEventListener("focus", () => {
+    beginFocusSession();
+    root.classList.add("search-select-focused");
+    show();
+  });
   input.addEventListener("click", show);
-  input.addEventListener("blur", close);
+  input.addEventListener("blur", () => {
+    root.classList.remove("search-select-focused");
+    close();
+  });
+  toggle.addEventListener("focus", () =>
+    root.classList.add("search-select-focused"),
+  );
+  toggle.addEventListener("blur", () => {
+    if (!root.contains(document.activeElement))
+      root.classList.remove("search-select-focused");
+  });
   input.addEventListener("input", () => {
+    if (focusSession) focusValueChanged = true;
     if (!open) show();
     renderOptions(input.value);
   });
@@ -1869,13 +1937,19 @@ function enhanceDatalist(input) {
       close();
     } else if (event.key === "Tab" && open) close();
   });
-  toggle.addEventListener("pointerdown", (event) => event.preventDefault());
+  let toggleShouldClose = false;
+  toggle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    toggleShouldClose = open;
+    input.blur();
+  });
   toggle.addEventListener("click", () => {
-    if (open) close();
+    if (toggleShouldClose || open) close();
     else {
-      input.focus();
+      beginFocusSession();
       show();
     }
+    toggleShouldClose = false;
   });
   list.addEventListener("pointerdown", (event) => {
     if (event.target.closest('[role="option"]')) event.preventDefault();

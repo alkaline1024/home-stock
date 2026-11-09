@@ -89,6 +89,119 @@ function workbook(rows) {
 
 const row = ["ข้าว", 1.125, "ถุง", "ของแห้ง", "ชั้นวาง", "", ""];
 
+test("tapping outside a search select closes and blurs synchronously", () => {
+  const { context, dispatchDocumentEvent } = app();
+  let closed = 0;
+  let blurred = 0;
+  const root = {
+    contains: () => false,
+    closeSearchDropdown() { closed++; },
+  };
+  const input = {
+    closest: () => root,
+    blur() {
+      blurred++;
+      context.document.activeElement = null;
+    },
+  };
+  context.document.activeElement = input;
+  const target = { closest: () => null };
+
+  dispatchDocumentEvent("pointerdown", { target });
+  assert.equal(closed, 1);
+  assert.equal(blurred, 1);
+  assert.equal(context.document.activeElement, null);
+  const outsideButton = { closest: () => null, blur() {} };
+  context.document.activeElement = outsideButton;
+  dispatchDocumentEvent("click", { target });
+  assert.equal(context.document.activeElement, outsideButton);
+});
+
+test("datalist clears its value while open, restores unchanged values, and keeps selections", () => {
+  const { context } = app();
+  context.Event = Event;
+  const node = () => {
+    const listeners = new Map();
+    return {
+      dataset: {},
+      attributes: {},
+      children: [],
+      classList: {
+        add() {},
+        remove() {},
+      },
+      addEventListener(type, callback) {
+        const callbacks = listeners.get(type) || [];
+        callbacks.push(callback);
+        listeners.set(type, callbacks);
+      },
+      dispatchEvent(event) {
+        for (const callback of listeners.get(event.type) || [])
+          callback(event);
+        return true;
+      },
+      fire(type, event = {}) {
+        for (const callback of listeners.get(type) || [])
+          callback({ type, preventDefault() {}, ...event });
+      },
+      append(...children) { this.children.push(...children); },
+      closest() { return this.label; },
+      querySelectorAll() { return []; },
+      remove() {},
+      removeAttribute(name) { delete this.attributes[name]; },
+      replaceWith(replacement) { this.replacement = replacement; },
+      setAttribute(name, value) { this.attributes[name] = value; },
+      set innerHTML(value) { this.html = value; },
+      get innerHTML() { return this.html; },
+    };
+  };
+  context.document.createElement = node;
+  const datalist = { options: [{ value: "ชิ้น" }, { value: "กล่อง" }], remove() {} };
+  const label = { querySelector: () => null, childNodes: [] };
+  const input = node();
+  Object.assign(input, {
+    value: "ชิ้น",
+    id: "f-unit",
+    list: datalist,
+    label,
+    removeAttribute: node().removeAttribute,
+    blur() {
+      context.document.activeElement = null;
+      this.fire("blur");
+    },
+  });
+  input.list = datalist;
+  input.closest = () => label;
+  input.classList.add = () => {};
+  context.enhanceDatalist(input);
+  const root = input.replacement;
+  const toggle = root.children[1];
+  const panel = root.children[2];
+  const list = panel.children[0];
+
+  context.document.activeElement = input;
+  input.fire("focus");
+  assert.equal(input.value, "");
+  assert.match(list.innerHTML, /ชิ้น/);
+  assert.match(list.innerHTML, /กล่อง/);
+  input.blur();
+  assert.equal(input.value, "ชิ้น");
+  assert.equal(panel.hidden, true);
+
+  toggle.fire("click");
+  assert.equal(input.value, "");
+  assert.match(list.innerHTML, /ชิ้น/);
+  assert.match(list.innerHTML, /กล่อง/);
+  root.closeSearchDropdown();
+  assert.equal(input.value, "ชิ้น");
+
+  toggle.fire("click");
+  list.fire("click", {
+    target: { closest: () => ({ dataset: { index: "1" } }) },
+  });
+  assert.equal(input.value, "กล่อง");
+});
+
 test("animation mode defaults to full and only restores supported saved values", () => {
   const defaultApp = app();
   assert.equal(vm.runInContext("animationMode", defaultApp.context), "full");

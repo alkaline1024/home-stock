@@ -80,29 +80,42 @@ label > select {
 }
 .search-select {
   position: relative;
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
   margin-top: 4px;
   font-size: 1rem;
   font-weight: 400;
+  border-radius: 8px;
+}
+.search-select.search-select-focused {
+  outline: 3px solid #be722e;
+  outline-offset: 3px;
 }
 .search-select-native {
   display: none !important;
 }
 .search-select-input {
-  padding-right: 46px;
+  min-width: 0;
+  border-radius: 8px 0 0 8px;
   cursor: text;
 }
+.search-select-input:focus-visible,
+.search-select-toggle:focus-visible {
+  outline: none;
+}
 .search-select-toggle {
-  position: absolute;
-  top: 1px;
-  right: 1px;
+  position: static;
   width: 44px;
-  height: 44px;
+  min-height: 46px;
   display: grid;
   place-items: center;
-  border: 0;
-  border-radius: 0 7px 7px 0;
-  background: transparent;
+  border: 1px solid #a8b6a7;
+  border-left-color: var(--line);
+  border-radius: 0 8px 8px 0;
+  background: #f1f3ec;
+}
+.search-select-toggle[aria-expanded="true"] {
+  background: var(--mint);
 }
 .search-select-chevron {
   width: 8px;
