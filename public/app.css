@@ -192,6 +192,16 @@ label > select {
   background: #f0dfd0;
   border-color: #d7bda8;
 }
+.stock-badge--seasonings {
+  color: #745a22;
+  background: #f7f0d8;
+  border-color: #e8dcae;
+}
+.stock-badge--snacks {
+  color: #805234;
+  background: #f7e9dc;
+  border-color: #e8d0b9;
+}
 .stock-badge--other,
 .stock-badge--custom {
   color: #4e5e56;
@@ -1960,6 +1970,13 @@ dialog::backdrop {
     height: 4px;
     border-radius: 2px;
     background: var(--line);
+  }
+  .sheet-handle:focus-visible {
+    outline: none;
+  }
+  .sheet-handle:focus-visible::before {
+    outline: 2px solid var(--green);
+    outline-offset: 4px;
   }
   dialog .dialog-head {
     touch-action: none;

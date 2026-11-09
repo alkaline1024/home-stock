@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { DatabaseSync } from "node:sqlite";
 import { randomBytes, randomUUID } from "node:crypto";
+import { networkInterfaces } from "node:os";
 import { mkdirSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
@@ -10,7 +11,9 @@ import { createStockHandlers } from "../lib/stock.js";
 import { createPhotoHandlers } from "../lib/photo.js";
 import { login } from "../lib/session.js";
 
-// This development server binds only to loopback. Production uses api/ and private Vercel Blob.
+// Production uses api/ and private Vercel Blob.
+const hostMode = process.argv.includes("--host");
+const bindHost = hostMode ? "0.0.0.0" : "127.0.0.1";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const dataDir = process.env.HOME_STOCK_DIR || resolve(root, ".local-stock");
 mkdirSync(dataDir, { recursive: true, mode: 0o700 });
@@ -78,13 +81,30 @@ const assets = new Map([
 const server = createServer(async (req, res) => {
   try {
     const port = server.address().port;
-    const host = req.headers.host;
-    if (host !== "127.0.0.1:" + port && host !== "localhost:" + port) {
+    const hostHeader = req.headers.host;
+    let requestOrigin;
+    try {
+      requestOrigin = new URL("http://" + hostHeader);
+    } catch {
       res.writeHead(403).end();
       return;
     }
-    const url = new URL(req.url, "http://" + host);
-    if (url.host !== host) {
+    const allowedHosts = new Set(["127.0.0.1", "localhost", "::1"]);
+    if (hostMode) {
+      for (const addresses of Object.values(networkInterfaces()))
+        for (const address of addresses || [])
+          allowedHosts.add(address.address.replace(/^::ffff:/, ""));
+    }
+    const requestHostname = requestOrigin.hostname.replace(/^\[|\]$/g, "");
+    if (
+      requestOrigin.port !== String(port) ||
+      !allowedHosts.has(requestHostname)
+    ) {
+      res.writeHead(403).end();
+      return;
+    }
+    const url = new URL(req.url, requestOrigin);
+    if (url.host !== requestOrigin.host) {
       res.writeHead(403).end();
       return;
     }
@@ -128,8 +148,16 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify({ error: "ดำเนินการไม่สำเร็จ" }));
   }
 });
-server.listen(Number(process.env.PORT || 4177), "127.0.0.1", () => {
-  console.log("home-stock: http://127.0.0.1:" + server.address().port);
+server.listen(Number(process.env.PORT || 4177), bindHost, () => {
+  const port = server.address().port;
+  console.log("home-stock: http://127.0.0.1:" + port);
+  if (hostMode) {
+    for (const addresses of Object.values(networkInterfaces()))
+      for (const address of addresses || [])
+        if (address.family === "IPv4" && !address.internal)
+          console.log("Network: http://" + address.address + ":" + port);
+    console.log("Network access enabled; use only on a trusted network.");
+  }
   if (!process.env.HOME_STOCK_DIR)
     console.log("Local access key (if generated): " + keyPath);
 });

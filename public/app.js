@@ -7,7 +7,9 @@ const categories = [
   "ของสด",
   "ของแช่แข็ง",
   "ของแห้ง",
+  "เครื่องปรุง",
   "อาหารปรุงสุก",
+  "ขนม",
   "อื่น ๆ",
 ];
 const categoryAliases = { อาหารสด: "ของสด", อาหารแห้ง: "ของแห้ง" };
@@ -761,7 +763,9 @@ const badgeDetails = {
     ของสด: { icon: "🧺", tone: "fresh" },
     ของแช่แข็ง: { icon: "🧊", tone: "frozen" },
     ของแห้ง: { icon: "🌾", tone: "dry" },
+    เครื่องปรุง: { icon: "🧂", tone: "seasonings" },
     อาหารปรุงสุก: { icon: "🍲", tone: "cooked" },
+    ขนม: { icon: "🍪", tone: "snacks" },
     "อื่น ๆ": { icon: "📦", tone: "other" },
     ทุกหมวด: { icon: "✦", tone: "all" },
   },

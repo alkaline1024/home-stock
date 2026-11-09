@@ -188,6 +188,18 @@ test("valid imports meet server validation, default optional fields and preserve
   validatedStock({ items: parsed.items, shopping: [], version: parsed.version });
 });
 
+test("seasonings and snacks are valid categories for imports and server validation", () => {
+  const { context } = app();
+  const parsed = context.parseStockImport(workbook([
+    ["น้ำปลา", 1, "ขวด", "เครื่องปรุง", "", "", ""],
+    ["ขนมปัง", 1, "ชิ้น", "ขนม", "", "", ""],
+  ]));
+  assert.equal(parsed.errors.length, 0);
+  assert.equal(parsed.items[0].category, "เครื่องปรุง");
+  assert.equal(parsed.items[1].category, "ขนม");
+  validatedStock({ items: parsed.items, shopping: [], version: parsed.version });
+});
+
 for (const [label, column, invalid] of [
   ["missing name", 0, ""], ["long name", 0, "x".repeat(81)],
   ["zero quantity", 1, 0], ["negative quantity", 1, -1],
