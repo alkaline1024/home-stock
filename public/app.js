@@ -2011,7 +2011,7 @@ function editorFields(data, isShopping) {
     '>วันหมดอายุ</option><option value="plan"' +
     (data.dateKind === "plan" ? " selected" : "") +
     ">ตั้งใจใช้ภายใน</option></select></label>" +
-    '<label>วันที่ (ถ้ามี)<input id="f-date" type="date" value="' +
+    '<label class="span">วันที่ (ถ้ามี)<input id="f-date" type="date" value="' +
     esc(data.date) +
     '"></label>' +
     '<div class="span photo-edit"><label>รูปภาพ (ถ้ามี)<input type="file" id="f-photo" accept="image/*"></label><div id="photo-preview"></div></div></div>'
@@ -2088,7 +2088,7 @@ function mealEditorFields(plan, defaultDate, selectedRecipeId = "") {
     templateOptions +
     '</select></label><label class="span">ชื่อเมนู<input required id="meal-name" maxlength="80" value="' +
     esc(name) +
-    '"></label><label>วันที่ทำเมนู<input required id="meal-date" type="date" value="' +
+    '"></label><label class="span">วันที่ทำเมนู<input required id="meal-date" type="date" value="' +
     esc(plan?.date || defaultDate) +
     '"></label><label>จำนวนเสิร์ฟ<input required id="meal-servings" type="number" min="1" max="100" step="1" value="' +
     servings +
