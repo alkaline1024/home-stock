@@ -186,6 +186,10 @@ function localDay(value) {
   return new Date(year, month - 1, day, 12);
 }
 
+function dateInputLabel(value) {
+  return value ? dateFormat.format(localDay(value)) : "";
+}
+
 function calendarDateKey(year, month, day) {
   return (
     String(year).padStart(4, "0") +
@@ -2011,9 +2015,11 @@ function editorFields(data, isShopping) {
     '>วันหมดอายุ</option><option value="plan"' +
     (data.dateKind === "plan" ? " selected" : "") +
     ">ตั้งใจใช้ภายใน</option></select></label>" +
-    '<label class="span">วันที่ (ถ้ามี)<input id="f-date" type="date" value="' +
+    '<label>วันที่ (ถ้ามี)<span class="date-control"><span class="date-display" aria-hidden="true">' +
+    esc(dateInputLabel(data.date)) +
+    '</span><input id="f-date" type="date" value="' +
     esc(data.date) +
-    '"></label>' +
+    '"></span></label>' +
     '<div class="span photo-edit"><label>รูปภาพ (ถ้ามี)<input type="file" id="f-photo" accept="image/*"></label><div id="photo-preview"></div></div></div>'
   );
 }
@@ -2088,9 +2094,11 @@ function mealEditorFields(plan, defaultDate, selectedRecipeId = "") {
     templateOptions +
     '</select></label><label class="span">ชื่อเมนู<input required id="meal-name" maxlength="80" value="' +
     esc(name) +
-    '"></label><label class="span">วันที่ทำเมนู<input required id="meal-date" type="date" value="' +
+    '"></label><label class="span">วันที่ทำเมนู<span class="date-control"><span class="date-display" aria-hidden="true">' +
+    esc(dateInputLabel(plan?.date || defaultDate)) +
+    '</span><input required id="meal-date" type="date" value="' +
     esc(plan?.date || defaultDate) +
-    '"></label><label>จำนวนเสิร์ฟ<input required id="meal-servings" type="number" min="1" max="100" step="1" value="' +
+    '"></span></label><label>จำนวนเสิร์ฟ<input required id="meal-servings" type="number" min="1" max="100" step="1" value="' +
     servings +
     '"></label><div class="span"><div class="section-head"><h3>วัตถุดิบ</h3></div><div class="meal-ingredient-list" id="meal-ingredients">' +
     ingredients.map(mealIngredientRow).join("") +
@@ -3407,6 +3415,21 @@ document.addEventListener("keydown", interaction);
 window.addEventListener("focus", activeCheck);
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) activeCheck();
+});
+function syncDateDisplay(event) {
+  const input = event.target.closest?.(".date-control input[type='date']");
+  if (!input) return;
+  const display = input.parentElement.querySelector(".date-display");
+  if (display) display.textContent = dateInputLabel(input.value);
+}
+document.addEventListener("input", syncDateDisplay);
+document.addEventListener("change", syncDateDisplay);
+document.addEventListener("click", (event) => {
+  const input = event.target.closest?.(".date-control input[type='date']");
+  if (!input || !event.isTrusted || typeof input.showPicker !== "function")
+    return;
+  event.preventDefault();
+  input.showPicker();
 });
 setInterval(() => {
   if (stock && !document.hidden && Date.now() - lastActive < idleAfter)
