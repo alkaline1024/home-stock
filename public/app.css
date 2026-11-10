@@ -2358,9 +2358,8 @@ dialog::backdrop {
   }
 }
 
-.quick-add, .low-stock, .settings-stock { margin: 1.3rem 0; }
-.quick-add h2, .low-stock h2, .settings-stock h2 { margin: 0 0 .7rem; font-size: 1.1rem; }
-.quick-add-list { display: flex; flex-wrap: wrap; gap: .55rem; }
+.low-stock, .settings-stock { margin: 1.3rem 0; }
+.low-stock h2, .settings-stock h2 { margin: 0 0 .7rem; font-size: 1.1rem; }
 .low-stock-row { display: flex; justify-content: space-between; align-items: center; gap: .7rem; padding: .7rem 0; border-bottom: 1px solid var(--border, #d6ded4); }
 .low-stock-row span { min-width: 0; }
 .minimum-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .6rem 0; }

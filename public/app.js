@@ -1515,13 +1515,6 @@ function lowStockSection() {
       encodeURIComponent(item.name) + '|' + encodeURIComponent(item.unit), 'secondary') + '</div>').join('') + '</section>';
 }
 
-function quickAddSection() {
-  const recent = (stock.recentItems || []).slice(0, 6);
-  return recent.length ? '<section class="quick-add"><h2>เพิ่มของเดิม</h2><div class="quick-add-list">' +
-    recent.map((item, index) => button('quick-add', esc(item.name) + ' · ' + esc(item.unit), String(index), 'secondary')).join('') +
-    '</div></section>' : '';
-}
-
 async function loadAlertSettings() {
   try {
     const settings = await request('alerts');
@@ -1705,7 +1698,6 @@ function draw() {
             "add",
             "เพิ่มของชิ้นแรก",
           );
-    html = quickAddSection() + html;
   } else if (page === "meals") {
     const plannedPlans = (stock.mealPlans || [])
       .filter((plan) => plan.status === "planned")
@@ -3671,10 +3663,6 @@ document.addEventListener("click", async (event) => {
     $("#location-filter").value = "";
     draw();
     return;
-  }
-  if (action === "quick-add") {
-    const known = stock.recentItems?.[Number(id)];
-    if (known) return startEditor("add", {...known, qty: 1, date: "", dateKind: "expiry"});
   }
   if (action === "buy-low") {
     const [name, unit] = id.split("|").map(decodeURIComponent);
