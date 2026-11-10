@@ -368,8 +368,13 @@
         <button type="button" class="close" aria-label="ปิด" data-action="close-receipt">×</button></div>
       <p class="form-help">ตัวอ่านอาจอ่านชื่อภาษาไทยผิด กรุณาตรวจชื่อ จำนวน หน่วย บาร์โค้ด และวันหมดอายุบนสินค้า ก่อนรับเข้าบ้าน</p>
       <div id="receipt-ai-tools" hidden>
-        <button type="button" id="receipt-ai-button" class="secondary">AI ช่วยตรวจรายการ</button>
-        <p class="form-help">เมื่อกด รูปใบเสร็จและข้อความที่อ่านได้จะถูกส่งให้ Google เพื่อช่วยแยกรายการ ผลใหม่จะมาแทนรายการที่แสดงอยู่ และยังต้องตรวจแก้ก่อนบันทึก</p>
+        <div class="receipt-ai-row">
+          <label class="receipt-ai-model">โมเดล AI<select id="receipt-ai-model">
+            <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash Lite</option>
+          </select></label>
+          <button type="button" id="receipt-ai-button" class="secondary">วิเคราะห์รูปภาพด้วย AI</button>
+        </div>
+        <p class="form-help">ให้ AI อ่านรูปใบเสร็จอีกครั้งเพื่อแยกชื่อสินค้า จำนวน หน่วย และหมวดให้แม่นขึ้น รูปและข้อความที่สแกนได้จะถูกส่งไปยัง Google Gemini · ผลจาก AI จะแทนที่รายการด้านล่าง (ที่เก็บและวันหมดอายุที่กรอกไว้จะคงอยู่) กรุณาตรวจอีกครั้งก่อนรับเข้าบ้าน</p>
       </div>
       <p id="receipt-ai-status" class="form-help" role="status"></p>
       <div id="receipt-review"></div>

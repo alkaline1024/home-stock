@@ -2395,3 +2395,6 @@ button.is-loading { display: inline-flex; align-items: center; justify-content: 
 #receipt-review details { margin: 12px 0; }
 #receipt-review pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; }
 @media(max-width: 580px) { .receipt-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .receipt-fields .receipt-name { grid-column: span 2; } #receipt-dialog .dialog-actions { flex-wrap: wrap; } }
+.receipt-ai-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.receipt-ai-model { flex: 1 1 200px; }
+.receipt-ai-row > button { flex: 0 0 auto; }
