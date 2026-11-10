@@ -27,6 +27,8 @@ test('receipt AI is opt-in, authenticated, and validates provider output', async
     return Response.json({candidates: [{content: {parts: [{text: JSON.stringify({items: [
       {name: 'ผักขมไทย 500 กรัม', quantity: 1, unit: 'แพ็ค',
         barcode: '29595013', category: 'ผัก'},
+      {name: 'สันในไก่', quantity: 0.364, unit: 'กก.',
+        barcode: '210044310103000003640.364', category: 'เนื้อสัตว์'},
     ]})}]}}]});
   };
   const api = createReceiptAiHandlers(provider);
@@ -55,7 +57,13 @@ test('receipt AI is opt-in, authenticated, and validates provider output', async
       barcode: '29595013', category: 'ผัก', location: '',
       raw: 'AI แนะนำ · ตรวจรายละเอียดก่อนบันทึก',
     });
-    assert.equal(providerCalls, 1);
+    const weighed = await (await api.POST(req(body))).json();
+    assert.equal(weighed.rows.length, 2);
+    assert.deepEqual(weighed.rows[1], {
+      name: 'สันในไก่', qty: 0.364, unit: 'กก.', barcode: '', category: 'เนื้อสัตว์',
+      location: '', raw: 'AI แนะนำ · ตรวจรายละเอียดก่อนบันทึก',
+    });
+    assert.equal(providerCalls, 2);
   } finally {
     if (previousSecret === undefined) delete process.env.HOME_STOCK_SECRET;
     else process.env.HOME_STOCK_SECRET = previousSecret;
