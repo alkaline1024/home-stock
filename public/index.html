@@ -367,6 +367,11 @@
       <div class="dialog-head"><h2 id="receipt-title">ตรวจรายการจากใบเสร็จ</h2>
         <button type="button" class="close" aria-label="ปิด" data-action="close-receipt">×</button></div>
       <p class="form-help">ตัวอ่านอาจอ่านชื่อภาษาไทยผิด กรุณาตรวจชื่อ จำนวน หน่วย บาร์โค้ด และวันหมดอายุบนสินค้า ก่อนรับเข้าบ้าน</p>
+      <div id="receipt-ai-tools" hidden>
+        <button type="button" id="receipt-ai-button" class="secondary">AI ช่วยตรวจรายการ</button>
+        <p class="form-help">เมื่อกด รูปใบเสร็จและข้อความที่อ่านได้จะถูกส่งให้ Google เพื่อช่วยแยกรายการ ผลใหม่จะมาแทนรายการที่แสดงอยู่ และยังต้องตรวจแก้ก่อนบันทึก</p>
+      </div>
+      <p id="receipt-ai-status" class="form-help" role="status"></p>
       <div id="receipt-review"></div>
       <p id="receipt-error" class="error" role="alert"></p>
       <div class="dialog-actions"><button type="button" class="secondary" data-action="receipt-add-row">เพิ่มรายการ</button>

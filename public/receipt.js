@@ -16,7 +16,7 @@ function loadLibrary() {
   return libraryPromise;
 }
 
-async function prepareImage(file) {
+async function prepareImage(file, ai = false) {
   if (file.size > 20 * 1024 * 1024) throw new Error('รูปใบเสร็จต้องไม่เกิน 20 MB');
   let bitmap;
   let release;
@@ -37,7 +37,8 @@ async function prepareImage(file) {
     }
   }
   try {
-    const scale = Math.min(2, 2600 / Math.max(bitmap.width || bitmap.naturalWidth,
+    const scale = Math.min(ai ? 1 : 2, (ai ? 1600 : 2600) /
+      Math.max(bitmap.width || bitmap.naturalWidth,
       bitmap.height || bitmap.naturalHeight));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
@@ -46,23 +47,37 @@ async function prepareImage(file) {
     context.fillStyle = '#fff';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const image = context.getImageData(0, 0, canvas.width, canvas.height);
-    for (let i = 0; i < image.data.length; i += 4) {
-      const red = image.data[i], green = image.data[i + 1], blue = image.data[i + 2];
-      // Remove red approval stamps while retaining black text beneath them.
-      if (red > green + 25 && red > blue + 25 && red > 110) {
-        image.data[i] = 255;
-        image.data[i + 1] = 255;
-        image.data[i + 2] = 255;
+    if (!ai) {
+      const image = context.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < image.data.length; i += 4) {
+        const red = image.data[i], green = image.data[i + 1], blue = image.data[i + 2];
+        // Remove red approval stamps while retaining black text beneath them.
+        if (red > green + 25 && red > blue + 25 && red > 110) {
+          image.data[i] = 255;
+          image.data[i + 1] = 255;
+          image.data[i + 2] = 255;
+        }
       }
+      context.putImageData(image, 0, 0);
     }
-    context.putImageData(image, 0, 0);
     return await new Promise((resolve, reject) =>
       canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('เตรียมรูปไม่ได้')),
-        'image/png'));
+        ai ? 'image/jpeg' : 'image/png', ai ? .8 : undefined));
   } finally {
     release();
   }
+}
+
+export async function prepareAiImage(file) {
+  const image = await prepareImage(file, true);
+  if (image.size > 2 * 1024 * 1024)
+    throw new Error('รูปยังใหญ่เกินไปสำหรับ AI กรุณาลองภาพที่ขนาดเล็กลง');
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({mimeType: 'image/jpeg', image: String(reader.result).split(',')[1]});
+    reader.onerror = () => reject(new Error('เตรียมรูปสำหรับ AI ไม่ได้'));
+    reader.readAsDataURL(image);
+  });
 }
 
 export async function scanReceipt(file, knownItems, progress) {

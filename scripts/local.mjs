@@ -11,6 +11,7 @@ import { createStockHandlers } from "../lib/stock.js";
 import { createPhotoHandlers } from "../lib/photo.js";
 import { login } from "../lib/session.js";
 import { createAlertHandlers, createCronHandler } from "../lib/alerts.js";
+import { createReceiptAiHandlers } from "../lib/receipt-ai.js";
 
 // Production uses api/ and private Vercel Blob.
 const hostMode = process.argv.includes("--host");
@@ -66,6 +67,7 @@ const routes = {
   "/api/alerts-cron": {GET: createCronHandler(store)},
   "/api/photo": createPhotoHandlers(store),
   "/api/session": { POST: login },
+  "/api/receipt-ai": createReceiptAiHandlers(),
 };
 const assets = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],

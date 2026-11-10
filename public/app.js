@@ -793,7 +793,7 @@ function receiptRow(row = {}) {
     '<label>หน่วย<input data-field="unit" maxlength="20" value="' + esc(row.unit || 'ชิ้น') + '"></label>' +
     '<label>หมวด<select data-field="category">' + option + '</select></label>' +
     '<label>ที่เก็บ<input data-field="location" maxlength="60" value="' + esc(row.location || '') + '"></label>' +
-    '<label>วันหมดอายุ<input data-field="date" type="date"></label>' +
+    '<label>วันหมดอายุ<input data-field="date" type="date" value="' + esc(row.date || '') + '"></label>' +
     '<label>บาร์โค้ด<input data-field="barcode" inputmode="numeric" maxlength="14" value="' +
       esc(row.barcode || '') + '"></label></div>';
   return card;
@@ -833,10 +833,16 @@ async function readReceipt(file) {
     const {text, rows} = await scanReceipt(file,
       [...stock.items, ...(stock.recentItems || [])],
       (percent) => { progress.textContent = 'กำลังอ่านใบเสร็จ ' + percent + '%'; });
-    pendingReceipt = {text, rows, version, stale: false};
+    pendingReceipt = {text, rows, version, file, stale: false};
     renderReceiptReview();
     $("#receipt-error").textContent = '';
+    $("#receipt-ai-status").textContent = '';
+    $("#receipt-ai-tools").hidden = true;
     $("#receipt-dialog").showModal();
+    try {
+      const availability = await request('receipt-ai');
+      if (pendingReceipt && availability.available) $("#receipt-ai-tools").hidden = false;
+    } catch { /* Local OCR remains available without the AI service. */ }
   } catch (error) {
     alertUser(error.message || 'อ่านใบเสร็จไม่ได้ กรุณาลองใช้รูปที่ชัดขึ้น');
   } finally {
@@ -853,6 +859,40 @@ $("#receipt-dialog").addEventListener('cancel', (event) => {
   if (busy) event.preventDefault();
 });
 $("#receipt-dialog").addEventListener('close', () => { pendingReceipt = null; });
+$("#receipt-ai-button").addEventListener('click', async () => {
+  if (!pendingReceipt || busy || pendingReceipt.stale) return;
+  const button = $("#receipt-ai-button");
+  const status = $("#receipt-ai-status");
+  busy = true;
+  button.disabled = true;
+  startButtonLoading(button);
+  status.textContent = 'AI กำลังตรวจใบเสร็จ…';
+  $("#receipt-error").textContent = '';
+  try {
+    const {prepareAiImage} = await import('/receipt.js');
+    const image = await prepareAiImage(pendingReceipt.file);
+    const result = await post('receipt-ai', {...image, ocrText: pendingReceipt.text});
+    if (!result.rows?.length) throw new Error('AI ไม่พบรายการที่ชัดเจน กรุณาใช้ผลสแกนเดิม');
+    const old = [...$("#receipt-review").querySelectorAll('.receipt-row')].map((card) => ({
+      barcode: card.querySelector('[data-field="barcode"]').value.trim(),
+      date: card.querySelector('[data-field="date"]').value,
+      location: card.querySelector('[data-field="location"]').value.trim(),
+    }));
+    pendingReceipt.rows = result.rows.map((row, index) => {
+      const previous = old.find((item) => item.barcode && item.barcode === row.barcode) || old[index];
+      return {...row, date: previous?.date || '', location: previous?.location || row.location};
+    });
+    renderReceiptReview();
+    status.textContent = 'AI แนะนำ ' + result.rows.length + ' รายการ · กรุณาตรวจแก้ก่อนรับเข้าบ้าน';
+  } catch (error) {
+    if (error.status === 401) entry('login', errorText(error));
+    else status.textContent = error.message || 'AI ตรวจใบเสร็จไม่ได้ กรุณาใช้ผลสแกนเดิม';
+  } finally {
+    busy = false;
+    stopButtonLoading(button);
+    button.disabled = false;
+  }
+});
 $("#receipt-confirm").addEventListener('click', () => {
   if (!pendingReceipt || pendingReceipt.stale) return;
   const selected = [...$("#receipt-review").querySelectorAll('.receipt-row')]
