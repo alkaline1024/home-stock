@@ -2381,3 +2381,18 @@ button.is-loading { display: inline-flex; align-items: center; justify-content: 
 .barcode-scanner { display: grid; gap: .55rem; margin-top: .65rem; }
 .barcode-scanner video { display: block; width: 100%; max-height: 260px; object-fit: cover; border-radius: 12px; background: var(--ink); }
 .barcode-scanner button { justify-self: start; }
+
+.excel-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+#receipt-trigger { min-height: 46px; }
+#receipt-dialog { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
+.receipt-row { border-bottom: 1px solid var(--line); padding: 14px 0; }
+.receipt-row-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.receipt-row-header label { display: inline-flex; gap: 8px; align-items: center; }
+.receipt-row-header input { width: auto; min-width: auto; }
+.receipt-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.receipt-fields label { min-width: 0; }
+.receipt-fields input, .receipt-fields select { width: 100%; min-width: 0; }
+.receipt-fields .receipt-name { grid-column: span 2; }
+#receipt-review details { margin: 12px 0; }
+#receipt-review pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; }
+@media(max-width: 580px) { .receipt-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .receipt-fields .receipt-name { grid-column: span 2; } #receipt-dialog .dialog-actions { flex-wrap: wrap; } }

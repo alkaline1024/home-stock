@@ -1,4 +1,4 @@
-import { copyFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readdirSync } from "node:fs";
 import { build } from "esbuild";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
@@ -16,4 +16,19 @@ await build({
   bundle: true,
   minify: true,
 });
+const ocr = resolve(root, "public/ocr");
+const core = resolve(ocr, "core");
+const lang = resolve(ocr, "lang");
+mkdirSync(core, { recursive: true });
+mkdirSync(lang, { recursive: true });
+copyFileSync(resolve(root, "node_modules/tesseract.js/dist/tesseract.min.js"), resolve(ocr, "tesseract.min.js"));
+copyFileSync(resolve(root, "node_modules/tesseract.js/dist/worker.min.js"), resolve(ocr, "worker.min.js"));
+for (const name of readdirSync(resolve(root, "node_modules/tesseract.js-core"))) {
+  if (/^tesseract-core(?:-simd|-relaxedsimd)?(?:-lstm)?\.wasm(?:\.js)?$/.test(name))
+    copyFileSync(resolve(root, "node_modules/tesseract.js-core", name), resolve(core, name));
+}
+for (const language of ["tha", "eng"])
+  copyFileSync(resolve(root, "node_modules/@tesseract.js-data", language,
+    "4.0.0_best_int", language + ".traineddata.gz"),
+    resolve(lang, language + ".traineddata.gz"));
 console.log("Built public assets");

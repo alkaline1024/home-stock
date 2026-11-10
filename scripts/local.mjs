@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { DatabaseSync } from "node:sqlite";
 import { randomBytes, randomUUID } from "node:crypto";
 import { networkInterfaces } from "node:os";
-import { mkdirSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, chmodSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { Readable } from "node:stream";
@@ -71,6 +71,10 @@ const assets = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
+  ["/ocr/tesseract.min.js", ["ocr/tesseract.min.js", "text/javascript; charset=utf-8"]],
+  ["/receipt.js", ["receipt.js", "text/javascript; charset=utf-8"]],
+  ["/receipt-parser.js", ["receipt-parser.js", "text/javascript; charset=utf-8"]],
+  ["/ocr/worker.min.js", ["ocr/worker.min.js", "text/javascript; charset=utf-8"]],
   ["/barcode-scanner.js", ["barcode-scanner.js", "text/javascript; charset=utf-8"]],
   ["/sw.js", ["sw.js", "text/javascript; charset=utf-8"]],
   ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json"]],
@@ -84,6 +88,12 @@ const assets = new Map([
   ],
   ["/home-stock.html", ["home-stock.html", "text/html; charset=utf-8"]],
 ]);
+for (const name of readdirSync(resolve(root, "public/ocr/core")))
+  assets.set("/ocr/core/" + name, ["ocr/core/" + name,
+    name.endsWith(".wasm") ? "application/wasm" : "text/javascript; charset=utf-8"]);
+for (const language of ["tha", "eng"])
+  assets.set("/ocr/lang/" + language + ".traineddata.gz",
+    ["ocr/lang/" + language + ".traineddata.gz", "application/gzip"]);
 const server = createServer(async (req, res) => {
   try {
     const port = server.address().port;

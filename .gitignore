@@ -7,3 +7,5 @@ public/exceljs.min.js
 .vercel
 
 public/barcode-scanner.js
+
+public/ocr/

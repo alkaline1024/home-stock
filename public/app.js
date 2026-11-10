@@ -81,6 +81,7 @@ let mealDraft = null;
 let mealIngredientSequence = 0;
 let excelJsPromise = null;
 let pendingStockImport = null;
+let pendingReceipt = null;
 let mediaDraft = null;
 const itemIcons = {
   box: { label: "กล่อง", paths: '<path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/>' },
@@ -308,6 +309,7 @@ function entry(mode, message = "") {
   if ($("#editor").open) $("#editor").close();
   if ($("#meal-editor").open) $("#meal-editor").close();
   if ($("#excel-import-dialog").open) $("#excel-import-dialog").close();
+  if ($("#receipt-dialog").open) $("#receipt-dialog").close();
   if ($("#item-media-dialog").open) $("#item-media-dialog").close();
   $(".excel-dropdown").open = false;
   $("#app").hidden = true;
@@ -326,7 +328,8 @@ async function refresh(force = false) {
   if (
     !force &&
     (busy || $("#editor").open || $("#meal-editor").open ||
-      $("#excel-import-dialog").open || $("#item-media-dialog").open)
+      $("#excel-import-dialog").open || $("#receipt-dialog").open ||
+      $("#item-media-dialog").open)
   ) return;
   if (!force && Date.now() - lastReadStarted < 3000) return;
   lastReadStarted = Date.now();
@@ -776,6 +779,117 @@ $("#excel-import-confirm").addEventListener("click", () => {
   }, version, () => {
     $("#excel-import-dialog").close();
     alertUser("นำเข้าของแล้ว " + items.length + " รายการ");
+  });
+});
+function receiptRow(row = {}) {
+  const option = categories.map((category) =>
+    '<option' + (category === row.category ? ' selected' : '') + '>' + esc(category) + '</option>').join('');
+  const card = document.createElement('div');
+  card.className = 'receipt-row';
+  card.innerHTML = '<div class="receipt-row-header"><label><input type="checkbox" class="receipt-select" checked>รับเข้าสต็อก</label>' +
+    '<small>' + esc(row.raw || 'เพิ่มเอง') + '</small></div>' +
+    '<div class="receipt-fields"><label class="receipt-name">ชื่อของ<input data-field="name" maxlength="80" value="' + esc(row.name || '') + '"></label>' +
+    '<label>จำนวน<input data-field="qty" type="number" min="0.001" max="999999" step="0.001" value="' + esc(row.qty || 1) + '"></label>' +
+    '<label>หน่วย<input data-field="unit" maxlength="20" value="' + esc(row.unit || 'ชิ้น') + '"></label>' +
+    '<label>หมวด<select data-field="category">' + option + '</select></label>' +
+    '<label>ที่เก็บ<input data-field="location" maxlength="60" value="' + esc(row.location || '') + '"></label>' +
+    '<label>วันหมดอายุ<input data-field="date" type="date"></label></div>';
+  card.dataset.barcode = row.barcode || '';
+  card.dataset.originalName = row.name || '';
+  card.dataset.originalUnit = row.unit || 'ชิ้น';
+  return card;
+}
+
+function renderReceiptReview() {
+  const review = $("#receipt-review");
+  review.replaceChildren();
+  const summary = document.createElement('p');
+  summary.className = 'form-help';
+  summary.textContent = pendingReceipt.rows.length
+    ? 'อ่านได้ ' + pendingReceipt.rows.length + ' รายการ · เลือกรายการที่ต้องการ แล้วตรวจแก้ก่อนบันทึก'
+    : 'ยังแยกรายการสินค้าไม่ได้ กรุณาดูข้อความที่อ่านได้แล้วเพิ่มรายการเอง';
+  review.append(summary);
+  for (const row of pendingReceipt.rows) review.append(receiptRow(row));
+  const details = document.createElement('details');
+  const heading = document.createElement('summary');
+  heading.textContent = 'ดูข้อความที่อ่านจากใบเสร็จ';
+  const raw = document.createElement('pre');
+  raw.textContent = pendingReceipt.text || '(อ่านตัวอักษรไม่ได้)';
+  details.append(heading, raw);
+  review.append(details);
+}
+
+async function readReceipt(file) {
+  if (!file || busy || !stock) return;
+  const button = $("#receipt-trigger");
+  const progress = $("#receipt-progress");
+  busy = true;
+  startButtonLoading(button);
+  button.disabled = true;
+  progress.textContent = 'กำลังอ่านใบเสร็จ…';
+  try {
+    if (!file.type.startsWith('image/')) throw new Error('กรุณาเลือกรูปใบเสร็จ');
+    const { scanReceipt } = await import('/receipt.js');
+    const version = stock.version;
+    const {text, rows} = await scanReceipt(file,
+      [...stock.items, ...(stock.recentItems || [])],
+      (percent) => { progress.textContent = 'กำลังอ่านใบเสร็จ ' + percent + '%'; });
+    pendingReceipt = {text, rows, version, stale: false};
+    renderReceiptReview();
+    $("#receipt-error").textContent = '';
+    $("#receipt-dialog").showModal();
+  } catch (error) {
+    alertUser(error.message || 'อ่านใบเสร็จไม่ได้ กรุณาลองใช้รูปที่ชัดขึ้น');
+  } finally {
+    busy = false;
+    stopButtonLoading(button);
+    button.disabled = false;
+    progress.textContent = '';
+    $("#receipt-file").value = '';
+  }
+}
+
+$("#receipt-file").addEventListener('change', (event) => readReceipt(event.target.files[0]));
+$("#receipt-dialog").addEventListener('cancel', (event) => {
+  if (busy) event.preventDefault();
+});
+$("#receipt-dialog").addEventListener('close', () => { pendingReceipt = null; });
+$("#receipt-confirm").addEventListener('click', () => {
+  if (!pendingReceipt || pendingReceipt.stale) return;
+  const selected = [...$("#receipt-review").querySelectorAll('.receipt-row')]
+    .filter((card) => card.querySelector('.receipt-select').checked);
+  const error = $("#receipt-error");
+  if (!selected.length) { error.textContent = 'กรุณาเลือกรายการอย่างน้อย 1 รายการ'; return; }
+  const items = [];
+  for (const [index, card] of selected.entries()) {
+    const field = (name) => card.querySelector('[data-field="' + name + '"]').value.trim();
+    const name = field('name'), unit = field('unit'), qty = Number(field('qty'));
+    if (!name || !unit || !Number.isFinite(qty) || qty < 0.001 || qty > 999999 ||
+      round(qty) !== qty || name.length > 80 || unit.length > 20) {
+      error.textContent = 'รายการที่ ' + (index + 1) + ': กรุณาตรวจชื่อ จำนวน และหน่วย';
+      return;
+    }
+    const item = {id: crypto.randomUUID(), name, qty: round(qty), unit,
+      category: field('category'), location: field('location'), date: field('date'),
+      dateKind: 'expiry', photo: null};
+    if (card.dataset.barcode && name === card.dataset.originalName &&
+      unit === card.dataset.originalUnit) item.barcode = card.dataset.barcode;
+    items.push(item);
+  }
+  error.textContent = '';
+  mutation((next) => {
+    if (next.items.length + items.length > 2000)
+      throw new Error('รวมของเดิมแล้วเกิน 2,000 รายการ');
+    next.items.push(...items);
+    for (const item of items) {
+      const remembered = {name: item.name, unit: item.unit, category: item.category,
+        location: item.location, barcode: item.barcode || ''};
+      next.recentItems = [remembered, ...(next.recentItems || []).filter((entry) =>
+        key(entry.name) !== key(item.name) || key(entry.unit) !== key(item.unit))].slice(0, 100);
+    }
+  }, pendingReceipt.version, () => {
+    $("#receipt-dialog").close();
+    alertUser('รับเข้าสต็อกแล้ว ' + items.length + ' รายการ');
   });
 });
 function thumb(item, editable = false) {
@@ -3013,15 +3127,17 @@ async function mutation(change, expected, done) {
   if (busy || !stock) return;
   const inDialog = $("#editor").open;
   const inImportDialog = $("#excel-import-dialog").open;
+  const inReceiptDialog = $("#receipt-dialog").open;
   const inMediaDialog = $("#item-media-dialog").open;
   const loadingButton = inDialog ? $("#save") : inImportDialog ? $("#excel-import-confirm") :
-    inMediaDialog ? $("#item-media-save") : pendingActionButton;
+    inReceiptDialog ? $("#receipt-confirm") : inMediaDialog ? $("#item-media-save") : pendingActionButton;
   pendingActionButton = null;
   startButtonLoading(loadingButton);
   busy = true;
   ++generation;
   if (inDialog) $("#save").disabled = true;
   if (inImportDialog) $("#excel-import-confirm").disabled = true;
+  if (inReceiptDialog) $("#receipt-confirm").disabled = true;
   if (inMediaDialog) {
     $("#item-media-save").disabled = true;
     $("#item-media-file").disabled = true;
@@ -3062,6 +3178,13 @@ async function mutation(change, expected, done) {
         $("#excel-import-error").textContent +=
           " · กรุณาตรวจของในบ้านก่อนอัปโหลดใหม่ เพื่อไม่ให้นำเข้าซ้ำ";
       }
+    } else if (inReceiptDialog && $("#receipt-dialog").open) {
+      $("#receipt-error").textContent = message;
+      if (pendingReceipt && (conflict || error.status === 0 || error.status >= 500)) {
+        pendingReceipt.stale = true;
+        $("#receipt-error").textContent +=
+          ' · กรุณาปิดแล้วสแกนใหม่ เพื่อป้องกันรายการซ้ำ';
+      }
     } else if (inMediaDialog && $("#item-media-dialog").open) {
       $("#item-media-error").textContent = message;
       if (mediaDraft && (conflict || error.status === 0 || error.status >= 500)) {
@@ -3079,6 +3202,8 @@ async function mutation(change, expected, done) {
         !pendingStockImport || pendingStockImport.stale ||
         pendingStockImport.errors.length,
       );
+    if ($("#receipt-dialog").open)
+      $("#receipt-confirm").disabled = Boolean(!pendingReceipt || pendingReceipt.stale);
     $("#item-media-file").disabled = false;
     if ($("#item-media-dialog").open)
       $("#item-media-save").disabled = Boolean(
@@ -3442,6 +3567,18 @@ document.addEventListener("click", async (event) => {
   if (action === "save-item-media") return saveItemMedia();
   if (action === "close-excel-import") {
     if ($("#excel-import-dialog").open) $("#excel-import-dialog").close();
+    return;
+  }
+  if (action === 'choose-receipt') {
+    $("#receipt-file").click();
+    return;
+  }
+  if (action === 'close-receipt') {
+    if ($("#receipt-dialog").open) $("#receipt-dialog").close();
+    return;
+  }
+  if (action === 'receipt-add-row' && pendingReceipt) {
+    $("#receipt-review").querySelector('details').before(receiptRow());
     return;
   }
   if (action === "choose-stock-import") {
