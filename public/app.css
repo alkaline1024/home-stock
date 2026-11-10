@@ -2373,3 +2373,11 @@ button.is-loading { display: inline-flex; align-items: center; justify-content: 
 .button-spinner { width: 1.15rem; height: 1.15rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: button-spin .75s linear infinite; }
 @keyframes button-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .button-spinner { animation-duration: 2s; } }
+
+.barcode-input-row { display: flex; gap: .65rem; align-items: stretch; }
+.barcode-input-row input { flex: 1; min-width: 0; }
+.barcode-input-row button { flex: none; }
+.barcode-field .form-help { margin-top: .4rem; }
+.barcode-scanner { display: grid; gap: .55rem; margin-top: .65rem; }
+.barcode-scanner video { display: block; width: 100%; max-height: 260px; object-fit: cover; border-radius: 12px; background: var(--ink); }
+.barcode-scanner button { justify-self: start; }

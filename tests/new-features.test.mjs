@@ -51,3 +51,13 @@ test('alerts require login and cron secret; settings persist without stock versi
   const response=await cron(new Request(origin+'/api/alerts-cron',{headers:{authorization:'Bearer cron-test-123'}}));
   assert.deepEqual(await response.json(),{sent:0});
 });
+
+test('barcode persists on products and purchase history while older rows stay valid', () => {
+  const item={id:randomUUID(),name:'นม',qty:1,unit:'กล่อง',category:'ของสด',location:'ตู้เย็น',date:'',dateKind:'expiry',photo:null,barcode:'8851234567890'};
+  const data=validatedStock({items:[item],shopping:[],recentItems:[{name:'นม',unit:'กล่อง',category:'ของสด',location:'ตู้เย็น',barcode:item.barcode}],version:null});
+  assert.equal(data.items[0].barcode,item.barcode);
+  assert.equal(data.recentItems[0].barcode,item.barcode);
+  const {barcode: _unused, ...oldItem} = item;
+  assert.equal(Object.hasOwn(validatedStock({items:[oldItem],shopping:[],version:null}).items[0],'barcode'),false);
+  assert.throws(()=>validatedStock({items:[{...item,barcode:'bad code'}],shopping:[],version:null}));
+});

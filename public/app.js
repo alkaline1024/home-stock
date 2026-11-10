@@ -2117,6 +2117,13 @@ function editorFields(data, isShopping) {
   return (
     '<div class="form-grid">' +
     base +
+    '<div class="span barcode-field"><label for="f-barcode">บาร์โค้ดสินค้า (ถ้ามี)</label>' +
+    '<div class="barcode-input-row"><input id="f-barcode" inputmode="numeric" pattern="[0-9]{8,14}" maxlength="14" value="' +
+    esc(data.barcode || "") + '">' +
+    '<button type="button" class="secondary" data-action="scan-barcode">สแกน</button></div>' +
+    '<p id="barcode-hint" class="form-help" role="status"></p>' +
+    '<div id="barcode-scanner" class="barcode-scanner" hidden><video id="barcode-video" autoplay muted playsinline></video>' +
+    '<button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div>' +
     '<label>หมวด<select id="f-category">' +
     opts(categories, data.category) +
     "</select></label>" +
@@ -2490,6 +2497,7 @@ $("#meal-form").addEventListener("submit", async (event) => {
 
 function startEditor(mode, data = {}, sourceId = "") {
   if (!stock || busy) return;
+  stopBarcodeScan();
   ++generation;
   if (previewUrl) URL.revokeObjectURL(previewUrl);
   previewUrl = "";
@@ -2502,6 +2510,7 @@ function startEditor(mode, data = {}, sourceId = "") {
     date: "",
     dateKind: "expiry",
     photo: null,
+    barcode: "",
     ...data,
   };
   draft = {
@@ -2590,6 +2599,7 @@ $("#editor").addEventListener("cancel", (event) => {
   if (busy) event.preventDefault();
 });
 $("#editor").addEventListener("close", () => {
+  stopBarcodeScan();
   stopButtonLoading($("#save"));
   if (previewUrl) URL.revokeObjectURL(previewUrl);
   previewUrl = "";
@@ -2842,6 +2852,79 @@ async function jpeg(file) {
   }
 }
 
+let barcodeScanToken = 0;
+let barcodeScanControls = null;
+
+function stopBarcodeScan() {
+  barcodeScanToken++;
+  barcodeScanControls?.stop();
+  barcodeScanControls = null;
+  const video = $("#barcode-video");
+  video?.srcObject?.getTracks().forEach((track) => track.stop());
+  if (video) video.srcObject = null;
+  if ($("#barcode-scanner")) $("#barcode-scanner").hidden = true;
+}
+
+function applyBarcode(code) {
+  const hint = $("#barcode-hint");
+  if (!hint || !/^[0-9]{8,14}$/.test(code)) return;
+  $("#f-barcode").value = code;
+  const known = [...(stock.recentItems || []), ...stock.items]
+    .find((item) => item.barcode === code);
+  if (known) {
+    $("#f-name").value = known.name;
+    $("#f-unit").value = known.unit;
+    $("#f-category").value = known.category;
+    $("#f-location").value = known.location || "";
+    refreshSearchSelect($("#f-category"));
+    hint.textContent = "พบ " + known.name + " · ตรวจจำนวนและวันที่ของรอบนี้";
+    $("#f-qty").focus();
+  } else {
+    hint.textContent = "ยังไม่เคยบันทึกบาร์โค้ดนี้ · กรอกชื่อครั้งแรก แล้วแอปจะจำให้";
+    $("#f-name").focus();
+  }
+}
+
+async function startBarcodeScan() {
+  if (!draft || !$("#barcode-scanner")) return;
+  stopBarcodeScan();
+  const token = barcodeScanToken;
+  const hint = $("#barcode-hint");
+  if (!navigator.mediaDevices?.getUserMedia) {
+    hint.textContent = "อุปกรณ์นี้เปิดกล้องผ่านเว็บไม่ได้ กรุณาพิมพ์เลขบาร์โค้ด";
+    return;
+  }
+  $("#barcode-scanner").hidden = false;
+  hint.textContent = "กำลังเปิดกล้อง…";
+  try {
+    const {BrowserMultiFormatOneDReader} = await import('/barcode-scanner.js');
+    if (token !== barcodeScanToken || !$("#editor").open) return;
+    const reader = new BrowserMultiFormatOneDReader();
+    const controls = await reader.decodeFromConstraints(
+      {video: {facingMode: {ideal: 'environment'}}}, $("#barcode-video"),
+      (result) => {
+        if (token !== barcodeScanToken || !result) return;
+        const code = result.getText();
+        if (!/^[0-9]{8,14}$/.test(code)) {
+          hint.textContent = "พบโค้ดที่ไม่ใช่เลขสินค้า 8–14 หลัก · ลองสแกนอีกครั้ง";
+          return;
+        }
+        stopBarcodeScan();
+        applyBarcode(code);
+      });
+    if (token !== barcodeScanToken || !$("#editor").open) controls.stop();
+    else {
+      barcodeScanControls = controls;
+      hint.textContent = "เล็งกล้องไปที่บาร์โค้ดสินค้า";
+    }
+  } catch (error) {
+    stopBarcodeScan();
+    hint.textContent = error?.name === 'NotAllowedError' ?
+      "กรุณาอนุญาตให้ใช้กล้อง หรือพิมพ์เลขบาร์โค้ด" :
+      "เปิดกล้องหรืออ่านบาร์โค้ดไม่ได้ กรุณาพิมพ์เลขบาร์โค้ด";
+  }
+}
+
 function populateKnown() {
   if (!draft || !["add", "new-shopping"].includes(draft.mode)) return;
   const known = [...stock.items, ...(stock.recentItems || []).slice().reverse()]
@@ -2853,10 +2936,13 @@ function populateKnown() {
     $("#f-location").value = known.location;
   if ($("#f-category") && $("#f-category").value === "อื่น ๆ")
     $("#f-category").value = known.category;
+  if ($("#f-barcode") && !$("#f-barcode").value)
+    $("#f-barcode").value = known.barcode || "";
 }
 
 $("#fields").addEventListener("change", async (event) => {
   if (event.target.id === "f-name") populateKnown();
+  if (event.target.id === "f-barcode") applyBarcode(event.target.value.trim());
   if (event.target.id !== "f-photo" || !event.target.files[0] || !draft) return;
   const editing = draft,
     token = ++editing.photoTask;
@@ -2917,6 +3003,7 @@ function formItem() {
     location: $("#f-location").value.trim(),
     date: $("#f-date").value,
     dateKind: $("#f-kind").value,
+    ...($("#f-barcode").value.trim() ? {barcode: $("#f-barcode").value.trim()} : {}),
     photo: draft.photo,
     ...(draft.icon !== undefined ? { icon: draft.icon } : {}),
   };
@@ -3130,7 +3217,8 @@ $("#editor-form").addEventListener("submit", async (event) => {
       if (mode === "edit-item")
         next.items = next.items.map((i) => (i.id === sourceId ? item : i));
       else next.items.push(item);
-      const remembered = {name: item.name, unit: item.unit, category: item.category, location: item.location};
+      const remembered = {name: item.name, unit: item.unit, category: item.category,
+        location: item.location, barcode: item.barcode || ""};
       next.recentItems = [remembered, ...(next.recentItems || []).filter((entry) =>
         key(entry.name) !== key(item.name) || key(entry.unit) !== key(item.unit))].slice(0, 100);
       if (draft.mealPlanId) {
@@ -3312,6 +3400,8 @@ document.addEventListener("click", async (event) => {
     }
     return;
   }
+  if (action === "scan-barcode") return startBarcodeScan();
+  if (action === "stop-barcode") return stopBarcodeScan();
   if (action === "close") return closeEditor();
   if (action === "close-meal-editor") {
     if (!busy && $("#meal-editor").open) $("#meal-editor").close();
@@ -3599,6 +3689,7 @@ document.addEventListener("pointerdown", interaction, { passive: true });
 document.addEventListener("keydown", interaction);
 window.addEventListener("focus", activeCheck);
 document.addEventListener("visibilitychange", () => {
+  if (document.hidden) stopBarcodeScan();
   if (!document.hidden) activeCheck();
 });
 function syncDateDisplay(event) {

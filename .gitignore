@@ -5,3 +5,5 @@ public/exceljs.min.js
 .local-stock/
 .DS_Store
 .vercel
+
+public/barcode-scanner.js
