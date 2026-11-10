@@ -1330,8 +1330,92 @@ function settingsContent() {
       )
       .join("") +
     '</fieldset><p id="settings-error" class="error" role="alert"></p>' +
+    '<section class="settings-stock"><h2>จำนวนขั้นต่ำ</h2><p class="form-help">เมื่อของเหลือน้อยกว่าที่ตั้งไว้ แอปจะแสดงในรายการซื้อ</p>' +
+    minimumSettings() + '</section>' +
+    '<section class="settings-stock"><h2>แจ้งเตือนของใกล้หมดอายุ</h2>' +
+    '<p class="form-help">ส่งวันละครั้งประมาณ 09:00 น. เมื่อมีของใกล้หมดอายุ</p>' +
+    '<label>เตือนล่วงหน้า<select id="alert-days"><option value="0">ปิด</option><option value="1">1 วัน</option><option value="3">3 วัน</option><option value="7">7 วัน</option></select></label>' +
+    '<button type="button" class="secondary" data-action="save-alerts">บันทึกการแจ้งเตือน</button>' +
+    '<p id="alert-status" class="form-help" role="status"></p></section>' +
     '<button type="button" class="secondary settings-logout" data-action="logout">ออกจากระบบ</button></section>'
   );
+}
+
+function minimumSettings() {
+  const names = new Map();
+  for (const item of [...(stock.recentItems || []), ...stock.items])
+    names.set(key(item.name) + "\u0000" + key(item.unit), item);
+  return [...names.values()].sort((a, b) => a.name.localeCompare(b.name, "th"))
+    .map((item) => {
+      const level = (stock.minLevels || []).find((entry) =>
+        key(entry.name) === key(item.name) && key(entry.unit) === key(item.unit));
+      return '<label class="minimum-row"><span>' + esc(item.name) + ' · ' + esc(item.unit) +
+        '</span><input type="number" inputmode="decimal" min="0" max="999999" step=".001" placeholder="ไม่ตั้ง" value="' +
+        esc(level?.qty ?? "") + '" data-min-name="' + esc(item.name) + '" data-min-unit="' + esc(item.unit) + '"></label>';
+    }).join("") || '<p class="form-help">เพิ่มของชิ้นแรกก่อนตั้งจำนวนขั้นต่ำ</p>';
+}
+
+function lowStockSection() {
+  const needs = (stock.minLevels || []).map((level) => {
+    const remaining = round(stock.items.filter((item) => key(item.name) === key(level.name) &&
+      key(item.unit) === key(level.unit)).reduce((sum, item) => sum + item.qty, 0));
+    return {...level, remaining, missing: round(level.qty - remaining)};
+  }).filter((item) => item.missing > 0);
+  if (!needs.length) return "";
+  return '<section class="low-stock"><h2>ใกล้หมด · ควรซื้อเพิ่ม</h2>' + needs.map((item) =>
+    '<div class="low-stock-row"><span>' + esc(item.name) + ' เหลือ ' + amountFormat.format(item.remaining) + ' ' + esc(item.unit) +
+    ' จากขั้นต่ำ ' + amountFormat.format(item.qty) + '</span>' +
+    button('buy-low', 'จดซื้อ ' + amountFormat.format(item.missing) + ' ' + esc(item.unit),
+      encodeURIComponent(item.name) + '|' + encodeURIComponent(item.unit), 'secondary') + '</div>').join('') + '</section>';
+}
+
+function quickAddSection() {
+  const recent = (stock.recentItems || []).slice(0, 6);
+  return recent.length ? '<section class="quick-add"><h2>เพิ่มของเดิม</h2><div class="quick-add-list">' +
+    recent.map((item, index) => button('quick-add', esc(item.name) + ' · ' + esc(item.unit), String(index), 'secondary')).join('') +
+    '</div></section>' : '';
+}
+
+async function loadAlertSettings() {
+  try {
+    const settings = await request('alerts');
+    const select = $('#alert-days');
+    if (select) select.value = String(settings.days || 0);
+    if (!settings.publicKey && $('#alert-status'))
+      $('#alert-status').textContent = 'ยังไม่พร้อมใช้งาน กรุณาตั้งค่าเซิร์ฟเวอร์แจ้งเตือน';
+  } catch (error) {
+    if ($('#alert-status')) $('#alert-status').textContent = errorText(error);
+  }
+}
+
+async function saveAlertSettings() {
+  const status = $('#alert-status');
+  const button = document.querySelector('[data-action="save-alerts"]');
+  button.disabled = true;
+  try {
+    const days = Number($('#alert-days').value);
+    if (days) {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window))
+        throw new Error('อุปกรณ์นี้ยังไม่รองรับการแจ้งเตือนจากเว็บ');
+      const settings = await request('alerts');
+      if (!settings.publicKey) throw new Error('ระบบแจ้งเตือนยังไม่พร้อม');
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') throw new Error('กรุณาอนุญาตการแจ้งเตือนในเบราว์เซอร์');
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      const bytes = Uint8Array.from(atob(settings.publicKey.replace(/-/g,'+').replace(/_/g,'/')),
+        (character) => character.charCodeAt(0));
+      const subscription = await registration.pushManager.getSubscription() ||
+        await registration.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:bytes});
+      await post('alerts', {days, subscription:subscription.toJSON()});
+    } else {
+      const registration = 'serviceWorker' in navigator && await navigator.serviceWorker.getRegistration('/');
+      const subscription = registration && await registration.pushManager.getSubscription();
+      await post('alerts', {days:0, ...(subscription && {subscription:subscription.toJSON()})});
+      await subscription?.unsubscribe();
+    }
+    status.textContent = days ? 'เปิดแจ้งเตือนแล้ว' : 'ปิดแจ้งเตือนแล้ว';
+  } catch(error) { status.textContent = error.message || errorText(error); }
+  finally { button.disabled = false; }
 }
 
 function draw() {
@@ -1385,6 +1469,7 @@ function draw() {
   $("#tools").hidden = page !== "stock";
   if (page === "settings") {
     $("#content").innerHTML = settingsContent();
+    loadAlertSettings();
     return;
   }
   const sorted = [...stock.items].sort(byDate);
@@ -1418,6 +1503,7 @@ function draw() {
             "add",
             "เพิ่มของชิ้นแรก",
           );
+    html = lowStockSection() + html;
     html += expiryCalendar(sorted, stock.mealPlans || []);
   } else if (page === "stock") {
     const roomsSelect = $("#location-filter"),
@@ -1472,6 +1558,7 @@ function draw() {
             "add",
             "เพิ่มของชิ้นแรก",
           );
+    html = quickAddSection() + html;
   } else if (page === "meals") {
     const plannedPlans = (stock.mealPlans || [])
       .filter((plan) => plan.status === "planned")
@@ -1978,7 +2065,7 @@ function refreshSearchSelect(select) {
 enhanceSelects(document);
 
 function editorFields(data, isShopping) {
-  const names = [...new Set(stock.items.map((i) => i.name))];
+  const names = [...new Set([...(stock.recentItems || []), ...stock.items].map((i) => i.name))];
   const base =
     '<label class="span">ชื่อของ<input required id="f-name" maxlength="80" list="known-names" value="' +
     esc(data.name) +
@@ -2714,7 +2801,7 @@ async function jpeg(file) {
 
 function populateKnown() {
   if (!draft || !["add", "new-shopping"].includes(draft.mode)) return;
-  const known = [...stock.items]
+  const known = [...stock.items, ...(stock.recentItems || []).slice().reverse()]
     .reverse()
     .find((i) => key(i.name) === key($("#f-name").value));
   if (!known) return;
@@ -2992,6 +3079,9 @@ $("#editor-form").addEventListener("submit", async (event) => {
       if (mode === "edit-item")
         next.items = next.items.map((i) => (i.id === sourceId ? item : i));
       else next.items.push(item);
+      const remembered = {name: item.name, unit: item.unit, category: item.category, location: item.location};
+      next.recentItems = [remembered, ...(next.recentItems || []).filter((entry) =>
+        key(entry.name) !== key(item.name) || key(entry.unit) !== key(item.unit))].slice(0, 100);
       if (draft.mealPlanId) {
         const plan = next.mealPlans?.find(
           (entry) => entry.id === draft.mealPlanId,
@@ -3144,6 +3234,7 @@ document.addEventListener("click", async (event) => {
   const wanted = stock?.shopping.find((i) => i.id === id);
   const mealPlan = stock?.mealPlans?.find((plan) => plan.id === id);
   const recipe = stock?.recipes?.find((item) => item.id === id);
+  if (action === "save-alerts") return saveAlertSettings();
   if (action === "retry") {
     entry("checking");
     return refresh(true);
@@ -3292,6 +3383,20 @@ document.addEventListener("click", async (event) => {
     draw();
     return;
   }
+  if (action === "quick-add") {
+    const known = stock.recentItems?.[Number(id)];
+    if (known) return startEditor("add", {...known, qty: 1, date: "", dateKind: "expiry"});
+  }
+  if (action === "buy-low") {
+    const [name, unit] = id.split("|").map(decodeURIComponent);
+    const level = stock.minLevels?.find((entry) => key(entry.name) === key(name) && key(entry.unit) === key(unit));
+    if (level) {
+      const remaining = round(stock.items.filter((item) => key(item.name) === key(name) && key(item.unit) === key(unit))
+        .reduce((sum, item) => sum + item.qty, 0));
+      const missing = round(level.qty - remaining);
+      if (missing > 0) return startEditor("new-shopping", {name, unit, qty: missing});
+    }
+  }
   if (action === "add" || action === "new-shopping") return startEditor(action);
   if (action === "use" && item)
     return consume(item, Math.min(1, item.qty), stock.version);
@@ -3379,6 +3484,23 @@ $("#query").addEventListener("input", draw);
 $("#category-filter").addEventListener("change", draw);
 $("#location-filter").addEventListener("change", draw);
 document.addEventListener("change", (event) => {
+  if (event.target.matches("[data-min-name]")) {
+    const input = event.target;
+    const name = input.dataset.minName, unit = input.dataset.minUnit;
+    const qty = Number(input.value);
+    if (input.value && (!Number.isFinite(qty) || qty < 0 || qty > 999999 || Math.abs(qty * 1000 - Math.round(qty * 1000)) > 0.0000001)) {
+      input.setCustomValidity("กรุณาใส่จำนวน 0–999,999 ทศนิยมไม่เกิน 3 ตำแหน่ง");
+      input.reportValidity(); return;
+    }
+    input.setCustomValidity("");
+    mutation((next) => {
+      next.minLevels = (next.minLevels || []).filter((entry) =>
+        key(entry.name) !== key(name) || key(entry.unit) !== key(unit));
+      if (qty > 0 && input.value) next.minLevels.push({name, unit, qty});
+    }, stock.version, () => alertUser("บันทึกจำนวนขั้นต่ำแล้ว"));
+    return;
+  }
+
   const input = event.target;
   if (!input.matches?.('input[name="animation-mode"]')) return;
   if (!animationModes.includes(input.value)) return;

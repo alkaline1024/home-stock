@@ -3,6 +3,7 @@
   "framework": null,
   "buildCommand": "npm run build",
   "regions": ["sin1"],
+  "crons": [{"path":"/api/alerts-cron","schedule":"0 2 * * *"}],
   "outputDirectory": "public",
   "headers": [
     {

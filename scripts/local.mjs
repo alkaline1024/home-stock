@@ -10,6 +10,7 @@ import { HttpError } from "../lib/http.js";
 import { createStockHandlers } from "../lib/stock.js";
 import { createPhotoHandlers } from "../lib/photo.js";
 import { login } from "../lib/session.js";
+import { createAlertHandlers, createCronHandler } from "../lib/alerts.js";
 
 // Production uses api/ and private Vercel Blob.
 const hostMode = process.argv.includes("--host");
@@ -61,6 +62,8 @@ const store = {
 };
 const routes = {
   "/api/stock": createStockHandlers(store),
+  "/api/alerts": createAlertHandlers(store),
+  "/api/alerts-cron": {GET: createCronHandler(store)},
   "/api/photo": createPhotoHandlers(store),
   "/api/session": { POST: login },
 };
@@ -68,6 +71,8 @@ const assets = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
+  ["/sw.js", ["sw.js", "text/javascript; charset=utf-8"]],
+  ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json"]],
   ["/app.css", ["app.css", "text/css; charset=utf-8"]],
   [
     "/exceljs.min.js",
