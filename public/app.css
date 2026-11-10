@@ -2368,3 +2368,8 @@ dialog::backdrop {
 .settings-stock label { max-width: 100%; }
 .settings-stock select { display: block; margin: .45rem 0 .7rem; }
 @media (max-width: 520px) { .low-stock-row { align-items: stretch; flex-direction: column; } }
+
+button.is-loading { display: inline-flex; align-items: center; justify-content: center; }
+.button-spinner { width: 1.15rem; height: 1.15rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: button-spin .75s linear infinite; }
+@keyframes button-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .button-spinner { animation-duration: 2s; } }

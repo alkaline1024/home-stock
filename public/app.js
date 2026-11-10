@@ -43,6 +43,36 @@ const esc = (value) =>
   );
 const key = (value) => value.trim().normalize("NFC").toLocaleLowerCase();
 const amount = (item) => amountFormat.format(item.qty) + " " + item.unit;
+const loadingButtons = new WeakMap();
+let pendingActionButton = null;
+function startButtonLoading(button) {
+  if (!button || typeof button.getBoundingClientRect !== "function" || loadingButtons.has(button)) return;
+  const bounds = button.getBoundingClientRect();
+  loadingButtons.set(button, {
+    html: button.innerHTML,
+    label: button.getAttribute("aria-label"),
+    width: button.style.width,
+    height: button.style.height,
+  });
+  button.style.width = bounds.width + "px";
+  button.style.height = bounds.height + "px";
+  button.setAttribute("aria-label", "กำลังดำเนินการ");
+  button.setAttribute("aria-busy", "true");
+  button.innerHTML = '<span class="button-spinner" aria-hidden="true"></span>';
+  button.classList.add("is-loading");
+}
+function stopButtonLoading(button) {
+  const saved = button && loadingButtons.get(button);
+  if (!saved) return;
+  button.innerHTML = saved.html;
+  button.style.width = saved.width;
+  button.style.height = saved.height;
+  if (saved.label === null) button.removeAttribute("aria-label");
+  else button.setAttribute("aria-label", saved.label);
+  button.removeAttribute("aria-busy");
+  button.classList.remove("is-loading");
+  loadingButtons.delete(button);
+}
 let stock = null;
 let busy = false;
 let generation = 0;
@@ -335,6 +365,7 @@ async function refresh(force = false) {
 $("#login").addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = $("#login button");
+  startButtonLoading(button);
   button.disabled = true;
   $("#login-error").textContent = "";
   try {
@@ -345,6 +376,7 @@ $("#login").addEventListener("submit", async (event) => {
     $("#login-error").textContent =
       error.status === 401 ? "รหัสผ่านไม่ถูกต้อง" : errorText(error);
   } finally {
+    stopButtonLoading(button);
     button.disabled = false;
   }
 });
@@ -1391,6 +1423,7 @@ async function loadAlertSettings() {
 async function saveAlertSettings() {
   const status = $('#alert-status');
   const button = document.querySelector('[data-action="save-alerts"]');
+  startButtonLoading(button);
   button.disabled = true;
   try {
     const days = Number($('#alert-days').value);
@@ -1415,7 +1448,7 @@ async function saveAlertSettings() {
     }
     status.textContent = days ? 'เปิดแจ้งเตือนแล้ว' : 'ปิดแจ้งเตือนแล้ว';
   } catch(error) { status.textContent = error.message || errorText(error); }
-  finally { button.disabled = false; }
+  finally { stopButtonLoading(button); button.disabled = false; }
 }
 
 function draw() {
@@ -2281,7 +2314,10 @@ async function mealMutation(change, done) {
   if (busy || !stock || !mealDraft) return;
   busy = true;
   ++generation;
-  $("#meal-save").disabled = true;
+  const loadingButton = $("#meal-save");
+  pendingActionButton = null;
+  startButtonLoading(loadingButton);
+  loadingButton.disabled = true;
   try {
     if (stock.version !== mealDraft.version) throw new ApiError(409, "");
     const next = structuredClone(stock);
@@ -2311,6 +2347,7 @@ async function mealMutation(change, done) {
     } else if (stock) alertUser(message);
   } finally {
     busy = false;
+    stopButtonLoading(loadingButton);
     if ($("#meal-editor").open)
       $("#meal-save").disabled = Boolean(mealDraft?.stale);
   }
@@ -2337,6 +2374,7 @@ $("#meal-fields").addEventListener("change", (event) => {
 $("#meal-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!mealDraft || mealDraft.stale || busy) return;
+  pendingActionButton = event.submitter;
   $("#meal-error").textContent = "";
   let ingredients;
   try {
@@ -2552,6 +2590,7 @@ $("#editor").addEventListener("cancel", (event) => {
   if (busy) event.preventDefault();
 });
 $("#editor").addEventListener("close", () => {
+  stopButtonLoading($("#save"));
   if (previewUrl) URL.revokeObjectURL(previewUrl);
   previewUrl = "";
   draft = null;
@@ -2701,6 +2740,7 @@ function startItemMedia(item) {
 
 function selectItemMedia(photo, icon) {
   if (!mediaDraft || mediaDraft.stale) return;
+  stopButtonLoading($("#item-media-save"));
   ++mediaDraft.task;
   if (mediaDraft.preview) URL.revokeObjectURL(mediaDraft.preview);
   Object.assign(mediaDraft, { photo, icon, blob: null, preview: "", processing: false });
@@ -2714,6 +2754,7 @@ $("#item-media-file").addEventListener("change", async (event) => {
   if (!file || !mediaDraft || busy || mediaDraft.stale) return;
   const editing = mediaDraft, token = ++editing.task;
   editing.processing = true;
+  startButtonLoading($("#item-media-save"));
   $("#item-media-save").disabled = true;
   $("#item-media-error").textContent = "กำลังเตรียมรูป…";
   try {
@@ -2730,6 +2771,7 @@ $("#item-media-file").addEventListener("change", async (event) => {
   } finally {
     if (mediaDraft === editing && editing.task === token) {
       editing.processing = false;
+      stopButtonLoading($("#item-media-save"));
       renderItemMediaPreview();
       event.target.value = "";
     }
@@ -2739,6 +2781,7 @@ $("#item-media-dialog").addEventListener("cancel", (event) => {
   if (busy) event.preventDefault();
 });
 $("#item-media-dialog").addEventListener("close", () => {
+  stopButtonLoading($("#item-media-save"));
   if (mediaDraft?.preview) URL.revokeObjectURL(mediaDraft.preview);
   mediaDraft = null;
   $("#item-media-file").value = "";
@@ -2818,6 +2861,7 @@ $("#fields").addEventListener("change", async (event) => {
   const editing = draft,
     token = ++editing.photoTask;
   editing.processing = true;
+  startButtonLoading($("#save"));
   $("#save").disabled = true;
   $("#form-error").textContent = "กำลังเตรียมรูป…";
   try {
@@ -2836,6 +2880,7 @@ $("#fields").addEventListener("change", async (event) => {
   } finally {
     if (draft === editing && editing.photoTask === token) {
       editing.processing = false;
+      stopButtonLoading($("#save"));
       $("#save").disabled = false;
     }
   }
@@ -2882,6 +2927,10 @@ async function mutation(change, expected, done) {
   const inDialog = $("#editor").open;
   const inImportDialog = $("#excel-import-dialog").open;
   const inMediaDialog = $("#item-media-dialog").open;
+  const loadingButton = inDialog ? $("#save") : inImportDialog ? $("#excel-import-confirm") :
+    inMediaDialog ? $("#item-media-save") : pendingActionButton;
+  pendingActionButton = null;
+  startButtonLoading(loadingButton);
   busy = true;
   ++generation;
   if (inDialog) $("#save").disabled = true;
@@ -2935,6 +2984,7 @@ async function mutation(change, expected, done) {
     } else if (stock) alertUser(message);
   } finally {
     busy = false;
+    stopButtonLoading(loadingButton);
     if ($("#editor").open)
       $("#save").disabled = Boolean(draft?.stale || draft?.processing);
     if ($("#excel-import-dialog").open)
@@ -3034,6 +3084,7 @@ async function consume(item, qty, version) {
 $("#editor-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!draft || draft.processing || draft.stale || busy) return;
+  pendingActionButton = event.submitter;
   const { mode, sourceId, version, initial } = draft;
   $("#form-error").textContent = "";
   if (mode === "use")
@@ -3228,6 +3279,8 @@ async function finishMealPlan(plan, createCookedStock = false) {
 document.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-action]");
   if (!target || busy) return;
+  pendingActionButton = target.tagName === "BUTTON" ? target : null;
+  setTimeout(() => { if (pendingActionButton === target) pendingActionButton = null; }, 0);
   const action = target.dataset.action,
     id = target.dataset.id;
   const item = stock?.items.find((i) => i.id === id);
@@ -3236,10 +3289,15 @@ document.addEventListener("click", async (event) => {
   const recipe = stock?.recipes?.find((item) => item.id === id);
   if (action === "save-alerts") return saveAlertSettings();
   if (action === "retry") {
+    startButtonLoading(target);
     entry("checking");
-    return refresh(true);
+    try { await refresh(true); }
+    finally { stopButtonLoading(target); }
+    return;
   }
   if (action === "logout") {
+    startButtonLoading(target);
+    target.disabled = true;
     busy = true;
     ++generation;
     try {
@@ -3249,6 +3307,8 @@ document.addEventListener("click", async (event) => {
       alertUser(errorText(error));
     } finally {
       busy = false;
+      stopButtonLoading(target);
+      target.disabled = false;
     }
     return;
   }
@@ -3303,6 +3363,7 @@ document.addEventListener("click", async (event) => {
     $(".excel-dropdown").open = false;
     busy = true;
     ++generation;
+    startButtonLoading(target);
     target.disabled = true;
     try {
       await downloadStockTemplate();
@@ -3310,6 +3371,7 @@ document.addEventListener("click", async (event) => {
       alertUser(error.message || "ดาวน์โหลดเทมเพลตไม่ได้ กรุณาลองอีกครั้ง");
     } finally {
       busy = false;
+      stopButtonLoading(target);
       target.disabled = false;
     }
     return;
@@ -3432,6 +3494,7 @@ document.addEventListener("click", async (event) => {
     );
   }
   if (action === "remove-photo" && draft) {
+    stopButtonLoading($("#save"));
     draft.photoTask++;
     draft.processing = false;
     $("#save").disabled = false;
