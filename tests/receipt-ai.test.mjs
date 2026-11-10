@@ -18,8 +18,9 @@ test('receipt AI is opt-in, authenticated, and validates provider output', async
   const image = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(120)]).toString('base64');
   const body = {image, mimeType: 'image/jpeg', ocrText: 'ผักขมไทย\n(29595013)1 1 *'};
   let providerCalls = 0;
-  const provider = async (_url, options) => {
+  const provider = async (url, options) => {
     providerCalls++;
+    assert.match(url, /models\/gemini-3\.1-flash-lite:generateContent$/);
     assert.equal(options.headers['x-goog-api-key'], 'test-gemini-key');
     const input = JSON.parse(options.body);
     assert.equal(input.contents[0].parts[1].inline_data.data, image);
