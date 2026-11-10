@@ -793,10 +793,9 @@ function receiptRow(row = {}) {
     '<label>หน่วย<input data-field="unit" maxlength="20" value="' + esc(row.unit || 'ชิ้น') + '"></label>' +
     '<label>หมวด<select data-field="category">' + option + '</select></label>' +
     '<label>ที่เก็บ<input data-field="location" maxlength="60" value="' + esc(row.location || '') + '"></label>' +
-    '<label>วันหมดอายุ<input data-field="date" type="date"></label></div>';
-  card.dataset.barcode = row.barcode || '';
-  card.dataset.originalName = row.name || '';
-  card.dataset.originalUnit = row.unit || 'ชิ้น';
+    '<label>วันหมดอายุ<input data-field="date" type="date"></label>' +
+    '<label>บาร์โค้ด<input data-field="barcode" inputmode="numeric" maxlength="14" value="' +
+      esc(row.barcode || '') + '"></label></div>';
   return card;
 }
 
@@ -869,11 +868,15 @@ $("#receipt-confirm").addEventListener('click', () => {
       error.textContent = 'รายการที่ ' + (index + 1) + ': กรุณาตรวจชื่อ จำนวน และหน่วย';
       return;
     }
+    const barcode = field('barcode');
+    if (barcode && !/^\d{8,14}$/.test(barcode)) {
+      error.textContent = 'รายการที่ ' + (index + 1) + ': บาร์โค้ดต้องเป็นตัวเลข 8–14 หลัก';
+      return;
+    }
     const item = {id: crypto.randomUUID(), name, qty: round(qty), unit,
       category: field('category'), location: field('location'), date: field('date'),
       dateKind: 'expiry', photo: null};
-    if (card.dataset.barcode && name === card.dataset.originalName &&
-      unit === card.dataset.originalUnit) item.barcode = card.dataset.barcode;
+    if (barcode) item.barcode = barcode;
     items.push(item);
   }
   error.textContent = '';

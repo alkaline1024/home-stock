@@ -37,15 +37,29 @@ async function prepareImage(file) {
     }
   }
   try {
-    const scale = Math.min(1, 2600 / Math.max(bitmap.width || bitmap.naturalWidth,
+    const scale = Math.min(2, 2600 / Math.max(bitmap.width || bitmap.naturalWidth,
       bitmap.height || bitmap.naturalHeight));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const context = canvas.getContext('2d', {willReadFrequently: true});
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const image = context.getImageData(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < image.data.length; i += 4) {
+      const red = image.data[i], green = image.data[i + 1], blue = image.data[i + 2];
+      // Remove red approval stamps while retaining black text beneath them.
+      if (red > green + 25 && red > blue + 25 && red > 110) {
+        image.data[i] = 255;
+        image.data[i + 1] = 255;
+        image.data[i + 2] = 255;
+      }
+    }
+    context.putImageData(image, 0, 0);
     return await new Promise((resolve, reject) =>
       canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('เตรียมรูปไม่ได้')),
-        'image/jpeg', .92));
+        'image/png'));
   } finally {
     release();
   }
