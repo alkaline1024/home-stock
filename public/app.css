@@ -2399,3 +2399,5 @@ button.is-loading { display: inline-flex; align-items: center; justify-content: 
 .receipt-ai-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
 .receipt-ai-model { flex: 1 1 200px; }
 .receipt-ai-row > button { flex: 0 0 auto; }
+#receipt-ai-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+#receipt-ai-button svg { width: 18px; height: 18px; flex: none; }
