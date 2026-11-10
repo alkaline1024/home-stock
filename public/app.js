@@ -799,7 +799,8 @@ function receiptRow(row = {}) {
     '<label>หมวด<select data-field="category">' + opts(categories, row.category || 'อื่น ๆ') + '</select></label>' +
     '<label>ที่เก็บ<input data-field="location" maxlength="60" list="receipt-rooms-' + id + '" value="' + esc(row.location || '') +
       '"><datalist id="receipt-rooms-' + id + '">' + opts(locations) + '</datalist></label>' +
-    '<label>วันหมดอายุ<input data-field="date" type="date" value="' + esc(row.date || '') + '"></label>' +
+    '<label>วันหมดอายุ (ถ้ามี)<span class="date-control"><span class="date-display" aria-hidden="true">' +
+      esc(dateInputLabel(row.date || '')) + '</span><input data-field="date" type="date" value="' + esc(row.date || '') + '"></span></label>' +
     '<label>บาร์โค้ด<input data-field="barcode" inputmode="numeric" maxlength="14" value="' +
       esc(row.barcode || '') + '"></label></div>';
   return card;
