@@ -44,7 +44,10 @@ test('receipt AI is opt-in, authenticated, and validates provider output', async
     process.env.GEMINI_API_KEY = 'test-gemini-key';
     assert.deepEqual(await (await api.GET(req())).json(), {available: true});
     assert.equal((await api.POST(req({...body, image: 'bad'}))).status, 400);
+    assert.equal((await api.POST(req({...body, model: 'gemini-unknown'}))).status, 400);
     assert.equal(providerCalls, 0);
+    assert.equal((await api.POST(req({...body, model: 'gemini-3.1-flash-lite'}))).status, 200);
+    providerCalls = 0;
     const result = await api.POST(req(body));
     assert.equal(result.status, 200);
     assert.deepEqual((await result.json()).rows[0], {

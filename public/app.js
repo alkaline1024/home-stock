@@ -781,22 +781,33 @@ $("#excel-import-confirm").addEventListener("click", () => {
     alertUser("นำเข้าของแล้ว " + items.length + " รายการ");
   });
 });
+let receiptRowId = 0;
+const receiptUnits = ["ชิ้น", "กล่อง", "ถุง", "ฟอง", "ขวด", "แพ็ก", "กก.", "ลิตร"];
 function receiptRow(row = {}) {
-  const option = categories.map((category) =>
-    '<option' + (category === row.category ? ' selected' : '') + '>' + esc(category) + '</option>').join('');
+  const id = ++receiptRowId;
+  const names = [...new Set([...(stock?.recentItems || []), ...(stock?.items || [])].map((i) => i.name))];
+  const locations = [...new Set([...rooms, ...(stock?.items || []).map((i) => i.location).filter(Boolean)])];
   const card = document.createElement('div');
   card.className = 'receipt-row';
-  card.innerHTML = '<div class="receipt-row-header"><label><input type="checkbox" class="receipt-select" checked>รับเข้าสต็อก</label>' +
-    '<small>' + esc(row.raw || 'เพิ่มเอง') + '</small></div>' +
-    '<div class="receipt-fields"><label class="receipt-name">ชื่อของ<input data-field="name" maxlength="80" value="' + esc(row.name || '') + '"></label>' +
+  card.innerHTML = '<div class="receipt-row-header"><small>' + esc(row.raw || 'เพิ่มเอง') + '</small>' +
+    '<button type="button" class="text-button danger" data-action="receipt-remove-row">ลบรายการ</button></div>' +
+    '<div class="receipt-fields"><label class="receipt-name">ชื่อของ<input data-field="name" maxlength="80" list="receipt-names-' + id +
+      '" value="' + esc(row.name || '') + '"><datalist id="receipt-names-' + id + '">' + opts(names) + '</datalist></label>' +
     '<label>จำนวน<input data-field="qty" type="number" min="0.001" max="999999" step="0.001" value="' + esc(row.qty || 1) + '"></label>' +
-    '<label>หน่วย<input data-field="unit" maxlength="20" value="' + esc(row.unit || 'ชิ้น') + '"></label>' +
-    '<label>หมวด<select data-field="category">' + option + '</select></label>' +
-    '<label>ที่เก็บ<input data-field="location" maxlength="60" value="' + esc(row.location || '') + '"></label>' +
+    '<label>หน่วย<input data-field="unit" maxlength="20" list="receipt-units-' + id + '" value="' + esc(row.unit || 'ชิ้น') +
+      '"><datalist id="receipt-units-' + id + '">' + opts(receiptUnits) + '</datalist></label>' +
+    '<label>หมวด<select data-field="category">' + opts(categories, row.category || 'อื่น ๆ') + '</select></label>' +
+    '<label>ที่เก็บ<input data-field="location" maxlength="60" list="receipt-rooms-' + id + '" value="' + esc(row.location || '') +
+      '"><datalist id="receipt-rooms-' + id + '">' + opts(locations) + '</datalist></label>' +
     '<label>วันหมดอายุ<input data-field="date" type="date" value="' + esc(row.date || '') + '"></label>' +
     '<label>บาร์โค้ด<input data-field="barcode" inputmode="numeric" maxlength="14" value="' +
       esc(row.barcode || '') + '"></label></div>';
   return card;
+}
+
+function enhanceReceiptRow(card) {
+  enhanceSelects(card);
+  enhanceDatalists(card);
 }
 
 function renderReceiptReview() {
@@ -805,10 +816,14 @@ function renderReceiptReview() {
   const summary = document.createElement('p');
   summary.className = 'form-help';
   summary.textContent = pendingReceipt.rows.length
-    ? 'อ่านได้ ' + pendingReceipt.rows.length + ' รายการ · เลือกรายการที่ต้องการ แล้วตรวจแก้ก่อนบันทึก'
+    ? 'อ่านได้ ' + pendingReceipt.rows.length + ' รายการ · ลบรายการที่ไม่ต้องการ แล้วตรวจแก้ก่อนบันทึก'
     : 'ยังแยกรายการสินค้าไม่ได้ กรุณาดูข้อความที่อ่านได้แล้วเพิ่มรายการเอง';
   review.append(summary);
-  for (const row of pendingReceipt.rows) review.append(receiptRow(row));
+  for (const row of pendingReceipt.rows) {
+    const card = receiptRow(row);
+    review.append(card);
+    enhanceReceiptRow(card);
+  }
   const details = document.createElement('details');
   const heading = document.createElement('summary');
   heading.textContent = 'ดูข้อความที่อ่านจากใบเสร็จ';
@@ -866,12 +881,13 @@ $("#receipt-ai-button").addEventListener('click', async () => {
   busy = true;
   button.disabled = true;
   startButtonLoading(button);
-  status.textContent = 'AI กำลังตรวจใบเสร็จ…';
+  status.textContent = 'AI กำลังวิเคราะห์รูปใบเสร็จ…';
   $("#receipt-error").textContent = '';
   try {
     const {prepareAiImage} = await import('/receipt.js');
     const image = await prepareAiImage(pendingReceipt.file);
-    const result = await post('receipt-ai', {...image, ocrText: pendingReceipt.text});
+    const result = await post('receipt-ai', {...image, ocrText: pendingReceipt.text,
+      model: $("#receipt-ai-model").value});
     if (!result.rows?.length) throw new Error('AI ไม่พบรายการที่ชัดเจน กรุณาใช้ผลสแกนเดิม');
     const old = [...$("#receipt-review").querySelectorAll('.receipt-row')].map((card) => ({
       barcode: card.querySelector('[data-field="barcode"]').value.trim(),
@@ -895,10 +911,9 @@ $("#receipt-ai-button").addEventListener('click', async () => {
 });
 $("#receipt-confirm").addEventListener('click', () => {
   if (!pendingReceipt || pendingReceipt.stale) return;
-  const selected = [...$("#receipt-review").querySelectorAll('.receipt-row')]
-    .filter((card) => card.querySelector('.receipt-select').checked);
+  const selected = [...$("#receipt-review").querySelectorAll('.receipt-row')];
   const error = $("#receipt-error");
-  if (!selected.length) { error.textContent = 'กรุณาเลือกรายการอย่างน้อย 1 รายการ'; return; }
+  if (!selected.length) { error.textContent = 'ไม่มีรายการให้รับเข้าบ้าน กรุณาเพิ่มรายการอย่างน้อย 1 รายการ'; return; }
   const items = [];
   for (const [index, card] of selected.entries()) {
     const field = (name) => card.querySelector('[data-field="' + name + '"]').value.trim();
@@ -1865,7 +1880,8 @@ function enhanceSelect(select) {
   function renderOptions(query = "") {
     const normalized = key(query);
     const badgeType =
-      select.id === "category-filter" || select.id === "f-category"
+      select.id === "category-filter" || select.id === "f-category" ||
+      (select.dataset.field === "category" && select.closest(".receipt-row"))
         ? "category"
         : select.id === "location-filter"
           ? "location"
@@ -2082,7 +2098,9 @@ function enhanceDatalist(input) {
 
   function renderOptions(query = input.value) {
     const normalized = key(query);
-    const badgeType = input.id === "f-location" ? "location" : null;
+    const badgeType = input.id === "f-location" ||
+      (input.dataset.field === "location" && input.closest(".receipt-row"))
+      ? "location" : null;
     visibleOptions = options.filter((option) =>
       key(option).includes(normalized),
     );
@@ -3613,7 +3631,15 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === 'receipt-add-row' && pendingReceipt) {
-    $("#receipt-review").querySelector('details').before(receiptRow());
+    const card = receiptRow();
+    $("#receipt-review").querySelector('details').before(card);
+    enhanceReceiptRow(card);
+    card.querySelector('[data-field="name"]').focus();
+    return;
+  }
+  if (action === 'receipt-remove-row' && pendingReceipt) {
+    target.closest('.receipt-row')?.remove();
+    $("#receipt-error").textContent = '';
     return;
   }
   if (action === "choose-stock-import") {
