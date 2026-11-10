@@ -2384,7 +2384,7 @@ button.is-loading { display: inline-flex; align-items: center; justify-content: 
 .excel-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 #receipt-trigger { min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 #receipt-trigger svg { width: 18px; height: 18px; flex: none; }
-#receipt-dialog { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
+@media (min-width: 651px) { #receipt-dialog { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); } }
 .receipt-row { border-bottom: 1px solid var(--line); padding: 14px 0; }
 .receipt-row-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
 .receipt-row-header label { display: inline-flex; gap: 8px; align-items: center; }
