@@ -1888,10 +1888,35 @@ dialog::backdrop {
 .meal-ingredient-row input {
   min-width: 0;
 }
+.meal-ingredient-row input[readonly] {
+  background: var(--panel-muted, #f1f3ef);
+  color: var(--muted);
+}
 .meal-remove-ingredient {
   width: 44px;
   height: 44px;
   padding: 0;
+}
+.meal-ingredient-hint {
+  grid-column: 1/-1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 0;
+}
+.stock-badge--in-stock {
+  color: #386329;
+  background: #edf4df;
+  border-color: #d3e2be;
+}
+.meal-ingredient-remaining {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.meal-ingredient-remaining--short {
+  color: #963d32;
+  font-weight: 600;
 }
 .meal-add-ingredient {
   margin-top: 8px;
@@ -1923,6 +1948,30 @@ dialog::backdrop {
   font-size: 0.88rem;
   color: var(--muted);
   margin-top: 4px;
+}
+#shortage-summary-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.shortage-summary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(90px, 0.8fr) minmax(50px, 0.4fr);
+  align-items: end;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shortage-summary-name {
+  font-weight: 600;
+  align-self: center;
+}
+.shortage-summary-qty-label {
+  font-size: 0.8rem;
+}
+.shortage-summary-unit {
+  align-self: center;
+  color: var(--muted);
 }
 .photo-edit img {
   display: block;

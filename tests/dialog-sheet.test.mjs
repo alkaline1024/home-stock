@@ -76,7 +76,7 @@ test("all modal opening paths use dialogs covered by the shared sheet initialize
   const openedIds = [...source.matchAll(/\$\("#([^"]+)"\)\.showModal\(\)/g)]
     .map((match) => match[1]);
   assert.deepEqual([...new Set(openedIds)].sort(), [...dialogIds].sort());
-  assert.equal(dialogIds.length, 5);
+  assert.equal(dialogIds.length, 6);
   const { dialogs } = sheets();
   for (const dialog of dialogs) {
     assert.equal(dialog.handle.className, "sheet-handle", dialog.id);

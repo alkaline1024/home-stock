@@ -369,6 +369,39 @@
         </div>
       </form>
     </dialog>
+    <dialog id="shortage-summary-dialog" aria-labelledby="shortage-summary-title">
+      <div class="dialog-head">
+        <h2 id="shortage-summary-title">สรุปรายการ</h2>
+        <button
+          type="button"
+          class="close"
+          aria-label="ปิด"
+          data-action="close-shortage-summary"
+        >
+          ×
+        </button>
+      </div>
+      <p id="shortage-summary-help" class="form-help"></p>
+      <div id="shortage-summary-list"></div>
+      <p id="shortage-summary-error" role="alert" class="error"></p>
+      <div class="dialog-actions">
+        <button
+          type="button"
+          class="secondary"
+          data-action="close-shortage-summary"
+        >
+          ยกเลิก
+        </button>
+        <button
+          type="button"
+          id="shortage-summary-confirm"
+          class="primary"
+          data-action="confirm-shortage-summary"
+        >
+          ยืนยัน
+        </button>
+      </div>
+    </dialog>
     <dialog id="receipt-dialog" aria-labelledby="receipt-title">
       <div class="dialog-head"><h2 id="receipt-title">ตรวจรายการจากใบเสร็จ</h2>
         <button type="button" class="close" aria-label="ปิด" data-action="close-receipt">×</button></div>

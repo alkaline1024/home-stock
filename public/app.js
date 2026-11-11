@@ -87,6 +87,7 @@ let excelJsPromise = null;
 let pendingStockImport = null;
 let pendingReceipt = null;
 let mediaDraft = null;
+let pendingShortageAction = null;
 const itemIcons = {
   box: { label: "กล่อง", paths: '<path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/>' },
   vegetables: { label: "ผัก", paths: '<path d="M12 21V11m-5 6 5-3 5 3"/><path d="M7 14a4 4 0 0 1-3-7 4 4 0 0 1 5-4 4 4 0 0 1 7 0 4 4 0 0 1 4 6 4 4 0 0 1-3 5Z"/>' },
@@ -315,6 +316,7 @@ function entry(mode, message = "") {
   if ($("#excel-import-dialog").open) $("#excel-import-dialog").close();
   if ($("#receipt-dialog").open) $("#receipt-dialog").close();
   if ($("#item-media-dialog").open) $("#item-media-dialog").close();
+  if ($("#shortage-summary-dialog").open) $("#shortage-summary-dialog").close();
   $(".excel-dropdown").open = false;
   $("#app").hidden = true;
   $("#entry").hidden = false;
@@ -333,7 +335,7 @@ async function refresh(force = false) {
     !force &&
     (busy || $("#editor").open || $("#meal-editor").open ||
       $("#excel-import-dialog").open || $("#receipt-dialog").open ||
-      $("#item-media-dialog").open)
+      $("#item-media-dialog").open || $("#shortage-summary-dialog").open)
   ) return;
   if (!force && Date.now() - lastReadStarted < 3000) return;
   lastReadStarted = Date.now();
@@ -1153,6 +1155,117 @@ function mealShortages(plan, items = stock?.items || []) {
       return { ...ingredient, missing: round(ingredient.qty - available) };
     })
     .filter((ingredient) => ingredient.missing > 0.0001);
+}
+
+function stockMatchesForName(name) {
+  if (!name) return [];
+  const groups = new Map();
+  for (const item of stock.items) {
+    if (key(item.name) !== key(name)) continue;
+    const unitKey = key(item.unit);
+    const group = groups.get(unitKey) || { unit: item.unit, qty: 0 };
+    group.qty = round(group.qty + item.qty);
+    groups.set(unitKey, group);
+  }
+  return [...groups.values()].sort((a, b) => b.qty - a.qty);
+}
+
+function ingredientUnitFieldHtml(rowId, unit, locked) {
+  if (locked) {
+    return (
+      '<input class="meal-ingredient-unit" required value="' +
+      esc(unit) +
+      '" readonly tabindex="-1">'
+    );
+  }
+  const unitList = "meal-unit-options-" + rowId;
+  const units = [
+    ...new Set([
+      "ชิ้น",
+      "กล่อง",
+      "ถุง",
+      "ฟอง",
+      "ขวด",
+      "แพ็ก",
+      "กก.",
+      "ลิตร",
+      ...stock.items.map((entry) => entry.unit),
+    ]),
+  ];
+  return (
+    '<input class="meal-ingredient-unit" required autocomplete="off" maxlength="20" list="' +
+    unitList +
+    '" value="' +
+    esc(unit || "ชิ้น") +
+    '"><datalist id="' +
+    unitList +
+    '">' +
+    opts(units) +
+    "</datalist>"
+  );
+}
+
+function ingredientHintHtml(locked, stockQty, qty, unit) {
+  if (!locked)
+    return '<span class="stock-badge stock-badge--custom">ไม่มีในบ้าน</span>';
+  const remaining = round(stockQty - (Number(qty) || 0));
+  const remainingHtml =
+    remaining < 0
+      ? '<span class="meal-ingredient-remaining meal-ingredient-remaining--short">ไม่พอ ขาดอีก ' +
+        esc(amountFormat.format(-remaining)) +
+        " " +
+        esc(unit) +
+        "</span>"
+      : '<span class="meal-ingredient-remaining">กรอกแล้วเหลือ ' +
+        esc(amountFormat.format(remaining)) +
+        " " +
+        esc(unit) +
+        "</span>";
+  return (
+    '<span class="stock-badge stock-badge--in-stock">อยู่ในบ้าน · มี ' +
+    esc(amountFormat.format(stockQty)) +
+    " " +
+    esc(unit) +
+    "</span>" +
+    remainingHtml
+  );
+}
+
+function refreshIngredientRow(row) {
+  const name = row.querySelector(".meal-ingredient-name")?.value.trim() || "";
+  const matches = stockMatchesForName(name);
+  const locked = matches.length > 0;
+  const currentUnit =
+    row.querySelector(".meal-ingredient-unit")?.value.trim() || "";
+  const match =
+    (currentUnit &&
+      matches.find((entry) => key(entry.unit) === key(currentUnit))) ||
+    matches[0];
+  const unit = locked ? match.unit : currentUnit;
+  row.dataset.locked = locked ? "1" : "0";
+  row.dataset.stockUnit = unit;
+  row.dataset.stockQty = String(locked ? match.qty : 0);
+  const unitWrap = row.querySelector(".meal-ingredient-unit-field");
+  unitWrap.innerHTML = ingredientUnitFieldHtml(
+    row.dataset.ingredientId,
+    unit,
+    locked,
+  );
+  if (!locked) enhanceDatalists(unitWrap);
+  updateIngredientHint(row);
+}
+
+function updateIngredientHint(row) {
+  const locked = row.dataset.locked === "1";
+  const stockQty = Number(row.dataset.stockQty) || 0;
+  const unit = row.dataset.stockUnit || "";
+  const qty = Number(row.querySelector(".meal-ingredient-qty")?.value) || 0;
+  row.querySelector(".meal-ingredient-hint").innerHTML = ingredientHintHtml(
+    locked,
+    stockQty,
+    qty,
+    unit,
+  );
 }
 
 function shortageDropdown(planId) {
@@ -2330,24 +2443,25 @@ function editorFields(data, isShopping) {
 function mealIngredientRow(item = {}) {
   const rowId = item.id || crypto.randomUUID();
   const names = [...new Set(stock.items.map((entry) => entry.name))];
-  const units = [
-    ...new Set([
-      "ชิ้น",
-      "กล่อง",
-      "ถุง",
-      "ฟอง",
-      "ขวด",
-      "แพ็ก",
-      "กก.",
-      "ลิตร",
-      ...stock.items.map((entry) => entry.unit),
-    ]),
-  ];
   const nameList = "meal-name-options-" + rowId;
-  const unitList = "meal-unit-options-" + rowId;
+  const matches = stockMatchesForName(item.name || "");
+  const locked = matches.length > 0;
+  const matchForUnit = item.unit
+    ? matches.find((entry) => key(entry.unit) === key(item.unit))
+    : null;
+  const match = matchForUnit || matches[0];
+  const unit = locked ? match.unit : item.unit || "ชิ้น";
+  const stockQty = locked ? match.qty : 0;
+  const qty = item.qty ?? 1;
   return (
     '<div class="meal-ingredient-row" data-ingredient-id="' +
     esc(rowId) +
+    '" data-locked="' +
+    (locked ? "1" : "0") +
+    '" data-stock-unit="' +
+    esc(unit) +
+    '" data-stock-qty="' +
+    stockQty +
     '"><label>วัตถุดิบ<input class="meal-ingredient-name" required autocomplete="off" maxlength="80" list="' +
     nameList +
     '" value="' +
@@ -2357,16 +2471,13 @@ function mealIngredientRow(item = {}) {
     '">' +
     opts(names) +
     '</datalist><label>จำนวน<input class="meal-ingredient-qty" required type="number" inputmode="decimal" min=".001" max="999999" step=".001" value="' +
-    esc(item.qty ?? 1) +
-    '"></label><label>หน่วย<input class="meal-ingredient-unit" required autocomplete="off" maxlength="20" list="' +
-    unitList +
-    '" value="' +
-    esc(item.unit || "ชิ้น") +
-    '"></label><datalist id="' +
-    unitList +
-    '">' +
-    opts(units) +
-    '</datalist><button type="button" class="meal-remove-ingredient text-button danger" data-action="remove-meal-ingredient" aria-label="ลบวัตถุดิบ">×</button></div>'
+    esc(qty) +
+    '"></label><label>หน่วย<span class="meal-ingredient-unit-field">' +
+    ingredientUnitFieldHtml(rowId, unit, locked) +
+    '</span></label><button type="button" class="meal-remove-ingredient text-button danger" data-action="remove-meal-ingredient" aria-label="ลบวัตถุดิบ">×</button>' +
+    '<p class="meal-ingredient-hint">' +
+    ingredientHintHtml(locked, stockQty, qty, unit) +
+    "</p></div>"
   );
 }
 
@@ -2552,6 +2663,15 @@ $("#meal-fields").addEventListener("change", (event) => {
   $("#meal-save-template").checked = false;
   $("#meal-template-save-label").textContent = "อัปเดตเมนูต้นแบบด้วย";
   enhanceDatalists($("#meal-ingredients"));
+});
+
+$("#meal-fields").addEventListener("input", (event) => {
+  const row = event.target.closest(".meal-ingredient-row");
+  if (!row) return;
+  if (event.target.classList.contains("meal-ingredient-name"))
+    return refreshIngredientRow(row);
+  if (event.target.classList.contains("meal-ingredient-qty"))
+    return updateIngredientHint(row);
 });
 
 $("#meal-form").addEventListener("submit", async (event) => {
@@ -3434,38 +3554,95 @@ $("#editor-form").addEventListener("submit", async (event) => {
   );
 });
 
-function addMealShortagesToShopping(plan) {
-  if (!plan) return;
-  const missing = mealShortages(plan);
-  if (!missing.length) return alertUser("วัตถุดิบของเมนูนี้มีครบแล้ว");
-  mutation(
-    async (next) => {
-      for (const ingredient of missing) {
-        next.shopping = addShopping(next.shopping, {
-          id: crypto.randomUUID(),
-          name: ingredient.name,
-          unit: ingredient.unit,
-          qty: ingredient.missing,
-        });
-      }
-    },
-    stock.version,
-    () => alertUser("เพิ่มวัตถุดิบที่ขาดในรายการซื้อแล้ว"),
+let shortageSummary = null;
+
+function shortageSummaryRow(item) {
+  return (
+    '<div class="shortage-summary-row" data-id="' +
+    esc(item.id) +
+    '"><span class="shortage-summary-name">' +
+    esc(item.name) +
+    '</span><label class="shortage-summary-qty-label">จำนวน<input class="shortage-summary-qty" required type="number" inputmode="decimal" min=".001" max="999999" step=".001" value="' +
+    esc(item.qty) +
+    '"></label><span class="shortage-summary-unit">' +
+    esc(item.unit) +
+    "</span></div>"
   );
 }
 
-function addMealShortagesToInventory(plan) {
-  if (!plan) return;
+function openShortageSummary(plan, target) {
+  if (!stock || busy || !plan) return;
   const missing = mealShortages(plan);
   if (!missing.length) return alertUser("วัตถุดิบของเมนูนี้มีครบแล้ว");
-  mutation(
-    async (next) => {
-      for (const ingredient of missing) {
+  shortageSummary = {
+    target,
+    version: stock.version,
+    stale: false,
+    items: missing.map((ingredient) => ({
+      id: crypto.randomUUID(),
+      name: ingredient.name,
+      unit: ingredient.unit,
+      qty: ingredient.missing,
+    })),
+  };
+  $("#shortage-summary-title").textContent =
+    target === "inventory" ? "สรุปรายการเพิ่มของในบ้าน" : "สรุปรายการจดซื้อ";
+  $("#shortage-summary-help").textContent =
+    "ตรวจแก้จำนวนได้ก่อน" +
+    (target === "inventory" ? "เพิ่มเข้าของในบ้าน" : "จดลงรายการซื้อ") +
+    " ส่วนหน่วยเปลี่ยนไม่ได้ เพราะลงในแผนไปแล้ว";
+  $("#shortage-summary-confirm").textContent =
+    target === "inventory" ? "เพิ่มของในบ้าน" : "จดรายการซื้อ";
+  $("#shortage-summary-error").textContent = "";
+  $("#shortage-summary-confirm").disabled = false;
+  $("#shortage-summary-list").innerHTML = shortageSummary.items
+    .map(shortageSummaryRow)
+    .join("");
+  if (!$("#shortage-summary-dialog").open)
+    $("#shortage-summary-dialog").showModal();
+}
+
+function shortageSummaryItemsFromForm() {
+  const rows = [
+    ...$("#shortage-summary-list").querySelectorAll(".shortage-summary-row"),
+  ];
+  return rows.map((row) => {
+    const base = shortageSummary.items.find(
+      (item) => item.id === row.dataset.id,
+    );
+    const qty = Number(row.querySelector(".shortage-summary-qty")?.value);
+    if (!(qty > 0 && qty <= 999999))
+      throw new Error("กรุณากรอกจำนวนให้ถูกต้อง");
+    return { ...base, qty: round(qty) };
+  });
+}
+
+async function confirmShortageSummary() {
+  if (!shortageSummary || shortageSummary.stale || busy) return;
+  let items;
+  try {
+    items = shortageSummaryItemsFromForm();
+  } catch (error) {
+    $("#shortage-summary-error").textContent = error.message;
+    return;
+  }
+  const target = shortageSummary.target;
+  busy = true;
+  ++generation;
+  const loadingButton = $("#shortage-summary-confirm");
+  pendingActionButton = null;
+  startButtonLoading(loadingButton);
+  loadingButton.disabled = true;
+  try {
+    if (stock.version !== shortageSummary.version) throw new ApiError(409, "");
+    const next = structuredClone(stock);
+    if (target === "inventory") {
+      for (const item of items) {
         next.items.push({
           id: crypto.randomUUID(),
-          name: ingredient.name,
-          qty: ingredient.missing,
-          unit: ingredient.unit,
+          name: item.name,
+          qty: item.qty,
+          unit: item.unit,
           category: "อื่น ๆ",
           location: "",
           date: "",
@@ -3473,11 +3650,57 @@ function addMealShortagesToInventory(plan) {
           photo: null,
         });
       }
-    },
-    stock.version,
-    () => alertUser("เพิ่มวัตถุดิบที่ขาดในของในบ้านแล้ว"),
-  );
+    } else {
+      for (const item of items) {
+        next.shopping = addShopping(next.shopping, {
+          id: crypto.randomUUID(),
+          name: item.name,
+          unit: item.unit,
+          qty: item.qty,
+        });
+      }
+    }
+    const result = await post("stock", next);
+    next.version = result.version;
+    stock = next;
+    if ($("#shortage-summary-dialog").open) $("#shortage-summary-dialog").close();
+    draw();
+    alertUser(
+      target === "inventory"
+        ? "เพิ่มวัตถุดิบที่ขาดในของในบ้านแล้ว"
+        : "เพิ่มวัตถุดิบที่ขาดในรายการซื้อแล้ว",
+    );
+  } catch (error) {
+    if (error.status === 401) {
+      entry("login", errorText(error));
+      return;
+    }
+    const conflict = error.status === 409;
+    const message = conflict
+      ? "ข้อมูลเปลี่ยนจากอีกอุปกรณ์ กรุณาปิดแล้วลองใหม่"
+      : error instanceof ApiError
+        ? errorText(error)
+        : error.message || "บันทึกไม่ได้";
+    if (conflict || error.status === 0 || error.status >= 500)
+      await refresh(true);
+    if ($("#shortage-summary-dialog").open) {
+      $("#shortage-summary-error").textContent = message;
+      if (conflict) shortageSummary.stale = true;
+    } else if (stock) alertUser(message);
+  } finally {
+    busy = false;
+    stopButtonLoading(loadingButton);
+    if ($("#shortage-summary-dialog").open)
+      $("#shortage-summary-confirm").disabled = Boolean(shortageSummary?.stale);
+  }
 }
+
+$("#shortage-summary-dialog").addEventListener("cancel", (event) => {
+  if (busy) event.preventDefault();
+});
+$("#shortage-summary-dialog").addEventListener("close", () => {
+  shortageSummary = null;
+});
 
 async function finishMealPlan(plan, createCookedStock = false) {
   if (!plan || plan.status === "completed") return;
@@ -3498,7 +3721,7 @@ async function finishMealPlan(plan, createCookedStock = false) {
       "วัตถุดิบยังไม่พอสำหรับ " + plan.name,
       () => startMealEditor(plan),
       "แก้ไขแผน",
-      () => addMealShortagesToShopping(plan),
+      () => openShortageSummary(plan, "shopping"),
       "เพิ่มของที่ขาด",
     );
   }
@@ -3706,11 +3929,17 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "edit-meal-plan" && mealPlan) return startMealEditor(mealPlan);
   if (action === "add-shortages-inventory" && mealPlan)
-    return addMealShortagesToInventory(mealPlan);
+    return openShortageSummary(mealPlan, "inventory");
   if (action === "add-shortages-shopping" && mealPlan)
-    return addMealShortagesToShopping(mealPlan);
+    return openShortageSummary(mealPlan, "shopping");
   if (action === "add-meal-shortages" && mealPlan)
-    return addMealShortagesToShopping(mealPlan);
+    return openShortageSummary(mealPlan, "shopping");
+  if (action === "close-shortage-summary") {
+    if (!busy && $("#shortage-summary-dialog").open)
+      $("#shortage-summary-dialog").close();
+    return;
+  }
+  if (action === "confirm-shortage-summary") return confirmShortageSummary();
   if (action === "mark-meal-cooked" && mealPlan)
     return finishMealPlan(mealPlan);
   if (
