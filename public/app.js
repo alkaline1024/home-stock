@@ -277,14 +277,16 @@ function daysLeft(value) {
 function dateLabel(item) {
   if (!item.date) return "";
   const days = daysLeft(item.date);
-  const prefix = item.dateKind === "plan" ? "ตั้งใจใช้" : "หมดอายุ";
+  const prefix = item.dateKind === "plan" ? "ตั้งใจใช้" :
+    item.dateKind === "best-before" ? "BBE : ควรบริโภคก่อน" : "EXP : วันหมดอายุ";
   const relative = days === 0 ? "วันนี้" : days === 1 ? "พรุ่งนี้" : "";
   return prefix + relative + " · " + dateFormat.format(localDay(item.date));
 }
 function shortDateLabel(item) {
   if (!item.date) return "";
   const [year, month, day] = item.date.split("-");
-  const prefix = item.dateKind === "plan" ? "ใช้ภายใน" : "วันหมดอายุ";
+  const prefix = item.dateKind === "plan" ? "ใช้ภายใน" :
+    item.dateKind === "best-before" ? "BBE" : "EXP";
   return prefix + " " + day + "/" + month + "/" + year.slice(-2);
 }
 
@@ -565,7 +567,7 @@ async function downloadStockTemplate() {
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b, "th")),
     ],
-    ["DateKindOptions", ["วันหมดอายุ", "ตั้งใจใช้ภายใน"]],
+    ["DateKindOptions", ["(EXP : วันหมดอายุ)", "(BBE : ควรบริโภคก่อน)", "ตั้งใจใช้ภายใน"]],
   ];
   const listColumns = ["A", "B", "C", "D", "E"];
   for (const [index, [name, values]] of lists.entries()) {
@@ -644,7 +646,7 @@ async function downloadStockTemplate() {
     "ชื่อของ จำนวน และหน่วย เป็นข้อมูลที่ต้องกรอก",
     "จำนวนมากกว่า 0 ถึง 999999 ทศนิยมไม่เกิน 3 ตำแหน่ง",
     "หน่วยและที่เก็บเลือกจาก dropdown หรือพิมพ์ค่าใหม่ได้",
-    "หมวดและติดตามวันที่เลือกจาก dropdown; เว้นว่างใช้ อื่น ๆ และ วันหมดอายุ",
+    "หมวดและติดตามวันที่เลือกจาก dropdown; เว้นว่างใช้ อื่น ๆ และ (EXP : วันหมดอายุ)",
     "วันที่เว้นว่างได้ หรือกรอกวัน/เดือน/ปี ค.ศ. เช่น 31/12/2026 หรือ 2026-12-31",
     "ไม่รองรับสูตรในเซลล์ กรุณาวางเป็นค่าแทน",
     "นำเข้าเป็นรายการใหม่ ไม่มีรูป และไม่แก้ไขหรือลบรายการเดิม",
@@ -747,12 +749,13 @@ function parseStockImport(workbook) {
       if (!categories.includes(category)) throw new Error("หมวดไม่อยู่ในรายการ dropdown");
       const location = text(4, 60, false, "ที่เก็บ");
       const date = stockImportDate(values[5], workbook.properties.date1904);
-      const kind = text(6, 30, false, "ติดตามวันที่") || "วันหมดอายุ";
-      if (!["วันหมดอายุ", "ตั้งใจใช้ภายใน"].includes(kind))
+      const kind = text(6, 40, false, "ติดตามวันที่") || "(EXP : วันหมดอายุ)";
+      if (!["วันหมดอายุ", "(EXP : วันหมดอายุ)", "(BBE : ควรบริโภคก่อน)", "ตั้งใจใช้ภายใน"].includes(kind))
         throw new Error("ติดตามวันที่ไม่อยู่ในรายการ dropdown");
       items.push({
         id: crypto.randomUUID(), name, qty: round(qty), unit, category, location,
-        date, dateKind: kind === "ตั้งใจใช้ภายใน" ? "plan" : "expiry", photo: null,
+        date, dateKind: kind === "ตั้งใจใช้ภายใน" ? "plan" :
+          kind === "(BBE : ควรบริโภคก่อน)" ? "best-before" : "expiry", photo: null,
       });
     } catch (error) {
       errors.push("แถว " + row + ": " + error.message);
@@ -790,7 +793,7 @@ async function readStockImport(file) {
         stockImportHeaders.map((header) => "<th>" + esc(header) + "</th>").join("") +
         "</tr></thead><tbody>" + items.slice(0, 20).map((item) => "<tr>" +
           [item.name, item.qty, item.unit, item.category, item.location, item.date,
-            item.dateKind === "plan" ? "ตั้งใจใช้ภายใน" : "วันหมดอายุ"]
+            item.dateKind === "plan" ? "ตั้งใจใช้ภายใน" : item.dateKind === "best-before" ? "(BBE : ควรบริโภคก่อน)" : "(EXP : วันหมดอายุ)"]
             .map((value) => "<td>" + esc(value) + "</td>").join("") + "</tr>").join("") +
         "</tbody></table></div>" +
         (items.length > 20 ? "<p>แสดงตัวอย่าง 20 รายการแรก</p>" : "") : "");
@@ -1548,7 +1551,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
   const counts = new Map();
   const planCounts = new Map();
   for (const item of items) {
-    if (!item.date || item.dateKind !== "expiry") continue;
+    if (!item.date || !["expiry", "best-before"].includes(item.dateKind)) continue;
     counts.set(item.date, (counts.get(item.date) || 0) + 1);
   }
   for (const plan of plans) {
@@ -1577,7 +1580,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
     const mealCount = planCounts.get(dateKey) || 0;
     const countBadges = [
       count &&
-        '<span class="calendar-day-count calendar-expiry-count" aria-label="หมดอายุ ' +
+        '<span class="calendar-day-count calendar-expiry-count" aria-label="วันกำหนด EXP/BBE ' +
           count +
           '">' +
           count +
@@ -1611,7 +1614,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
       '" aria-label="' +
       esc(
         dateLabel +
-          ", หมดอายุ " +
+          ", วันกำหนด EXP/BBE " +
           count +
           " รายการ, แผนทำอาหาร " +
           mealCount +
@@ -1634,7 +1637,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
   if (selectedCalendarDate) {
     const selectedItems = items.filter(
       (item) =>
-        item.dateKind === "expiry" && item.date === selectedCalendarDate,
+        ["expiry", "best-before"].includes(item.dateKind) && item.date === selectedCalendarDate,
     );
     const selectedPlans = plans.filter(
       (plan) => plan.status === "planned" && plan.date === selectedCalendarDate,
@@ -1645,14 +1648,14 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
       year: "numeric",
     }).format(localDay(selectedCalendarDate));
     details =
-      '<div class="calendar-details" aria-live="polite"><section class="calendar-detail-group"><h3>หมดอายุวันที่ ' +
+      '<div class="calendar-details" aria-live="polite"><section class="calendar-detail-group"><h3>วันกำหนด EXP/BBE วันที่ ' +
       esc(selectedLabel) +
       " · " +
       selectedItems.length +
       " รายการ</h3>" +
       (selectedItems.length
         ? selectedItems.map((item) => row(item)).join("")
-        : '<p class="calendar-no-expiry">ไม่มีของหมดอายุวันนี้</p>') +
+        : '<p class="calendar-no-expiry">ไม่มีของถึงกำหนดวันนี้</p>') +
       '</section><section class="calendar-detail-group"><h3>แผนทำอาหาร · ' +
       selectedPlans.length +
       " เมนู</h3>" +
@@ -1678,7 +1681,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
       selectedCalendarDate || todayKey,
       "secondary calendar-add-plan",
     ) +
-    '</div><div class="calendar-legend"><span><i class="calendar-legend-expiry"></i>วันหมดอายุ</span><span><i class="calendar-legend-meal"></i>แผนทำอาหาร</span></div><div class="calendar-grid">' +
+    '</div><div class="calendar-legend"><span><i class="calendar-legend-expiry"></i>EXP / BBE · วันหมดอายุ / ควรบริโภคก่อน</span><span><i class="calendar-legend-meal"></i>แผนทำอาหาร</span></div><div class="calendar-grid">' +
     cells +
     "</div>" +
     details +
@@ -1906,8 +1909,8 @@ function draw() {
       (i) => i.dateKind === "plan" && daysLeft(i.date) <= 7,
     );
     if (late.length)
-      html += section("เลยวันหมดอายุแล้ว", late, { urgent: true });
-    if (due.length) html += section("หมดอายุภายใน 7 วัน", due);
+      html += section("เลยกำหนด EXP / BBE แล้ว", late, { urgent: true });
+    if (due.length) html += section("ถึงกำหนด EXP / BBE ภายใน 7 วัน", due);
     if (planned.length) html += section("ตั้งใจใช้ภายในสัปดาห์นี้", planned);
     if (!html)
       html = sorted.length
@@ -2555,7 +2558,9 @@ function editorFields(data, isShopping) {
     "</datalist></label>" +
     '<label>ติดตามวันที่<select id="f-kind"><option value="expiry"' +
     (data.dateKind === "expiry" ? " selected" : "") +
-    '>วันหมดอายุ</option><option value="plan"' +
+    '>(EXP : วันหมดอายุ)</option><option value="best-before"' +
+    (data.dateKind === "best-before" ? " selected" : "") +
+    '>(BBE : ควรบริโภคก่อน)</option><option value="plan"' +
     (data.dateKind === "plan" ? " selected" : "") +
     ">ตั้งใจใช้ภายใน</option></select></label>" +
     '<label>วันที่ (ถ้ามี)<span class="date-control"><span class="date-display" aria-hidden="true">' +
@@ -3989,8 +3994,8 @@ async function finishMealPlan(plan, createCookedStock = false) {
               key(item.unit) === key(ingredient.unit),
           )
           .sort((a, b) => {
-            const dateA = a.dateKind === "expiry" ? a.date || "9999" : "9999";
-            const dateB = b.dateKind === "expiry" ? b.date || "9999" : "9999";
+            const dateA = ["expiry", "best-before"].includes(a.dateKind) ? a.date || "9999" : "9999";
+            const dateB = ["expiry", "best-before"].includes(b.dateKind) ? b.date || "9999" : "9999";
             return (
               dateA.localeCompare(dateB) || a.name.localeCompare(b.name, "th")
             );
