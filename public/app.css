@@ -1971,15 +1971,23 @@ footer {
 }
 .filters {
   display: grid;
-  grid-template-columns:
-    minmax(0, 2fr) minmax(120px, 1fr) minmax(120px, 1fr)
-    auto;
+  grid-template-columns: minmax(0, 2fr) minmax(120px, 1fr) minmax(120px, 1fr);
   gap: 12px;
   align-items: end;
   margin-bottom: 24px;
 }
+.filter-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  min-width: 0;
+}
+.filter-clear { min-height: 46px; white-space: nowrap; }
 .excel-tools {
+  grid-column: 1 / -1;
   position: relative;
+  min-width: 0;
 }
 .excel-dropdown {
   position: relative;
@@ -1988,6 +1996,7 @@ footer {
   min-height: 46px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   padding: 8px 12px;
   border: 1px solid var(--line);
@@ -2587,12 +2596,8 @@ dialog::backdrop {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
-  .filters .search {
+  .filters .filter-search-row {
     grid-column: 1/-1;
-  }
-  .excel-tools {
-    grid-column: 1/-1;
-    justify-self: end;
   }
   .line-item {
     grid-template-columns: 43px minmax(0, 1fr);
@@ -2709,7 +2714,12 @@ button.is-loading { display: inline-flex; align-items: center; justify-content: 
 .barcode-camera-controls label { font-size: .9rem; }
 .barcode-camera-controls input[type="range"] { flex: 1; min-width: 100px; accent-color: var(--green); }
 
-.excel-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.excel-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+.excel-tools #receipt-trigger { grid-column: 1; grid-row: 1; width: 100%; }
+.excel-tools .excel-dropdown { grid-column: 2; grid-row: 1; min-width: 0; }
+.excel-tools .excel-dropdown summary { width: 100%; }
+.excel-tools #receipt-progress { grid-column: 1 / -1; grid-row: 2; }
+.excel-tools #receipt-progress:empty { display: none; }
 #receipt-trigger { min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 #receipt-trigger svg { width: 18px; height: 18px; flex: none; }
 @media (min-width: 651px) { #receipt-dialog { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); } }

@@ -1094,14 +1094,15 @@ function itemViewToggle(page) {
 }
 function itemMenu(item, shopping = false, gridMode = false) {
   const editLabel = '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><span>แก้ไข</span>';
+  const mediaLabel = '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>เปลี่ยนรูปหรือไอคอน</span>';
   const choices = shopping
     ? button("receive", "รับเข้าบ้าน", item.id, "item-menu-option") +
       button("edit-shopping", editLabel, item.id, "item-menu-option")
     : gridMode
       ? button("use", item.qty < 1 ? "- ใช้หมด" : "- 1 " + esc(item.unit), item.id, "item-menu-option") +
         button("custom-use", "- ระบุจำนวน", item.id, "item-menu-option") +
-        (tab() === "stock" ? button("choose-item-media", "เปลี่ยนรูปหรือไอคอน", item.id, "item-menu-option") : "") +
         button("edit-item", editLabel, item.id, "item-menu-option") +
+        (tab() === "stock" ? button("choose-item-media", mediaLabel, item.id, "item-menu-option") : "") +
         button("shopping-from-item", paperPlusLabel("เพิ่มไปในรายการซื้อ"), item.id, "item-menu-option") +
         button("confirm-remove-item", "ลบรายการ", item.id, "item-menu-option danger")
     : button("edit-item", editLabel, item.id, "item-menu-option") +
@@ -4317,6 +4318,9 @@ document.addEventListener("click", async (event) => {
     $("#category-filter").value = "";
     $("#location-filter").value = "";
     draw();
+    refreshSearchSelect($("#category-filter"));
+    refreshSearchSelect($("#location-filter"));
+    $("#query").focus();
     return;
   }
   if (action === "buy-low") {

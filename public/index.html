@@ -210,14 +210,17 @@
           </button>
         </div>
         <div id="tools" class="filters" hidden>
-          <label class="search"
-            ><span>ค้นหาของ</span
-            ><input
-              id="query"
-              type="search"
-              placeholder="ชื่อของหรือที่เก็บ"
-              autocomplete="off"
-          /></label>
+          <div class="filter-search-row">
+            <label class="search"
+              ><span>ค้นหาของ</span
+              ><input
+                id="query"
+                type="search"
+                placeholder="ชื่อของหรือที่เก็บ"
+                autocomplete="off"
+            /></label>
+            <button type="button" class="secondary filter-clear" data-action="clear-filter">ล้างการค้นหา</button>
+          </div>
           <label
             ><span>หมวด</span
             ><select id="category-filter">
