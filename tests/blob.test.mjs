@@ -108,6 +108,16 @@ test("metadata brackets uncached content reads and retries if the object changes
   }
 });
 
+test("immutable photo reads use one download without metadata requests", async () => {
+  const fake = storage();
+  const store = createBlobStore(fake.sdk);
+  const photo = await store.readImmutable("home-stock/photos/photo.jpg");
+  assert.deepEqual(Buffer.from(photo.bytes), fake.bytes);
+  assert.deepEqual(fake.calls.map(([method]) => method), ["get"]);
+  fake.exists = false;
+  assert.equal(await store.readImmutable("home-stock/photos/missing.jpg"), null);
+});
+
 test("continuous changes fail explicitly without returning mismatched bytes and version", async () => {
   const fake = storage();
   const get = fake.sdk.get;

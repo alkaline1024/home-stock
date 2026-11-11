@@ -1125,8 +1125,8 @@ function row(item, shopping = false) {
   } else {
     detail = amount(item);
     meta = [
-      item.location && valueBadge(item.location, "location"),
       item.category && valueBadge(item.category, "category"),
+      item.location && valueBadge(item.location, "location"),
     ]
       .filter(Boolean)
       .join("");
@@ -1151,9 +1151,9 @@ function row(item, shopping = false) {
   const media = gridMode
     ? '<div class="item-card-media">' + thumb(item) +
       '<div class="item-card-tags"><span class="item-card-tag-left">' +
-      (item.location ? cardFilterBadge(item.location, "location") : "") +
-      '</span><span class="item-card-tag-right">' +
       (item.category ? cardFilterBadge(item.category, "category") : "") +
+      '</span><span class="item-card-tag-right">' +
+      (item.location ? cardFilterBadge(item.location, "location") : "") +
       "</span></div></div>"
     : thumb(item, !shopping && tab() === "stock");
   const nameAndQty = gridMode
@@ -1871,8 +1871,26 @@ async function testAlert(later = false) {
   }
 }
 
+let photoObserver = null;
+function prepareVisiblePhotos() {
+  photoObserver?.disconnect();
+  const photos = [...$("#content").querySelectorAll('img.thumb[loading="lazy"]')];
+  photos.slice(0, 6).forEach((photo) => { photo.loading = "eager"; });
+  if (!("IntersectionObserver" in window)) return;
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.loading = "eager";
+      observer.unobserve(entry.target);
+    }
+  }, { rootMargin: "1400px 0px" });
+  photoObserver = observer;
+  photos.slice(6).forEach((photo) => observer.observe(photo));
+}
+
 function draw() {
   if (!stock) return;
+  photoObserver?.disconnect();
   const page = tab();
   $(".tabs")
     .querySelectorAll("[data-tab]")
@@ -2054,6 +2072,7 @@ function draw() {
   if (["today", "stock"].includes(page) && stock.items.length)
     html = itemViewToggle(page) + html;
   $("#content").innerHTML = html;
+  prepareVisiblePhotos();
 }
 
 function opts(values, selected) {
@@ -3338,7 +3357,7 @@ async function jpeg(file) {
     // Camera/file inputs cannot reliably request a square capture across devices.
     // Crop the decoded image to a centered 1:1 square before resizing it.
     const side = Math.min(img.naturalWidth, img.naturalHeight);
-    const size = Math.min(1200, side);
+    const size = Math.min(800, side);
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext("2d");
