@@ -2011,9 +2011,14 @@ footer {
 }
 .filter-clear { min-height: 46px; white-space: nowrap; }
 .excel-tools {
+  margin-bottom: 24px;
   grid-column: 1 / -1;
   position: relative;
   min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
 }
 @media (max-width: 850px) {
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }

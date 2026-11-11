@@ -213,6 +213,37 @@
             >
           </button>
         </div>
+        <div class="excel-tools">
+          <button type="button" class="secondary" id="receipt-trigger" data-action="choose-receipt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>สแกนใบเสร็จ</button>
+          <input id="receipt-file" type="file" accept="image/*" capture="environment" hidden />
+          <span id="receipt-progress" role="status" class="form-help"></span>
+          <details class="excel-dropdown">
+            <summary class="secondary">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="M3 9h18M9 4v16m6-16v16M3 14h18" />
+              </svg>
+              Excel
+            </summary>
+            <div class="excel-dropdown-menu">
+              <button type="button" data-action="download-stock-template">
+                ดาวน์โหลดไฟล์เทมเพลตนำเข้าของ
+              </button>
+              <button type="button" data-action="choose-stock-import">
+                อัปโหลดไฟล์นำเข้าของ
+              </button>
+            </div>
+          </details>
+          <input id="stock-import-file" type="file" accept=".xlsx" hidden />
+        </div>
         <div id="tools" class="filters" hidden>
           <label class="search"
             ><span>ค้นหาของ</span
@@ -258,37 +289,6 @@
               <option value="category">หมวด</option>
               <option value="location">ที่เก็บ</option>
             </select></label>
-          </div>
-          <div class="excel-tools">
-            <button type="button" class="secondary" id="receipt-trigger" data-action="choose-receipt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>สแกนใบเสร็จ</button>
-            <input id="receipt-file" type="file" accept="image/*" capture="environment" hidden />
-            <span id="receipt-progress" role="status" class="form-help"></span>
-            <details class="excel-dropdown">
-              <summary class="secondary">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <rect x="3" y="4" width="18" height="16" rx="2" />
-                  <path d="M3 9h18M9 4v16m6-16v16M3 14h18" />
-                </svg>
-                Excel
-              </summary>
-              <div class="excel-dropdown-menu">
-                <button type="button" data-action="download-stock-template">
-                  ดาวน์โหลดไฟล์เทมเพลตนำเข้าของ
-                </button>
-                <button type="button" data-action="choose-stock-import">
-                  อัปโหลดไฟล์นำเข้าของ
-                </button>
-              </div>
-            </details>
-            <input id="stock-import-file" type="file" accept=".xlsx" hidden />
           </div>
         </div>
         <div id="content"></div>
