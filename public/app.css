@@ -3000,6 +3000,39 @@ button.is-loading {
 .receipt-fields .receipt-name {
   grid-column: span 2;
 }
+.receipt-fields .receipt-wide {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.receipt-media-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.receipt-field-label {
+  width: 100%;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.receipt-media-preview img,
+.receipt-media-preview .thumb {
+  display: block;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.receipt-media-preview .item-icon {
+  width: 32px;
+  height: 32px;
+}
+.receipt-shelf-life-button {
+  width: 100%;
+}
+.receipt-fields .barcode-input-row input {
+  width: auto;
+}
 #receipt-review details {
   margin: 12px 0;
 }

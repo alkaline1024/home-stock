@@ -1018,7 +1018,8 @@ const receiptUnits = ["ชิ้น", "กล่อง", "ถุง", "ฟอง
 function receiptRow(row = {}) {
   const id = ++receiptRowId;
   const today = new Date();
-  const receivedDate = row.receivedDate || calendarDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  const receivedDate =
+    row.receivedDate ?? calendarDateKey(today.getFullYear(), today.getMonth(), today.getDate());
   const names = [
     ...new Set([...(stock?.recentItems || []), ...(stock?.items || [])].map((i) => i.name)),
   ];
@@ -1069,16 +1070,24 @@ function receiptRow(row = {}) {
     '<label>ที่เก็บ<input data-field="location" maxlength="60" list="receipt-rooms-' +
     id +
     '" value="' +
-    esc(row.location || "") +
+    esc(
+      row.freezerLocationManual
+        ? row.location || ""
+        : row.location || stock?.items?.at(-1)?.location || "",
+    ) +
     '"><datalist id="receipt-rooms-' +
     id +
     '">' +
     opts(locations) +
     "</datalist></label>" +
     '<div class="receipt-wide receipt-media-field"><span class="receipt-field-label">รูปภาพหรือไอคอน (ถ้ามี)</span><button type="button" class="secondary receipt-media-button" data-action="receipt-pick-media">เลือกรูปหรือไอคอน</button><div class="receipt-media-preview"></div></div>' +
-    '<div class="receipt-wide barcode-field"><label>บาร์โค้ดสินค้า (ถ้ามี)<div class="barcode-input-row"><input data-field="barcode" inputmode="numeric" pattern="[0-9]{8,14}" maxlength="14" value="' +
+    '<div class="receipt-wide barcode-field"><label for="receipt-barcode-' +
+    id +
+    '">บาร์โค้ดสินค้า (ถ้ามี)</label><div class="barcode-input-row"><input id="receipt-barcode-' +
+    id +
+    '" data-field="barcode" inputmode="numeric" pattern="[0-9]{8,14}" maxlength="14" value="' +
     esc(row.barcode || "") +
-    '"><button type="button" class="secondary" data-action="receipt-scan-barcode">สแกน</button></div></label><p class="receipt-barcode-hint form-help" role="status"></p>' +
+    '"><button type="button" class="secondary" data-action="receipt-scan-barcode">สแกน</button></div><p class="receipt-barcode-hint form-help" role="status"></p>' +
     '<div class="receipt-barcode-scanner barcode-scanner" hidden><video class="receipt-barcode-video" autoplay muted playsinline></video><div class="barcode-camera-controls"><label>ซูม<input class="receipt-barcode-zoom" type="range" min="1" max="1" step="0.1" value="1" disabled></label><button type="button" class="secondary receipt-barcode-torch" data-action="toggle-barcode-torch" hidden>เปิดไฟฉาย</button><button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div></div>' +
     '<label>วันที่รับเข้า<span class="date-control"><span class="date-display" aria-hidden="true">' +
     esc(dateInputLabel(receivedDate)) +
@@ -1092,7 +1101,7 @@ function receiptRow(row = {}) {
     (row.dateKind === "best-before" ? " selected" : "") +
     '>(BBE : ควรบริโภคก่อน)</option><option value="plan"' +
     (row.dateKind === "plan" ? " selected" : "") +
-    '>ตั้งใจใช้ภายใน</option></select></label>' +
+    ">ตั้งใจใช้ภายใน</option></select></label>" +
     '<label>วันที่ (ถ้ามี)<span class="date-control"><span class="date-display" aria-hidden="true">' +
     esc(dateInputLabel(row.date || "")) +
     '</span><input data-field="date" type="date" value="' +
@@ -1102,6 +1111,125 @@ function receiptRow(row = {}) {
     esc(row.notifyBeforeDays ?? "") +
     '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใช้กับ EXP/BBE</span></label></div>';
   return card;
+}
+
+function receiptField(card, name) {
+  return card.querySelector('[data-field="' + name + '"]');
+}
+
+function selectReceiptFreezer(card) {
+  const name = receiptField(card, "name")?.value || "";
+  if (!key(name).includes("แช่แข็ง")) {
+    card.frozenNameSeen = false;
+    return;
+  }
+  if (card.frozenNameSeen || card.freezerLocationManual) return;
+  receiptField(card, "location").value = "ช่องแช่แข็ง";
+  card.frozenNameSeen = true;
+}
+
+function refreshReceiptShelfLife(card) {
+  const button = card.querySelector(".receipt-shelf-life-button");
+  const result = suggestedShelfLife(
+    receiptField(card, "name").value,
+    receiptField(card, "receivedDate").value,
+    receiptField(card, "category").value,
+    receiptField(card, "location").value,
+  );
+  button.hidden = !result;
+  if (result)
+    button.textContent = `แนะนำ BBE ${dateInputLabel(result.date)} · ${result.name} (${result.days} วัน)`;
+}
+
+function releaseReceiptMedia(card) {
+  const media = card.receiptMedia;
+  if (media?.preview) URL.revokeObjectURL(media.preview);
+  if (media) media.preview = "";
+}
+
+function renderReceiptMedia(card) {
+  const media = card.receiptMedia;
+  if (!media) return;
+  if (media.blob && !media.preview) media.preview = URL.createObjectURL(media.blob);
+  const src =
+    media.preview || (media.photo ? "/api/photo?id=" + encodeURIComponent(media.photo) : "");
+  card.querySelector(".receipt-media-preview").innerHTML = src
+    ? '<img alt="รูปของที่เลือก" src="' + esc(src) + '">'
+    : media.icon
+      ? '<span class="thumb placeholder"' +
+        itemIconStyle(media) +
+        ">" +
+        itemIconSvg(media.icon, "item-icon", media.iconColor, media.iconBackground) +
+        "</span>"
+      : '<span class="form-help">ยังไม่เลือกรูปหรือไอคอน</span>';
+  card.querySelector(".receipt-media-button").textContent =
+    src || media.icon ? "เปลี่ยนรูปหรือไอคอน" : "เลือกรูปหรือไอคอน";
+}
+
+function receiptRowValues(card) {
+  const value = (name) => receiptField(card, name).value.trim();
+  return {
+    name: value("name"),
+    qty: value("qty"),
+    unit: value("unit"),
+    category: value("category"),
+    location: value("location"),
+    barcode: value("barcode"),
+    receivedDate: value("receivedDate"),
+    dateKind: value("dateKind"),
+    date: value("date"),
+    notifyBeforeDays: value("notifyBeforeDays"),
+    frozenNameSeen: card.frozenNameSeen,
+    freezerLocationManual: card.freezerLocationManual,
+    ...card.receiptMedia,
+  };
+}
+
+function receiptItem(card, index) {
+  const field = (name) => receiptField(card, name).value.trim();
+  const name = field("name"),
+    unit = field("unit"),
+    qty = Number(field("qty"));
+  if (
+    !name ||
+    !unit ||
+    !Number.isFinite(qty) ||
+    qty < 0.001 ||
+    qty > 999999 ||
+    round(qty) !== qty ||
+    name.length > 80 ||
+    unit.length > 20
+  )
+    throw new Error("รายการที่ " + index + ": กรุณาตรวจชื่อ จำนวน และหน่วย");
+  const barcode = field("barcode");
+  if (barcode && !/^\d{8,14}$/.test(barcode))
+    throw new Error("รายการที่ " + index + ": บาร์โค้ดต้องเป็นตัวเลข 8–14 หลัก");
+  const notificationDays = field("notifyBeforeDays");
+  const notifyBeforeDays = notificationDays === "" ? null : Number(notificationDays);
+  if (
+    notifyBeforeDays !== null &&
+    (!Number.isInteger(notifyBeforeDays) || notifyBeforeDays < 0 || notifyBeforeDays > 365)
+  )
+    throw new Error("รายการที่ " + index + ": จำนวนวันแจ้งเตือนต้องเป็น 0–365");
+  const media = card.receiptMedia;
+  return {
+    id: crypto.randomUUID(),
+    name,
+    qty: round(qty),
+    unit,
+    category: field("category"),
+    location: field("location"),
+    receivedDate: field("receivedDate"),
+    date: field("date"),
+    dateKind: field("dateKind"),
+    ...(notifyBeforeDays === null ? {} : { notifyBeforeDays }),
+    photo: media.photo,
+    ...(media.icon
+      ? { icon: media.icon, iconColor: media.iconColor, iconBackground: media.iconBackground }
+      : {}),
+    ...(media.blob ? { pendingPhoto: media.blob } : {}),
+    ...(barcode ? { barcode } : {}),
+  };
 }
 
 function enhanceReceiptRow(card) {
@@ -1114,6 +1242,7 @@ function enhanceReceiptRow(card) {
 
 function renderReceiptReview() {
   const review = $("#receipt-review");
+  review.querySelectorAll(".receipt-row").forEach(releaseReceiptMedia);
   review.replaceChildren();
   const summary = document.createElement("p");
   summary.className = "form-help";
@@ -1182,10 +1311,24 @@ $("#receipt-dialog").addEventListener("cancel", (event) => {
   if (busy) event.preventDefault();
 });
 $("#receipt-dialog").addEventListener("close", () => {
+  stopBarcodeScan();
+  $("#receipt-review").querySelectorAll(".receipt-row").forEach(releaseReceiptMedia);
   pendingReceipt = null;
 });
+function updateReceiptRow(event) {
+  const card = event.target.closest?.(".receipt-row");
+  if (!card) return;
+  const field = event.target.dataset.field;
+  if (field === "location") card.freezerLocationManual = true;
+  if (field === "name") selectReceiptFreezer(card);
+  if (["name", "location", "category", "receivedDate"].includes(field))
+    refreshReceiptShelfLife(card);
+}
+$("#receipt-review").addEventListener("input", updateReceiptRow);
+$("#receipt-review").addEventListener("change", updateReceiptRow);
 $("#receipt-ai-button").addEventListener("click", async () => {
   if (!pendingReceipt || busy || pendingReceipt.stale) return;
+  stopBarcodeScan();
   const button = $("#receipt-ai-button");
   const status = $("#receipt-ai-status");
   busy = true;
@@ -1202,18 +1345,26 @@ $("#receipt-ai-button").addEventListener("click", async () => {
       model: $("#receipt-ai-model").value,
     });
     if (!result.rows?.length) throw new Error("AI ไม่พบรายการที่ชัดเจน กรุณาใช้ผลสแกนเดิม");
-    const old = [...$("#receipt-review").querySelectorAll(".receipt-row")].map((card) => ({
-      barcode: card.querySelector('[data-field="barcode"]').value.trim(),
-      date: card.querySelector('[data-field="date"]').value,
-      location: card.querySelector('[data-field="location"]').value.trim(),
-    }));
+    const old = [...$("#receipt-review").querySelectorAll(".receipt-row")].map(receiptRowValues);
     pendingReceipt.rows = result.rows.map((row, index) => {
       const previous =
         old.find((item) => item.barcode && item.barcode === row.barcode) || old[index];
       return {
         ...row,
         date: previous?.date || "",
-        location: previous?.location || row.location,
+        location: previous?.freezerLocationManual
+          ? previous.location
+          : previous?.location || row.location,
+        receivedDate: previous?.receivedDate,
+        dateKind: previous?.dateKind,
+        notifyBeforeDays: previous?.notifyBeforeDays,
+        photo: previous?.photo,
+        icon: previous?.icon,
+        iconColor: previous?.iconColor,
+        iconBackground: previous?.iconBackground,
+        blob: previous?.blob,
+        frozenNameSeen: previous?.frozenNameSeen,
+        freezerLocationManual: previous?.freezerLocationManual,
       };
     });
     renderReceiptReview();
@@ -1237,46 +1388,28 @@ $("#receipt-confirm").addEventListener("click", () => {
   }
   const items = [];
   for (const [index, card] of selected.entries()) {
-    const field = (name) => card.querySelector('[data-field="' + name + '"]').value.trim();
-    const name = field("name"),
-      unit = field("unit"),
-      qty = Number(field("qty"));
-    if (
-      !name ||
-      !unit ||
-      !Number.isFinite(qty) ||
-      qty < 0.001 ||
-      qty > 999999 ||
-      round(qty) !== qty ||
-      name.length > 80 ||
-      unit.length > 20
-    ) {
-      error.textContent = "รายการที่ " + (index + 1) + ": กรุณาตรวจชื่อ จำนวน และหน่วย";
+    try {
+      items.push(receiptItem(card, index + 1));
+    } catch (validationError) {
+      error.textContent = validationError.message;
       return;
     }
-    const barcode = field("barcode");
-    if (barcode && !/^\d{8,14}$/.test(barcode)) {
-      error.textContent = "รายการที่ " + (index + 1) + ": บาร์โค้ดต้องเป็นตัวเลข 8–14 หลัก";
-      return;
-    }
-    const item = {
-      id: crypto.randomUUID(),
-      name,
-      qty: round(qty),
-      unit,
-      category: field("category"),
-      location: field("location"),
-      date: field("date"),
-      dateKind: "expiry",
-      photo: null,
-    };
-    if (barcode) item.barcode = barcode;
-    items.push(item);
   }
   error.textContent = "";
+  stopBarcodeScan();
   mutation(
-    (next) => {
+    async (next) => {
       if (next.items.length + items.length > 2000) throw new Error("รวมของเดิมแล้วเกิน 2,000 รายการ");
+      for (const item of items) {
+        if (!item.pendingPhoto) continue;
+        const uploaded = await request("photo", {
+          method: "POST",
+          headers: { "Content-Type": "image/jpeg" },
+          body: item.pendingPhoto,
+        });
+        item.photo = uploaded.id;
+        delete item.pendingPhoto;
+      }
       next.items.push(...items);
       for (const item of items) {
         const remembered = {
@@ -3630,19 +3763,21 @@ function renderItemMediaPreview() {
   $("#item-media-save").disabled = Boolean(mediaDraft.processing || mediaDraft.stale);
 }
 
-function startItemMedia(item) {
+function startItemMedia(item, receiptCard = null) {
   if (busy || !stock) return;
+  stopBarcodeScan();
   ++generation;
   mediaDraft = {
     id: item.id,
+    receiptCard,
     name: item.name,
     version: stock.version,
     photo: item.photo || null,
     icon: item.icon || null,
     iconColor: item.iconColor || "green",
     iconBackground: item.iconBackground || "mint",
-    blob: null,
-    preview: "",
+    blob: receiptCard ? item.blob || null : null,
+    preview: receiptCard && item.blob ? URL.createObjectURL(item.blob) : "",
     task: 0,
     processing: false,
     stale: false,
@@ -3749,6 +3884,21 @@ async function saveItemMedia() {
   if (!mediaDraft || busy || mediaDraft.processing || mediaDraft.stale) return;
   const editing = mediaDraft;
   $("#item-media-error").textContent = "";
+  if (editing.receiptCard) {
+    const card = editing.receiptCard;
+    releaseReceiptMedia(card);
+    card.receiptMedia = {
+      photo: editing.photo,
+      icon: editing.icon,
+      iconColor: editing.iconColor,
+      iconBackground: editing.iconBackground,
+      blob: editing.blob,
+      preview: "",
+    };
+    renderReceiptMedia(card);
+    $("#item-media-dialog").close();
+    return;
+  }
   await mutation(
     async (next) => {
       const item = next.items.find((entry) => entry.id === editing.id);
@@ -3815,6 +3965,31 @@ let barcodeScanControls = null;
 let barcodeTrack = null;
 let barcodeTorchOn = false;
 let nativeBarcodeTimer = 0;
+let barcodeScanContext = null;
+
+function barcodeContext(card = null) {
+  return card
+    ? {
+        card,
+        dialog: $("#receipt-dialog"),
+        scanner: card.querySelector(".receipt-barcode-scanner"),
+        video: card.querySelector(".receipt-barcode-video"),
+        zoom: card.querySelector(".receipt-barcode-zoom"),
+        torch: card.querySelector(".receipt-barcode-torch"),
+        hint: card.querySelector(".receipt-barcode-hint"),
+        input: receiptField(card, "barcode"),
+      }
+    : {
+        card: null,
+        dialog: $("#editor"),
+        scanner: $("#barcode-scanner"),
+        video: $("#barcode-video"),
+        zoom: $("#barcode-zoom"),
+        torch: $("#barcode-torch"),
+        hint: $("#barcode-hint"),
+        input: $("#f-barcode"),
+      };
+}
 
 function stopBarcodeScan() {
   barcodeScanToken++;
@@ -3824,38 +3999,49 @@ function stopBarcodeScan() {
   barcodeTorchOn = false;
   clearTimeout(nativeBarcodeTimer);
   nativeBarcodeTimer = 0;
-  const zoom = $("#barcode-zoom");
+  const { zoom, torch, video, scanner } = barcodeScanContext || {};
   if (zoom) {
     zoom.disabled = true;
     zoom.value = "1";
     zoom.min = "1";
     zoom.max = "1";
   }
-  const torch = $("#barcode-torch");
   if (torch) {
     torch.hidden = true;
     torch.textContent = "เปิดไฟฉาย";
   }
-  const video = $("#barcode-video");
   video?.srcObject?.getTracks().forEach((track) => track.stop());
   if (video) video.srcObject = null;
-  if ($("#barcode-scanner")) $("#barcode-scanner").hidden = true;
+  if (scanner) scanner.hidden = true;
+  barcodeScanContext = null;
 }
 
-function applyBarcode(code) {
-  const hint = $("#barcode-hint");
+function applyBarcode(code, context = barcodeScanContext || barcodeContext()) {
+  const hint = context.hint;
   if (!hint || !/^[0-9]{8,14}$/.test(code)) return;
-  $("#f-barcode").value = code;
+  context.input.value = code;
   const known = [...(stock.recentItems || []), ...stock.items].find(
     (item) => item.barcode === code,
   );
   if (known) {
-    $("#f-name").value = known.name;
-    $("#f-unit").value = known.unit;
-    $("#f-category").value = known.category;
-    $("#f-location").value = known.location || "";
-    selectFreezerForFrozenName();
-    refreshSearchSelect($("#f-category"));
+    if (context.card) {
+      receiptField(context.card, "name").value = known.name;
+      receiptField(context.card, "unit").value = known.unit;
+      receiptField(context.card, "category").value = known.category;
+      receiptField(context.card, "location").value = known.location || "";
+      context.card.frozenNameSeen = false;
+      selectReceiptFreezer(context.card);
+      refreshSearchSelect(receiptField(context.card, "category"));
+      refreshReceiptShelfLife(context.card);
+    } else {
+      $("#f-name").value = known.name;
+      $("#f-unit").value = known.unit;
+      $("#f-category").value = known.category;
+      $("#f-location").value = known.location || "";
+      selectFreezerForFrozenName();
+      refreshSearchSelect($("#f-category"));
+      refreshShelfLifeSuggestion();
+    }
     hint.textContent = "พบ " + known.name + " · ตรวจจำนวนและวันที่ของรอบนี้";
   } else {
     hint.textContent = "ยังไม่เคยบันทึกบาร์โค้ดนี้ · กรอกชื่อครั้งแรก แล้วแอปจะจำให้";
@@ -3865,7 +4051,7 @@ function applyBarcode(code) {
 function configureBarcodeCamera(track) {
   if (!track) return;
   const capabilities = track.getCapabilities?.() || {};
-  const zoom = $("#barcode-zoom");
+  const zoom = barcodeScanContext?.zoom;
   if (zoom && capabilities.zoom) {
     zoom.min = String(capabilities.zoom.min ?? 1);
     zoom.max = String(capabilities.zoom.max ?? 1);
@@ -3873,7 +4059,7 @@ function configureBarcodeCamera(track) {
     zoom.value = String(Math.min(Number(zoom.max), Math.max(Number(zoom.min), 1)));
     zoom.disabled = Number(zoom.max) <= Number(zoom.min);
   }
-  const torch = $("#barcode-torch");
+  const torch = barcodeScanContext?.torch;
   if (torch && capabilities.torch) torch.hidden = false;
 }
 
@@ -3896,8 +4082,9 @@ async function startNativeBarcodeFallback(video, token, hint) {
       const results = await detector.detect(video);
       const match = results.find((result) => /^[0-9]{8,14}$/.test(result.rawValue || ""));
       if (match) {
+        const context = barcodeScanContext;
         stopBarcodeScan();
-        applyBarcode(match.rawValue);
+        applyBarcode(match.rawValue, context);
         return;
       }
     } catch {
@@ -3908,7 +4095,8 @@ async function startNativeBarcodeFallback(video, token, hint) {
   scan();
 }
 
-$("#barcode-zoom")?.addEventListener("input", (event) => {
+document.addEventListener("input", (event) => {
+  if (event.target !== barcodeScanContext?.zoom) return;
   if (barcodeTrack)
     barcodeTrack
       .applyConstraints({ advanced: [{ zoom: Number(event.target.value) }] })
@@ -3916,34 +4104,36 @@ $("#barcode-zoom")?.addEventListener("input", (event) => {
 });
 
 async function toggleBarcodeTorch() {
-  if (!barcodeTrack) return;
+  const context = barcodeScanContext;
+  if (!barcodeTrack || !context) return;
   barcodeTorchOn = !barcodeTorchOn;
   try {
     await barcodeTrack.applyConstraints({
       advanced: [{ torch: barcodeTorchOn }],
     });
-    $("#barcode-torch").textContent = barcodeTorchOn ? "ปิดไฟฉาย" : "เปิดไฟฉาย";
+    context.torch.textContent = barcodeTorchOn ? "ปิดไฟฉาย" : "เปิดไฟฉาย";
   } catch {
     barcodeTorchOn = false;
-    $("#barcode-hint").textContent = "กล้องเครื่องนี้ไม่รองรับไฟฉาย";
+    context.hint.textContent = "กล้องเครื่องนี้ไม่รองรับไฟฉาย";
   }
 }
 
-async function startBarcodeScan() {
-  if (!draft || !$("#barcode-scanner")) return;
+async function startBarcodeScan(card = null) {
+  if ((card ? !pendingReceipt : !draft) || !barcodeContext(card).scanner) return;
   stopBarcodeScan();
+  const context = (barcodeScanContext = barcodeContext(card));
   const token = barcodeScanToken;
-  const hint = $("#barcode-hint");
+  const hint = context.hint;
   if (!navigator.mediaDevices?.getUserMedia) {
     hint.textContent = "อุปกรณ์นี้เปิดกล้องผ่านเว็บไม่ได้ กรุณาพิมพ์เลขบาร์โค้ด";
     return;
   }
-  $("#barcode-scanner").hidden = false;
+  context.scanner.hidden = false;
   hint.textContent = "กำลังเปิดกล้อง…";
   try {
     const { BrowserMultiFormatOneDReader, BarcodeFormat, DecodeHintType } =
       await import("/barcode-scanner.js");
-    if (token !== barcodeScanToken || !$("#editor").open) return;
+    if (token !== barcodeScanToken || !context.dialog.open) return;
     const hints = new Map([
       [DecodeHintType.TRY_HARDER, true],
       [
@@ -3972,7 +4162,7 @@ async function startBarcodeScan() {
           frameRate: { ideal: 30 },
         },
       },
-      $("#barcode-video"),
+      context.video,
       (result) => {
         if (token !== barcodeScanToken || !result) return;
         const code = result.getText();
@@ -3981,15 +4171,15 @@ async function startBarcodeScan() {
           return;
         }
         stopBarcodeScan();
-        applyBarcode(code);
+        applyBarcode(code, context);
       },
     );
-    if (token !== barcodeScanToken || !$("#editor").open) controls.stop();
+    if (token !== barcodeScanToken || !context.dialog.open) controls.stop();
     else {
       barcodeScanControls = controls;
-      barcodeTrack = $("#barcode-video").srcObject?.getVideoTracks?.()[0] || null;
+      barcodeTrack = context.video.srcObject?.getVideoTracks?.()[0] || null;
       configureBarcodeCamera(barcodeTrack);
-      startNativeBarcodeFallback($("#barcode-video"), token, hint);
+      startNativeBarcodeFallback(context.video, token, hint);
       hint.textContent = "เล็งกล้องไปที่บาร์โค้ดสินค้า · ขยับเข้าใกล้หรือปรับซูมได้";
     }
   } catch (error) {
@@ -4711,8 +4901,43 @@ document.addEventListener("click", async (event) => {
     card.querySelector('[data-field="name"]').focus();
     return;
   }
+  if (action === "receipt-pick-media" && pendingReceipt) {
+    const card = target.closest(".receipt-row");
+    if (card)
+      startItemMedia(
+        { id: null, name: receiptField(card, "name").value, ...card.receiptMedia },
+        card,
+      );
+    return;
+  }
+  if (action === "receipt-apply-shelf-life" && pendingReceipt) {
+    const card = target.closest(".receipt-row");
+    if (!card) return;
+    const result = suggestedShelfLife(
+      receiptField(card, "name").value,
+      receiptField(card, "receivedDate").value,
+      receiptField(card, "category").value,
+      receiptField(card, "location").value,
+    );
+    if (!result) return refreshReceiptShelfLife(card);
+    receiptField(card, "dateKind").value = "best-before";
+    refreshSearchSelect(receiptField(card, "dateKind"));
+    receiptField(card, "date").value = result.date;
+    receiptField(card, "date").dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
+  if (action === "receipt-scan-barcode" && pendingReceipt) {
+    const card = target.closest(".receipt-row");
+    if (card) startBarcodeScan(card);
+    return;
+  }
   if (action === "receipt-remove-row" && pendingReceipt) {
-    target.closest(".receipt-row")?.remove();
+    const card = target.closest(".receipt-row");
+    if (barcodeScanContext?.card === card) stopBarcodeScan();
+    if (card) {
+      releaseReceiptMedia(card);
+      card.remove();
+    }
     $("#receipt-error").textContent = "";
     return;
   }
