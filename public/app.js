@@ -74,6 +74,10 @@ function stopButtonLoading(button) {
   loadingButtons.delete(button);
 }
 let stock = null;
+// Home-screen shortcuts open /?shortcut=<name>; run it once stock has loaded.
+let pendingShortcut = /[?&]shortcut=([\w-]+)/.exec(location.search || "")?.[1] || "";
+if (pendingShortcut)
+  history.replaceState(null, "", location.pathname + location.hash);
 let busy = false;
 let generation = 0;
 let draft = null;
@@ -354,6 +358,10 @@ async function refresh(force = false) {
     $("#sync-error").hidden = true;
     if (changed) draw();
     await revealPantry(current);
+    if (pendingShortcut === "add" && current === generation) {
+      pendingShortcut = "";
+      startEditor("add");
+    }
   } catch (error) {
     if (current !== generation) return;
     if (error.status === 401) return entry("login");

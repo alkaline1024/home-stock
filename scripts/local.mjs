@@ -81,6 +81,7 @@ const assets = new Map([
   ["/sw.js", ["sw.js", "text/javascript; charset=utf-8"]],
   ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json"]],
   ["/app.css", ["app.css", "text/css; charset=utf-8"]],
+  ["/favicon.ico", ["favicon.ico", "image/x-icon"]],
   [
     "/exceljs.min.js",
     [
@@ -93,6 +94,9 @@ const assets = new Map([
 for (const name of readdirSync(resolve(root, "public/ocr/core")))
   assets.set("/ocr/core/" + name, ["ocr/core/" + name,
     name.endsWith(".wasm") ? "application/wasm" : "text/javascript; charset=utf-8"]);
+for (const name of readdirSync(resolve(root, "public/icons")))
+  assets.set("/icons/" + name, ["icons/" + name,
+    name.endsWith(".svg") ? "image/svg+xml" : "image/png"]);
 for (const language of ["tha", "eng"])
   assets.set("/ocr/lang/" + language + ".traineddata.gz",
     ["ocr/lang/" + language + ".traineddata.gz", "application/gzip"]);

@@ -1,1 +1,45 @@
-{"name":"home-stock","short_name":"home-stock","start_url":"/","scope":"/","display":"standalone","background_color":"#faf8f0","theme_color":"#203f37"}
+{
+  "id": "/",
+  "name": "home-stock · ของในบ้าน",
+  "short_name": "home-stock",
+  "description": "จดของในบ้าน ดูของที่ควรใช้ก่อน และเตรียมรายการซื้อในที่เดียว",
+  "lang": "th",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#faf8f0",
+  "theme_color": "#203f37",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "เพิ่มของเข้าบ้าน",
+      "short_name": "เพิ่มของ",
+      "url": "/?shortcut=add#stock",
+      "icons": [{ "src": "/icons/shortcut-add.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "ของในบ้าน",
+      "short_name": "ของในบ้าน",
+      "url": "/#stock",
+      "icons": [{ "src": "/icons/shortcut-stock.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "รายการซื้อ",
+      "short_name": "รายการซื้อ",
+      "url": "/#shopping",
+      "icons": [{ "src": "/icons/shortcut-shopping.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "แผนทำอาหาร",
+      "short_name": "แผนอาหาร",
+      "url": "/#meals",
+      "icons": [{ "src": "/icons/shortcut-meals.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}
