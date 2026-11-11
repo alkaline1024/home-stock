@@ -2582,6 +2582,16 @@ function editorFields(data, isShopping) {
       ]),
     ]) +
     "</datalist></label>" +
+    '<div class="span photo-edit"><label>รูปภาพ (ถ้ามี)<input type="file" id="f-photo" accept="image/*"></label><div id="photo-preview"></div></div>' +
+    '<div class="span barcode-field"><label for="f-barcode">บาร์โค้ดสินค้า (ถ้ามี)</label>' +
+    '<div class="barcode-input-row"><input id="f-barcode" inputmode="numeric" pattern="[0-9]{8,14}" maxlength="14" value="' +
+    esc(data.barcode || "") + '">' +
+    '<button type="button" class="secondary" data-action="scan-barcode">สแกน</button></div>' +
+    '<p id="barcode-hint" class="form-help" role="status"></p>' +
+    '<div id="barcode-scanner" class="barcode-scanner" hidden><video id="barcode-video" autoplay muted playsinline></video>' +
+    '<div class="barcode-camera-controls"><label for="barcode-zoom">ซูม</label><input id="barcode-zoom" type="range" min="1" max="1" step="0.1" value="1" disabled>' +
+    '<button type="button" id="barcode-torch" class="secondary" data-action="toggle-barcode-torch" hidden>เปิดไฟฉาย</button>' +
+    '<button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div></div>' +
     '<label>ติดตามวันที่<select id="f-kind"><option value="expiry"' +
     (data.dateKind === "expiry" ? " selected" : "") +
     '>(EXP : วันหมดอายุ)</option><option value="best-before"' +
@@ -2595,17 +2605,7 @@ function editorFields(data, isShopping) {
     esc(data.date) +
     '"></span></label>' +
     '<label class="span">แจ้งเตือนก่อนกำหนดภายใน (วัน)<input id="f-notify-before-days" type="number" inputmode="numeric" min="0" max="365" step="1" placeholder="ใช้ค่าเริ่มต้นจาก Settings" value="' +
-    esc(data.notifyBeforeDays ?? "") + '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใส่ 0 เพื่อเตือนในวันที่กำหนด · ใช้กับ EXP/BBE และต้องตั้งค่าการแจ้งเตือนใน Settings บนอุปกรณ์นี้</span></label>' +
-    '<div class="span photo-edit"><label>รูปภาพ (ถ้ามี)<input type="file" id="f-photo" accept="image/*"></label><div id="photo-preview"></div></div>' +
-    '<div class="span barcode-field"><label for="f-barcode">บาร์โค้ดสินค้า (ถ้ามี)</label>' +
-    '<div class="barcode-input-row"><input id="f-barcode" inputmode="numeric" pattern="[0-9]{8,14}" maxlength="14" value="' +
-    esc(data.barcode || "") + '">' +
-    '<button type="button" class="secondary" data-action="scan-barcode">สแกน</button></div>' +
-    '<p id="barcode-hint" class="form-help" role="status"></p>' +
-    '<div id="barcode-scanner" class="barcode-scanner" hidden><video id="barcode-video" autoplay muted playsinline></video>' +
-    '<div class="barcode-camera-controls"><label for="barcode-zoom">ซูม</label><input id="barcode-zoom" type="range" min="1" max="1" step="0.1" value="1" disabled>' +
-    '<button type="button" id="barcode-torch" class="secondary" data-action="toggle-barcode-torch" hidden>เปิดไฟฉาย</button>' +
-    '<button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div></div></div>'
+    esc(data.notifyBeforeDays ?? "") + '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใส่ 0 เพื่อเตือนในวันที่กำหนด · ใช้กับ EXP/BBE และต้องตั้งค่าการแจ้งเตือนใน Settings บนอุปกรณ์นี้</span></label></div>'
   );
 }
 
