@@ -39,6 +39,63 @@ const esc = (value) =>
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
   );
 const key = (value) => value.trim().normalize("NFC").toLocaleLowerCase();
+function suggestedStorage(location) {
+  const value = key(location);
+  if (/แช่แข็ง|ช่องฟรีซ|ตู้ฟรีซ|freezer|freezing/.test(value)) return "freezer";
+  if (/ตู้เย็น|แช่เย็น|ช่องผัก|fridge|refrigerator/.test(value)) return "fridge";
+  if (/ชั้นวาง|อุณหภูมิห้อง|ตู้กับข้าว|pantry|room temperature/.test(value)) return "pantry";
+  return "";
+}
+function suggestedShelfLife(name, receivedDate, category, location) {
+  if (!name.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(receivedDate) || !category || !location.trim())
+    return null;
+  const storage = suggestedStorage(location);
+  if (!storage) return null;
+  const normalized = key(name);
+  const matches = (globalThis.shelfLifeRules || []).flatMap((rule) =>
+    rule.categories.includes(category) && Number.isInteger(rule.days[storage])
+      ? rule.keywords
+          .filter((word) => normalized.includes(key(word)))
+          .map((word) => ({ rule, length: key(word).length }))
+      : [],
+  );
+  matches.sort((a, b) => b.length - a.length);
+  if (!matches.length) return null;
+  const start = new Date(receivedDate + "T00:00:00Z");
+  if (Number.isNaN(start.getTime()) || start.toISOString().slice(0, 10) !== receivedDate)
+    return null;
+  const { rule } = matches[0];
+  const date = new Date(start.getTime() + rule.days[storage] * 86400000).toISOString().slice(0, 10);
+  return { date, days: rule.days[storage], name: rule.name };
+}
+function refreshShelfLifeSuggestion() {
+  const button = $("#apply-shelf-life-suggestion");
+  if (!button) return;
+  const suggestion = suggestedShelfLife(
+    $("#f-name").value,
+    $("#f-received-date").value,
+    $("#f-category").value,
+    $("#f-location").value,
+  );
+  button.hidden = !suggestion;
+  if (suggestion) {
+    button.textContent = `แนะนำ BBE ${dateInputLabel(suggestion.date)} · ${suggestion.name} (${suggestion.days} วัน)`;
+    button.dataset.date = suggestion.date;
+  } else delete button.dataset.date;
+}
+function selectFreezerForFrozenName() {
+  const name = $("#f-name");
+  const location = $("#f-location");
+  if (!draft || !name || !location) return;
+  if (!key(name.value).includes("แช่แข็ง")) {
+    draft.frozenNameSeen = false;
+    return;
+  }
+  if (draft.frozenNameSeen || draft.freezerLocationManual) return;
+  location.value = "ช่องแช่แข็ง";
+  draft.frozenNameSeen = true;
+  refreshShelfLifeSuggestion();
+}
 const amount = (item) => amountFormat.format(item.qty) + " " + item.unit;
 const loadingButtons = new WeakMap();
 let pendingActionButton = null;
@@ -2887,6 +2944,12 @@ function editorFields(data, isShopping) {
     '<div class="barcode-camera-controls"><label for="barcode-zoom">ซูม</label><input id="barcode-zoom" type="range" min="1" max="1" step="0.1" value="1" disabled>' +
     '<button type="button" id="barcode-torch" class="secondary" data-action="toggle-barcode-torch" hidden>เปิดไฟฉาย</button>' +
     '<button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div></div>' +
+    '<label class="span">วันที่รับเข้า<span class="date-control"><span class="date-display" aria-hidden="true">' +
+    esc(dateInputLabel(data.receivedDate || "")) +
+    '</span><input id="f-received-date" type="date" value="' +
+    esc(data.receivedDate || "") +
+    '"></span></label>' +
+    '<div class="span shelf-life-suggestion"><button type="button" id="apply-shelf-life-suggestion" class="secondary" data-action="apply-shelf-life-suggestion" hidden></button><p class="form-help">วันที่แนะนำเป็นค่าประมาณจากชนิดอาหารและที่เก็บ ตรวจสภาพอาหารก่อนใช้เสมอ</p></div>' +
     '<label>ติดตามวันที่<select id="f-kind"><option value="expiry"' +
     (data.dateKind === "expiry" ? " selected" : "") +
     '>(EXP : วันหมดอายุ)</option><option value="best-before"' +
@@ -3235,12 +3298,14 @@ function startEditor(mode, data = {}, sourceId = "") {
   ++generation;
   if (previewUrl) URL.revokeObjectURL(previewUrl);
   previewUrl = "";
+  const today = new Date();
   const base = {
     name: "",
     qty: 1,
     unit: "ชิ้น",
     category: "อื่น ๆ",
     location: mode === "add" ? stock.items[stock.items.length - 1]?.location || "" : "",
+    receivedDate: calendarDateKey(today.getFullYear(), today.getMonth(), today.getDate()),
     date: "",
     dateKind: "expiry",
     photo: null,
@@ -3257,6 +3322,8 @@ function startEditor(mode, data = {}, sourceId = "") {
     icon: base.icon,
     iconColor: base.iconColor || "green",
     iconBackground: base.iconBackground || "mint",
+    frozenNameSeen: mode === "edit-item" && key(base.name).includes("แช่แข็ง"),
+    freezerLocationManual: false,
     blob: null,
     photoTask: 0,
     processing: false,
@@ -3321,6 +3388,10 @@ function startEditor(mode, data = {}, sourceId = "") {
   $("#fields").innerHTML = fields;
   enhanceSelects($("#fields"));
   enhanceDatalists($("#fields"));
+  if (!mode.includes("shopping") && !mode.startsWith("remove-") && mode !== "use") {
+    selectFreezerForFrozenName();
+    refreshShelfLifeSuggestion();
+  }
   renderPhoto();
   $("#save").disabled = false;
   if (!$("#editor").open) $("#editor").showModal();
@@ -3750,6 +3821,7 @@ function applyBarcode(code) {
     $("#f-unit").value = known.unit;
     $("#f-category").value = known.category;
     $("#f-location").value = known.location || "";
+    selectFreezerForFrozenName();
     refreshSearchSelect($("#f-category"));
     hint.textContent = "พบ " + known.name + " · ตรวจจำนวนและวันที่ของรอบนี้";
   } else {
@@ -3977,6 +4049,7 @@ function formItem() {
     id: draft.mode === "receive" ? crypto.randomUUID() : item.id,
     category: $("#f-category").value,
     location: $("#f-location").value.trim(),
+    receivedDate: $("#f-received-date").value,
     date: $("#f-date").value,
     dateKind: $("#f-kind").value,
     ...(notifyBeforeDays === undefined ? {} : { notifyBeforeDays }),
@@ -4505,6 +4578,20 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "scan-barcode") return startBarcodeScan();
+  if (action === "apply-shelf-life-suggestion") {
+    const suggestion = suggestedShelfLife(
+      $("#f-name").value,
+      $("#f-received-date").value,
+      $("#f-category").value,
+      $("#f-location").value,
+    );
+    if (!suggestion) return refreshShelfLifeSuggestion();
+    $("#f-kind").value = "best-before";
+    refreshSearchSelect($("#f-kind"));
+    $("#f-date").value = suggestion.date;
+    $("#f-date").dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
   if (action === "stop-barcode") return stopBarcodeScan();
   if (action === "toggle-barcode-torch") return toggleBarcodeTorch();
   if (action === "close") return closeEditor();
@@ -4893,6 +4980,14 @@ function syncDateDisplay(event) {
 }
 document.addEventListener("input", syncDateDisplay);
 document.addEventListener("change", syncDateDisplay);
+function updateShelfLifeSuggestion(event) {
+  if (event.target?.id === "f-location" && draft) draft.freezerLocationManual = true;
+  if (event.target?.id === "f-name") selectFreezerForFrozenName();
+  if (["f-name", "f-category", "f-location", "f-received-date"].includes(event.target?.id))
+    refreshShelfLifeSuggestion();
+}
+document.addEventListener("input", updateShelfLifeSuggestion);
+document.addEventListener("change", updateShelfLifeSuggestion);
 document.addEventListener("input", (event) => {
   if (!mediaDraft?.icon) return;
   if (event.target.id === "item-media-custom-icon-color")

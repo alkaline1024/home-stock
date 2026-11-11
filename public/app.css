@@ -111,6 +111,20 @@ input[type="file"] {
   background: transparent;
   color: var(--ink);
 }
+.shelf-life-suggestion button {
+  width: 100%;
+  min-height: 44px;
+  border-color: #a8c3ad;
+  background: var(--mint);
+  color: var(--green);
+  text-align: center;
+}
+.shelf-life-suggestion button:hover {
+  background: #d0e3cd;
+}
+.shelf-life-suggestion .form-help {
+  margin-top: 5px;
+}
 /* iOS needs a separate display layer to avoid native date sizing/alignment bugs. */
 @supports (-webkit-touch-callout: none) {
   .date-display {
