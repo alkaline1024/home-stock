@@ -375,13 +375,12 @@
       <p class="form-help">ตัวอ่านอาจอ่านชื่อภาษาไทยผิด กรุณาตรวจชื่อ จำนวน หน่วย บาร์โค้ด และวันหมดอายุบนสินค้า ก่อนรับเข้าบ้าน</p>
       <div id="receipt-ai-tools" hidden>
         <div class="receipt-ai-row">
-          <label class="receipt-ai-model">โมเดล AI<select id="receipt-ai-model" disabled aria-describedby="receipt-ai-model-help">
-            <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash-Lite</option>
+          <label class="receipt-ai-model">โมเดล AI<select id="receipt-ai-model">
+            <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash Lite</option>
           </select></label>
-          <button type="button" id="receipt-ai-button" class="primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>ตรวจรายการด้วย AI</button>
+          <button type="button" id="receipt-ai-button" class="primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>วิเคราะห์รูปภาพด้วย AI</button>
         </div>
-        <p id="receipt-ai-model-help" class="form-help">ตอนนี้ใช้ Gemini 3.1 Flash-Lite เพียงโมเดลเดียว</p>
-        <p class="form-help">กดเพื่อตรวจชื่อ จำนวน หน่วย และหมวดจากรูปใบเสร็จอีกครั้ง รูปและข้อความ OCR จะถูกส่งให้ Google ผล AI จะแทนรายการด้านล่าง โดยคงที่เก็บและวันหมดอายุที่กรอกไว้ กรุณาตรวจผลก่อนรับเข้าบ้าน</p>
+        <p class="form-help">ให้ AI อ่านรูปใบเสร็จอีกครั้งเพื่อแยกชื่อสินค้า จำนวน หน่วย และหมวดให้แม่นขึ้น รูปและข้อความที่สแกนได้จะถูกส่งไปยัง Google Gemini · ผลจาก AI จะแทนที่รายการด้านล่าง (ที่เก็บและวันหมดอายุที่กรอกไว้จะคงอยู่) กรุณาตรวจอีกครั้งก่อนรับเข้าบ้าน</p>
       </div>
       <p id="receipt-ai-status" class="form-help" role="status"></p>
       <div id="receipt-review"></div>
