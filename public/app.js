@@ -292,11 +292,49 @@ function shortDateLabel(item) {
   return prefix + " " + day + "/" + month + "/" + year.slice(-2);
 }
 
+function humanDuration(days) {
+  if (days < 14) return days + " วัน";
+  if (days < 60) return Math.round(days / 7) + " สัปดาห์";
+  if (days < 365) return Math.round(days / 30) + " เดือน";
+  return Math.round(days / 365) + " ปี";
+}
+
+function gridDateBadge(item) {
+  if (!item.date) return "";
+  const days = daysLeft(item.date);
+  const alertDays = Number.isInteger(item.notifyBeforeDays) ? item.notifyBeforeDays : 3;
+  const tone = days < 0 ? "past" : days <= alertDays ? "danger" :
+    days <= 7 ? "warning" : "normal";
+  const remaining = days < 0 ? "เลยกำหนด " + humanDuration(-days) :
+    days === 0 ? "ครบกำหนดวันนี้" : "เหลือ " + humanDuration(days);
+  const exactDate = shortDateLabel(item);
+  return '<span class="item-card-time item-card-time--' + tone + '" title="' +
+    esc(exactDate) + '" aria-label="' + esc(exactDate + " · " + remaining) +
+    '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="item-card-time-label">' +
+    esc(remaining) + '</span></span>';
+}
+
 function byDate(a, b) {
   return (
     (a.date || "9999").localeCompare(b.date || "9999") ||
     a.name.localeCompare(b.name, "th")
   );
+}
+
+function sortStockItems(items, mode) {
+  const byName = (a, b) => a.name.localeCompare(b.name, "th");
+  return [...items].sort((a, b) => {
+    if (mode === "name-asc") return byName(a, b) || byDate(a, b);
+    if (mode === "name-desc") return byName(b, a) || byDate(a, b);
+    if (mode === "qty-asc") return a.qty - b.qty || byName(a, b);
+    if (mode === "qty-desc") return b.qty - a.qty || byName(a, b);
+    if (mode === "date-desc") {
+      if (!a.date) return b.date ? 1 : byName(a, b);
+      if (!b.date) return -1;
+      return b.date.localeCompare(a.date) || byName(a, b);
+    }
+    return byDate(a, b);
+  });
 }
 
 class ApiError extends Error {
@@ -1085,9 +1123,14 @@ function getItemView(page) {
 }
 function itemViewToggle(page) {
   const mode = getItemView(page);
+  const icons = {
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+    grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  };
   const option = (value, label) => '<button type="button" class="item-view-option' +
     (mode === value ? " is-active" : "") + '" data-action="set-item-view" data-id="' + value +
-    '" aria-pressed="' + (mode === value) + '">' + label + "</button>";
+    '" aria-label="แสดงแบบ' + label + '" title="' + label + '" aria-pressed="' +
+    (mode === value) + '">' + icons[value] + "</button>";
   return '<div class="item-view-toggle" role="group" aria-label="รูปแบบการแสดงผล">' +
     option("list", "รายการ") + option("grid", "รูปใหญ่") +
     "</div>";
@@ -1141,21 +1184,23 @@ function row(item, shopping = false) {
         button("custom-use", "- ระบุจำนวน", item.id, "stock-action stock-action-custom") +
         itemMenu(item);
   }
-  const date = shopping
+  const date = shopping || gridMode
     ? ""
     : '<div class="meta ' +
       (daysLeft(item.date) <= 0 ? "warn" : "") +
       '">' +
-      esc(gridMode ? shortDateLabel(item) : dateLabel(item)) +
+      esc(dateLabel(item)) +
       "</div>";
   const media = gridMode
     ? '<div class="item-card-media">' + thumb(item) +
-      '<div class="item-card-tags"><span class="item-card-tag-left">' +
-      (item.category ? cardFilterBadge(item.category, "category") : "") +
-      '</span><span class="item-card-tag-right">' +
-      (item.location ? cardFilterBadge(item.location, "location") : "") +
-      "</span></div></div>"
+      gridDateBadge(item) + "</div>"
     : thumb(item, !shopping && tab() === "stock");
+  const gridBadges = gridMode
+    ? '<div class="item-grid-badges">' +
+      (item.category ? cardFilterBadge(item.category, "category") : "") +
+      (item.location ? cardFilterBadge(item.location, "location") : "") +
+      "</div>"
+    : "";
   const nameAndQty = gridMode
     ? '<div class="item-name">' + esc(item.name) + '</div><div class="qty item-grid-qty">' + esc(detail) + "</div>"
     : '<div class="item-name">' + esc(item.name) + ' <span class="qty">· ' + esc(detail) + "</span></div>";
@@ -1163,7 +1208,7 @@ function row(item, shopping = false) {
     '<article class="line-item' + (gridMode ? " is-grid-card" : "") + '"' +
     (gridMode ? ' data-action="toggle-card-menu" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-label="เปิด action menu ของ ' + esc(item.name) + '"' : "") + '>' +
     media +
-    '<div class="item-info">' + nameAndQty +
+    '<div class="item-info">' + nameAndQty + gridBadges +
     date +
     (gridMode ? "" : '<div class="meta' +
     (shopping ? "" : " item-badges") +
@@ -1187,7 +1232,7 @@ function section(title, items, options = {}) {
   const mode = options.shopping || !["today", "stock"].includes(tab())
     ? "list" : getItemView(tab());
   return (
-    '<section class="section"><div class="section-head ' +
+    '<section class="section' + (options.dashboardDue ? ' dashboard-due' : '') + '"><div class="section-head ' +
     (options.urgent ? "urgent" : "") +
     '"><h2>' +
     esc(title) +
@@ -1961,11 +2006,9 @@ function draw() {
     const planned = sorted.filter(
       (i) => i.dateKind === "plan" && daysLeft(i.date) <= 7,
     );
-    if (late.length)
-      html += section("เลยกำหนด EXP / BBE แล้ว", late, { urgent: true });
-    if (nearSoon.length) html += section("ใกล้หมดอายุเร็ว ๆ นี้", nearSoon);
-    if (due.length) html += section("ถึงกำหนด EXP / BBE ภายใน 7 วัน", due);
-    if (planned.length) html += section("ตั้งใจใช้ภายในสัปดาห์นี้", planned);
+    const upcoming = [...late, ...nearSoon, ...due, ...planned];
+    if (upcoming.length)
+      html += section("ของที่ต้องติดตาม", upcoming, { dashboardDue: true });
     if (!html)
       html = sorted.length
         ? empty(
@@ -2020,7 +2063,20 @@ function draw() {
           esc(filtered[0].unit) +
           "</p>";
       }
-      html += section("เรียงตามวันที่ใกล้ที่สุด", filtered);
+      const ordered = sortStockItems(filtered, $("#sort-filter").value);
+      const groupBy = $("#group-filter").value;
+      if (groupBy === "none") {
+        html += section("เรียงตาม" + $("#sort-filter").selectedOptions[0].textContent, ordered);
+      } else {
+        const groups = new Map();
+        for (const item of ordered) {
+          const label = groupBy === "category" ? item.category : item.location || "ไม่ระบุที่เก็บ";
+          if (!groups.has(label)) groups.set(label, []);
+          groups.get(label).push(item);
+        }
+        for (const label of [...groups.keys()].sort((a, b) => a.localeCompare(b, "th")))
+          html += section(label, groups.get(label));
+      }
     } else
       html = sorted.length
         ? empty(
@@ -3413,10 +3469,8 @@ function applyBarcode(code) {
     $("#f-location").value = known.location || "";
     refreshSearchSelect($("#f-category"));
     hint.textContent = "พบ " + known.name + " · ตรวจจำนวนและวันที่ของรอบนี้";
-    $("#f-qty").focus();
   } else {
     hint.textContent = "ยังไม่เคยบันทึกบาร์โค้ดนี้ · กรอกชื่อครั้งแรก แล้วแอปจะจำให้";
-    $("#f-name").focus();
   }
 }
 
@@ -4188,6 +4242,7 @@ document.addEventListener("click", async (event) => {
     if (shouldOpen) {
       menu.hidden = false;
       target.setAttribute("aria-expanded", "true");
+      positionHorizontalCardMenu(menu, target);
       if (event.detail === 0) menu.querySelector('[role="menuitem"]')?.focus();
     }
     return;
@@ -4339,7 +4394,6 @@ document.addEventListener("click", async (event) => {
     draw();
     refreshSearchSelect($("#category-filter"));
     refreshSearchSelect($("#location-filter"));
-    $("#query").focus();
     return;
   }
   if (action === "buy-low") {
@@ -4414,6 +4468,23 @@ function closeItemMenus(restoreFocus = false) {
   });
 }
 
+function positionHorizontalCardMenu(menu, card) {
+  if (!card.closest(".dashboard-due")) return;
+  const cardRect = card.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const left = Math.max(8, Math.min(cardRect.left, window.innerWidth - menuRect.width - 8));
+  let top = cardRect.top - menuRect.height - 8;
+  if (top < 8) top = Math.min(cardRect.bottom + 8, window.innerHeight - menuRect.height - 8);
+  menu.style.left = left + "px";
+  menu.style.top = Math.max(8, top) + "px";
+}
+
+document.addEventListener("scroll", (event) => {
+  if (event.target.matches?.(".dashboard-due .item-collection")) closeItemMenus();
+}, true);
+window.addEventListener("scroll", () => closeItemMenus(), { passive: true });
+window.addEventListener("resize", () => closeItemMenus());
+
 document.addEventListener("pointerdown", (event) => {
   if (!event.target.closest(".item-menu-wrap, .is-grid-card")) closeItemMenus();
   if (!event.target.closest(".excel-dropdown")) $(".excel-dropdown").open = false;
@@ -4449,6 +4520,8 @@ document.addEventListener("keydown", (event) => {
 $("#query").addEventListener("input", draw);
 $("#category-filter").addEventListener("change", draw);
 $("#location-filter").addEventListener("change", draw);
+$("#sort-filter").addEventListener("change", draw);
+$("#group-filter").addEventListener("change", draw);
 document.addEventListener("change", (event) => {
   if (event.target.matches("[data-min-name]")) {
     const input = event.target;
