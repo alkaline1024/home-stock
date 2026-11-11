@@ -21,6 +21,10 @@ copyFileSync(
   resolve(root, "node_modules/exceljs/dist/exceljs.min.js"),
   resolve(root, "public/exceljs.min.js"),
 );
+copyFileSync(
+  resolve(root, "node_modules/@vercel/analytics/dist/index.mjs"),
+  resolve(root, "public/analytics.mjs"),
+);
 await build({
   entryPoints: [resolve(root, "scripts/barcode-scanner-entry.js")],
   outfile: resolve(root, "public/barcode-scanner.js"),
