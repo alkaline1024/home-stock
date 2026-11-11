@@ -81,6 +81,7 @@ const assets = new Map([
   ["/sw.js", ["sw.js", "text/javascript; charset=utf-8"]],
   ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json"]],
   ["/app.css", ["app.css", "text/css; charset=utf-8"]],
+  ["/item-icons.svg", ["item-icons.svg", "image/svg+xml"]],
   ["/favicon.ico", ["favicon.ico", "image/x-icon"]],
   [
     "/exceljs.min.js",

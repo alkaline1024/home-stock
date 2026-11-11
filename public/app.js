@@ -121,17 +121,22 @@ const itemIconBackgrounds = {
   butter: { label: "เหลืองอ่อน", value: "#f4edcf" },
   white: { label: "ขาว", value: "#ffffff" },
 };
+const customHexColor = /^#[0-9a-f]{6}$/i;
+function iconColorValue(value, palette, fallback) {
+  if (typeof value === "string" && customHexColor.test(value)) return value.toLowerCase();
+  return Object.hasOwn(palette, value) ? palette[value].value : palette[fallback].value;
+}
 
 function itemIconStyle(item) {
-  const foreground = itemIconColors[item?.iconColor]?.value || itemIconColors.green.value;
-  const background = itemIconBackgrounds[item?.iconBackground]?.value || itemIconBackgrounds.mint.value;
+  const foreground = iconColorValue(item?.iconColor, itemIconColors, "green");
+  const background = iconColorValue(item?.iconBackground, itemIconBackgrounds, "mint");
   return ' style="--item-icon-color:' + foreground + ';--item-icon-bg:' + background + '"';
 }
 
 function itemIconSvg(id, className = "item-icon", color = "green", background = "mint") {
   if (!Object.hasOwn(itemIcons, id)) return "";
-  const foreground = itemIconColors[color]?.value || itemIconColors.green.value;
-  const back = itemIconBackgrounds[background]?.value || itemIconBackgrounds.mint.value;
+  const foreground = iconColorValue(color, itemIconColors, "green");
+  const back = iconColorValue(background, itemIconBackgrounds, "mint");
   return '<svg class="' + className + '" style="color:' + foreground + ';--item-icon-bg:' + back + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/item-icons.svg#item-icon-' + id + '"></use></svg>';
 }
 const stockImportHeaders = [
@@ -275,6 +280,12 @@ function dateLabel(item) {
   const prefix = item.dateKind === "plan" ? "ตั้งใจใช้" : "หมดอายุ";
   const relative = days === 0 ? "วันนี้" : days === 1 ? "พรุ่งนี้" : "";
   return prefix + relative + " · " + dateFormat.format(localDay(item.date));
+}
+function shortDateLabel(item) {
+  if (!item.date) return "";
+  const [year, month, day] = item.date.split("-");
+  const prefix = item.dateKind === "plan" ? "ใช้ภายใน" : "วันหมดอายุ";
+  return prefix + " " + day + "/" + month + "/" + year.slice(-2);
 }
 
 function byDate(a, b) {
@@ -1105,22 +1116,30 @@ function row(item, shopping = false) {
     : '<div class="meta ' +
       (daysLeft(item.date) <= 0 ? "warn" : "") +
       '">' +
-      esc(dateLabel(item)) +
+      esc(gridMode ? shortDateLabel(item) : dateLabel(item)) +
       "</div>";
+  const media = gridMode
+    ? '<div class="item-card-media">' + thumb(item) +
+      '<div class="item-card-tags"><span class="item-card-tag-left">' +
+      (item.location ? valueBadge(item.location, "location") : "") +
+      '</span><span class="item-card-tag-right">' +
+      (item.category ? valueBadge(item.category, "category") : "") +
+      "</span></div></div>"
+    : thumb(item, !shopping && tab() === "stock");
+  const nameAndQty = gridMode
+    ? '<div class="item-name">' + esc(item.name) + '</div><div class="qty item-grid-qty">' + esc(detail) + "</div>"
+    : '<div class="item-name">' + esc(item.name) + ' <span class="qty">· ' + esc(detail) + "</span></div>";
   return (
-    '<article class="line-item">' +
-    thumb(item, !shopping && tab() === "stock" && !gridMode) +
-    '<div class="item-info"><div class="item-name">' +
-    esc(item.name) +
-    ' <span class="qty">· ' +
-    esc(detail) +
-    "</span></div>" +
+    '<article class="line-item' + (gridMode ? " is-grid-card" : "") + '"' +
+    (gridMode ? ' data-action="toggle-card-menu" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-label="เปิด action menu ของ ' + esc(item.name) + '"' : "") + '>' +
+    media +
+    '<div class="item-info">' + nameAndQty +
     date +
-    '<div class="meta' +
+    (gridMode ? "" : '<div class="meta' +
     (shopping ? "" : " item-badges") +
     '">' +
     (shopping ? esc(meta) : meta) +
-    '</div></div><div class="item-actions">' +
+    "</div>") + '</div><div class="item-actions">' +
     actions +
     "</div></article>"
   );
@@ -3127,6 +3146,8 @@ function renderItemMediaColorOptions() {
   ).join("");
   $("#item-media-icon-color-options").innerHTML = render(itemIconColors, mediaDraft.iconColor, "select-item-icon-color");
   $("#item-media-icon-bg-options").innerHTML = render(itemIconBackgrounds, mediaDraft.iconBackground, "select-item-icon-background");
+  $("#item-media-custom-icon-color").value = iconColorValue(mediaDraft.iconColor, itemIconColors, "green");
+  $("#item-media-custom-icon-background").value = iconColorValue(mediaDraft.iconBackground, itemIconBackgrounds, "mint");
 }
 function renderItemMediaPreview() {
   if (!mediaDraft) return;
@@ -3145,8 +3166,8 @@ function renderItemMediaPreview() {
     choice.setAttribute("aria-pressed", String(selected));
     const icon = choice.querySelector(".item-icon");
     if (icon) {
-      icon.style.color = itemIconColors[mediaDraft.iconColor]?.value || itemIconColors.green.value;
-      icon.style.setProperty("--item-icon-bg", itemIconBackgrounds[mediaDraft.iconBackground]?.value || itemIconBackgrounds.mint.value);
+      icon.style.color = iconColorValue(mediaDraft.iconColor, itemIconColors, "green");
+      icon.style.setProperty("--item-icon-bg", iconColorValue(mediaDraft.iconBackground, itemIconBackgrounds, "mint"));
     }
   });
   $("#item-media-save").disabled = Boolean(mediaDraft.processing || mediaDraft.stale);
@@ -4071,6 +4092,18 @@ document.addEventListener("click", async (event) => {
     }
     return;
   }
+  if (action === "toggle-card-menu") {
+    const menu = target.querySelector(".item-menu");
+    if (!menu) return;
+    const shouldOpen = menu.hidden;
+    closeItemMenus();
+    if (shouldOpen) {
+      menu.hidden = false;
+      target.setAttribute("aria-expanded", "true");
+      if (event.detail === 0) menu.querySelector('[role="menuitem"]')?.focus();
+    }
+    return;
+  }
   closeItemMenus();
   if (!stock) return;
   if (action === "choose-item-media" && item) return startItemMedia(item);
@@ -4285,15 +4318,22 @@ function closeItemMenus(restoreFocus = false) {
     const trigger = menu.parentElement.querySelector(".item-menu-trigger");
     menu.hidden = true;
     trigger?.setAttribute("aria-expanded", "false");
-    if (restoreFocus) trigger?.focus();
+    menu.closest(".is-grid-card")?.setAttribute("aria-expanded", "false");
+    if (restoreFocus) (menu.closest(".is-grid-card") || trigger)?.focus();
   });
 }
 
 document.addEventListener("pointerdown", (event) => {
-  if (!event.target.closest(".item-menu-wrap")) closeItemMenus();
+  if (!event.target.closest(".item-menu-wrap, .is-grid-card")) closeItemMenus();
   if (!event.target.closest(".excel-dropdown")) $(".excel-dropdown").open = false;
 });
 document.addEventListener("keydown", (event) => {
+  const card = event.target.closest?.('.line-item.is-grid-card[data-action="toggle-card-menu"]');
+  if (card && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    card.click();
+    return;
+  }
   if (event.key === "Escape" && $(".excel-dropdown").open) {
     $(".excel-dropdown").open = false;
     $(".excel-dropdown summary").focus();
@@ -4381,6 +4421,15 @@ function syncDateDisplay(event) {
 }
 document.addEventListener("input", syncDateDisplay);
 document.addEventListener("change", syncDateDisplay);
+document.addEventListener("input", (event) => {
+  if (!mediaDraft?.icon) return;
+  if (event.target.id === "item-media-custom-icon-color")
+    mediaDraft.iconColor = event.target.value.toLowerCase();
+  else if (event.target.id === "item-media-custom-icon-background")
+    mediaDraft.iconBackground = event.target.value.toLowerCase();
+  else return;
+  renderItemMediaPreview();
+});
 document.addEventListener("click", (event) => {
   const input = event.target.closest?.(".date-control input[type='date']");
   if (!input || !event.isTrusted || typeof input.showPicker !== "function")
