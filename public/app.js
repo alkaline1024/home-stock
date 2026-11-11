@@ -1017,6 +1017,8 @@ let receiptRowId = 0;
 const receiptUnits = ["ชิ้น", "กล่อง", "ถุง", "ฟอง", "ขวด", "แพ็ก", "กก.", "ลิตร"];
 function receiptRow(row = {}) {
   const id = ++receiptRowId;
+  const today = new Date();
+  const receivedDate = row.receivedDate || calendarDateKey(today.getFullYear(), today.getMonth(), today.getDate());
   const names = [
     ...new Set([...(stock?.recentItems || []), ...(stock?.items || [])].map((i) => i.name)),
   ];
@@ -1025,6 +1027,16 @@ function receiptRow(row = {}) {
   ];
   const card = document.createElement("div");
   card.className = "receipt-row";
+  card.receiptMedia = {
+    photo: row.photo || null,
+    icon: row.icon || null,
+    iconColor: row.iconColor || "green",
+    iconBackground: row.iconBackground || "mint",
+    blob: row.blob || null,
+    preview: "",
+  };
+  card.frozenNameSeen = Boolean(row.frozenNameSeen);
+  card.freezerLocationManual = Boolean(row.freezerLocationManual);
   card.innerHTML =
     '<div class="receipt-row-header"><small>' +
     esc(row.raw || "เพิ่มเอง") +
@@ -1063,20 +1075,41 @@ function receiptRow(row = {}) {
     '">' +
     opts(locations) +
     "</datalist></label>" +
-    '<label>วันหมดอายุ (ถ้ามี)<span class="date-control"><span class="date-display" aria-hidden="true">' +
+    '<div class="receipt-wide receipt-media-field"><span class="receipt-field-label">รูปภาพหรือไอคอน (ถ้ามี)</span><button type="button" class="secondary receipt-media-button" data-action="receipt-pick-media">เลือกรูปหรือไอคอน</button><div class="receipt-media-preview"></div></div>' +
+    '<div class="receipt-wide barcode-field"><label>บาร์โค้ดสินค้า (ถ้ามี)<div class="barcode-input-row"><input data-field="barcode" inputmode="numeric" pattern="[0-9]{8,14}" maxlength="14" value="' +
+    esc(row.barcode || "") +
+    '"><button type="button" class="secondary" data-action="receipt-scan-barcode">สแกน</button></div></label><p class="receipt-barcode-hint form-help" role="status"></p>' +
+    '<div class="receipt-barcode-scanner barcode-scanner" hidden><video class="receipt-barcode-video" autoplay muted playsinline></video><div class="barcode-camera-controls"><label>ซูม<input class="receipt-barcode-zoom" type="range" min="1" max="1" step="0.1" value="1" disabled></label><button type="button" class="secondary receipt-barcode-torch" data-action="toggle-barcode-torch" hidden>เปิดไฟฉาย</button><button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div></div>' +
+    '<label>วันที่รับเข้า<span class="date-control"><span class="date-display" aria-hidden="true">' +
+    esc(dateInputLabel(receivedDate)) +
+    '</span><input data-field="receivedDate" type="date" value="' +
+    esc(receivedDate) +
+    '"></span></label>' +
+    '<div class="receipt-wide shelf-life-suggestion"><button type="button" class="secondary receipt-shelf-life-button" data-action="receipt-apply-shelf-life" hidden></button><p class="form-help">วันที่แนะนำเป็นค่าประมาณ ตรวจสภาพอาหารก่อนใช้เสมอ</p></div>' +
+    '<label>ติดตามวันที่<select data-field="dateKind"><option value="expiry"' +
+    ((row.dateKind || "expiry") === "expiry" ? " selected" : "") +
+    '>(EXP : วันหมดอายุ)</option><option value="best-before"' +
+    (row.dateKind === "best-before" ? " selected" : "") +
+    '>(BBE : ควรบริโภคก่อน)</option><option value="plan"' +
+    (row.dateKind === "plan" ? " selected" : "") +
+    '>ตั้งใจใช้ภายใน</option></select></label>' +
+    '<label>วันที่ (ถ้ามี)<span class="date-control"><span class="date-display" aria-hidden="true">' +
     esc(dateInputLabel(row.date || "")) +
     '</span><input data-field="date" type="date" value="' +
     esc(row.date || "") +
     '"></span></label>' +
-    '<label>บาร์โค้ด<input data-field="barcode" inputmode="numeric" maxlength="14" value="' +
-    esc(row.barcode || "") +
-    '"></label></div>';
+    '<label class="receipt-wide">แจ้งเตือนก่อนกำหนดภายใน (วัน)<input data-field="notifyBeforeDays" type="number" inputmode="numeric" min="0" max="365" step="1" placeholder="ใช้ค่าเริ่มต้นจาก Settings" value="' +
+    esc(row.notifyBeforeDays ?? "") +
+    '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใช้กับ EXP/BBE</span></label></div>';
   return card;
 }
 
 function enhanceReceiptRow(card) {
   enhanceSelects(card);
   enhanceDatalists(card);
+  selectReceiptFreezer(card);
+  refreshReceiptShelfLife(card);
+  renderReceiptMedia(card);
 }
 
 function renderReceiptReview() {
