@@ -9,10 +9,17 @@ import { login } from "../lib/session.js";
 import { createStockHandlers } from "../lib/stock.js";
 
 function storage() {
-  let bytes = Buffer.from(JSON.stringify({
-    version: randomUUID(), items: [], shopping: [], recipes: [], mealPlans: [],
-    pending: [], retired: [],
-  }));
+  let bytes = Buffer.from(
+    JSON.stringify({
+      version: randomUUID(),
+      items: [],
+      shopping: [],
+      recipes: [],
+      mealPlans: [],
+      pending: [],
+      retired: [],
+    }),
+  );
   let etag = '"storage-1"';
   let exists = true;
   const calls = [];
@@ -39,13 +46,22 @@ function storage() {
       exists = true;
       return { etag };
     },
-    async del() { exists = false; },
+    async del() {
+      exists = false;
+    },
   };
   return {
-    sdk, calls,
-    get etag() { return etag; },
-    get bytes() { return bytes; },
-    set exists(value) { exists = value; },
+    sdk,
+    calls,
+    get etag() {
+      return etag;
+    },
+    get bytes() {
+      return bytes;
+    },
+    set exists(value) {
+      exists = value;
+    },
     change() {
       etag = '"' + randomUUID() + '"';
       const data = JSON.parse(bytes);
@@ -62,13 +78,17 @@ test("reproduces exhausted CAS retries with download ETag, then saves with stora
     ...store,
     async read(path) {
       const result = await fake.sdk.get(path, { access: "private", useCache: false });
-      return { bytes: new Uint8Array(await new Response(result.stream).arrayBuffer()),
-        version: result.blob.etag };
+      return {
+        bytes: new Uint8Array(await new Response(result.stream).arrayBuffer()),
+        version: result.blob.etag,
+      };
     },
     async write(path, bytes, { version, contentType }) {
       try {
         return await fake.sdk.put(path, bytes, {
-          allowOverwrite: version !== null, ifMatch: version, contentType,
+          allowOverwrite: version !== null,
+          ifMatch: version,
+          contentType,
         });
       } catch (error) {
         if (error instanceof BlobPreconditionFailedError)
@@ -77,11 +97,17 @@ test("reproduces exhausted CAS retries with download ETag, then saves with stora
       }
     },
   };
-  await assert.rejects(mutate(oldStore, (data) => { data.recipes = []; }),
-    (error) => error.status === 409 && /ข้อมูลมีการแก้ไขพร้อมกัน/.test(error.message));
+  await assert.rejects(
+    mutate(oldStore, (data) => {
+      data.recipes = [];
+    }),
+    (error) => error.status === 409 && /ข้อมูลมีการแก้ไขพร้อมกัน/.test(error.message),
+  );
   assert.equal(fake.calls.filter(([method]) => method === "put").length, 5);
   fake.calls.length = 0;
-  await mutate(store, (data) => { data.version = randomUUID(); });
+  await mutate(store, (data) => {
+    data.version = randomUUID();
+  });
   assert.equal(fake.calls.filter(([method]) => method === "put").length, 1);
   const written = fake.calls.find(([method]) => method === "put")[2];
   assert.equal(written.ifMatch, '"storage-1"');
@@ -96,7 +122,10 @@ test("metadata brackets uncached content reads and retries if the object changes
   let changed = false;
   fake.sdk.get = async (...args) => {
     const result = await originalGet(...args);
-    if (!changed) { changed = true; fake.change(); }
+    if (!changed) {
+      changed = true;
+      fake.change();
+    }
     return result;
   };
   const result = await createBlobStore(fake.sdk).read("home-stock/stock.json");
@@ -113,7 +142,10 @@ test("immutable photo reads use one download without metadata requests", async (
   const store = createBlobStore(fake.sdk);
   const photo = await store.readImmutable("home-stock/photos/photo.jpg");
   assert.deepEqual(Buffer.from(photo.bytes), fake.bytes);
-  assert.deepEqual(fake.calls.map(([method]) => method), ["get"]);
+  assert.deepEqual(
+    fake.calls.map(([method]) => method),
+    ["get"],
+  );
   fake.exists = false;
   assert.equal(await store.readImmutable("home-stock/photos/missing.jpg"), null);
 });
@@ -126,8 +158,10 @@ test("continuous changes fail explicitly without returning mismatched bytes and 
     fake.change();
     return result;
   };
-  await assert.rejects(createBlobStore(fake.sdk).read("home-stock/stock.json"),
-    (error) => error instanceof HttpError && error.status === 409);
+  await assert.rejects(
+    createBlobStore(fake.sdk).read("home-stock/stock.json"),
+    (error) => error instanceof HttpError && error.status === 409,
+  );
   assert.equal(fake.calls.filter(([method]) => method === "get").length, 5);
 });
 
@@ -136,7 +170,9 @@ test("missing state is created without overwriting an existing object", async ()
   fake.exists = false;
   const store = createBlobStore(fake.sdk);
   assert.equal(await store.read("home-stock/stock.json"), null);
-  await mutate(store, (data) => { data.version = randomUUID(); });
+  await mutate(store, (data) => {
+    data.version = randomUUID();
+  });
   const options = fake.calls.find(([method]) => method === "put")[2];
   assert.equal(options.allowOverwrite, false);
   assert.equal(Object.hasOwn(options, "ifMatch"), false);
@@ -148,9 +184,13 @@ test("real write conflicts are still rejected rather than overwritten", async ()
   const store = createBlobStore(fake.sdk);
   const read = await store.read("home-stock/stock.json");
   fake.change();
-  await assert.rejects(store.write("home-stock/stock.json", read.bytes,
-    { version: read.version, contentType: "application/json" }),
-  (error) => error instanceof HttpError && error.status === 409);
+  await assert.rejects(
+    store.write("home-stock/stock.json", read.bytes, {
+      version: read.version,
+      contentType: "application/json",
+    }),
+    (error) => error instanceof HttpError && error.status === 409,
+  );
   assert.equal(JSON.parse(fake.bytes).shopping.length, 1);
 });
 
@@ -158,19 +198,26 @@ test("metadata errors and unusable validators never turn into create-only or ung
   for (const etag of ["", 'W/"weak"']) {
     const fake = storage();
     fake.sdk.head = async () => ({ etag });
-    await assert.rejects(createBlobStore(fake.sdk).read("home-stock/stock.json"),
-      (error) => error.status === 503);
+    await assert.rejects(
+      createBlobStore(fake.sdk).read("home-stock/stock.json"),
+      (error) => error.status === 503,
+    );
     assert.equal(fake.calls.filter(([method]) => method === "put").length, 0);
   }
   const fake = storage();
   const failure = new BlobError("storage unavailable");
-  fake.sdk.head = async () => { throw failure; };
-  await assert.rejects(createBlobStore(fake.sdk).read("home-stock/stock.json"),
-    (error) => error === failure);
+  fake.sdk.head = async () => {
+    throw failure;
+  };
+  await assert.rejects(
+    createBlobStore(fake.sdk).read("home-stock/stock.json"),
+    (error) => error === failure,
+  );
   for (const version of [undefined, "", 'W/"weak"']) {
-    await assert.rejects(createBlobStore(fake.sdk).write(
-      "home-stock/stock.json", Buffer.from("{}"), { version },
-    ), (error) => error.status === 503);
+    await assert.rejects(
+      createBlobStore(fake.sdk).write("home-stock/stock.json", Buffer.from("{}"), { version }),
+      (error) => error.status === 503,
+    );
   }
 });
 
@@ -181,26 +228,41 @@ test("authenticated POST stock persists against the Blob adapter and rejects sta
   const handlers = createStockHandlers(createBlobStore(fake.sdk));
   const origin = "http://127.0.0.1:4188";
   try {
-    const session = await login(new Request(origin + "/api/session", {
-      method: "POST",
-      headers: { origin, "Content-Type": "application/json" },
-      body: JSON.stringify({ password: process.env.HOME_STOCK_SECRET }),
-    }));
+    const session = await login(
+      new Request(origin + "/api/session", {
+        method: "POST",
+        headers: { origin, "Content-Type": "application/json" },
+        body: JSON.stringify({ password: process.env.HOME_STOCK_SECRET }),
+      }),
+    );
     assert.equal(session.status, 200);
     const cookie = session.headers.get("set-cookie").split(";")[0];
     const get = async () => {
-      const response = await handlers.GET(new Request(origin + "/api/stock", { headers: { cookie } }));
+      const response = await handlers.GET(
+        new Request(origin + "/api/stock", { headers: { cookie } }),
+      );
       assert.equal(response.status, 200);
       return response.json();
     };
-    const post = (data) => handlers.POST(new Request(origin + "/api/stock", {
-      method: "POST", headers: { origin, cookie, "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }));
+    const post = (data) =>
+      handlers.POST(
+        new Request(origin + "/api/stock", {
+          method: "POST",
+          headers: { origin, cookie, "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }),
+      );
     const data = await get();
     data.items.push({
-      id: randomUUID(), name: "ข้าว", qty: 1, unit: "ถุง", category: "ของแห้ง",
-      location: "", date: "", dateKind: "expiry", photo: null,
+      id: randomUUID(),
+      name: "ข้าว",
+      qty: 1,
+      unit: "ถุง",
+      category: "ของแห้ง",
+      location: "",
+      date: "",
+      dateKind: "expiry",
+      photo: null,
     });
     const saved = await post(data);
     assert.equal(saved.status, 200, await saved.clone().text());

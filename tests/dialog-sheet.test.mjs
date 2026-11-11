@@ -29,11 +29,21 @@ function sheets() {
       this.offsetHeight = 400;
     }
     setAttribute() {}
-    closest() { return null; }
-    prepend(handle) { this.handle = handle; }
-    querySelector() { return this.head; }
-    setPointerCapture(id) { this.pointer = id; }
-    hasPointerCapture(id) { return this.pointer === id; }
+    closest() {
+      return null;
+    }
+    prepend(handle) {
+      this.handle = handle;
+    }
+    querySelector() {
+      return this.head;
+    }
+    setPointerCapture(id) {
+      this.pointer = id;
+    }
+    hasPointerCapture(id) {
+      return this.pointer === id;
+    }
     releasePointerCapture() {
       this.pointer = null;
       this.dispatchEvent(new Event("lostpointercapture"));
@@ -51,7 +61,8 @@ function sheets() {
   });
   const mobile = Object.assign(new EventTarget(), { matches: true });
   const context = vm.createContext({
-    Event, busy: false,
+    Event,
+    busy: false,
     window: { matchMedia: () => mobile },
     document: {
       querySelectorAll: () => dialogs,
@@ -60,9 +71,16 @@ function sheets() {
   });
   vm.runInContext(sheetSource, context);
   const pointer = (surface, type, x, y, extra = {}) => {
-    surface.dispatchEvent(Object.assign(new Event(type), {
-      pointerId: 1, isPrimary: true, button: 0, clientX: x, clientY: y, ...extra,
-    }));
+    surface.dispatchEvent(
+      Object.assign(new Event(type), {
+        pointerId: 1,
+        isPrimary: true,
+        button: 0,
+        clientX: x,
+        clientY: y,
+        ...extra,
+      }),
+    );
   };
   const drag = (surface, distance, end = "pointerup", x = 0) => {
     pointer(surface, "pointerdown", 0, 0);
@@ -73,8 +91,9 @@ function sheets() {
 }
 
 test("all modal opening paths use dialogs covered by the shared sheet initializer", () => {
-  const openedIds = [...source.matchAll(/\$\("#([^"]+)"\)\.showModal\(\)/g)]
-    .map((match) => match[1]);
+  const openedIds = [...source.matchAll(/\$\("#([^"]+)"\)\.showModal\(\)/g)].map(
+    (match) => match[1],
+  );
   assert.deepEqual([...new Set(openedIds)].sort(), [...dialogIds].sort());
   assert.equal(dialogIds.length, 6);
   const { dialogs } = sheets();
@@ -86,7 +105,8 @@ test("all modal opening paths use dialogs covered by the shared sheet initialize
 test("every dialog supports dragging and closes through cancel and close events", () => {
   const { dialogs, drag } = sheets();
   for (const dialog of dialogs) {
-    let cancelled = 0, closed = 0;
+    let cancelled = 0,
+      closed = 0;
     dialog.addEventListener("cancel", () => cancelled++);
     dialog.addEventListener("close", () => closed++);
     drag(dialog.handle, 100);
@@ -99,10 +119,15 @@ test("every dialog supports dragging and closes through cancel and close events"
 });
 
 test("short, upward, horizontal and cancelled drags snap back without click dismissal", () => {
-  const { dialogs: [dialog], drag } = sheets();
+  const {
+    dialogs: [dialog],
+    drag,
+  } = sheets();
   for (const [dy, end, dx] of [
-    [30, "pointerup", 0], [-100, "pointerup", 0],
-    [100, "pointerup", 150], [100, "pointercancel", 0],
+    [30, "pointerup", 0],
+    [-100, "pointerup", 0],
+    [100, "pointerup", 150],
+    [100, "pointercancel", 0],
   ]) {
     drag(dialog.handle, dy, end, dx);
     dialog.handle.dispatchEvent(new Event("click", { cancelable: true }));
@@ -113,7 +138,13 @@ test("short, upward, horizontal and cancelled drags snap back without click dism
 });
 
 test("desktop and busy dialogs cannot be dragged closed; resizing resets a drag", () => {
-  const { dialogs: [dialog], context, mobile, drag, pointer } = sheets();
+  const {
+    dialogs: [dialog],
+    context,
+    mobile,
+    drag,
+    pointer,
+  } = sheets();
   mobile.matches = false;
   drag(dialog.handle, 150);
   assert.equal(dialog.open, true);
@@ -135,7 +166,10 @@ test("desktop and busy dialogs cannot be dragged closed; resizing resets a drag"
 });
 
 test("cancel vetoes dismissals and a later click remains keyboard accessible", () => {
-  const { dialogs: [dialog], drag } = sheets();
+  const {
+    dialogs: [dialog],
+    drag,
+  } = sheets();
   const veto = (event) => event.preventDefault();
   dialog.addEventListener("cancel", veto);
   drag(dialog.handle, 100);
@@ -147,7 +181,10 @@ test("cancel vetoes dismissals and a later click remains keyboard accessible", (
 });
 
 test("secondary pointers and header buttons do not start a gesture", () => {
-  const { dialogs: [dialog], pointer } = sheets();
+  const {
+    dialogs: [dialog],
+    pointer,
+  } = sheets();
   pointer(dialog.handle, "pointerdown", 0, 0, { isPrimary: false });
   pointer(dialog.handle, "pointermove", 0, 150);
   assert.equal(dialog.properties.size, 0);
@@ -158,7 +195,12 @@ test("secondary pointers and header buttons do not start a gesture", () => {
 });
 
 test("keyboard dismissal works after a cancelled gesture and busy cancels an active drag", () => {
-  const { dialogs: [dialog], context, pointer, drag } = sheets();
+  const {
+    dialogs: [dialog],
+    context,
+    pointer,
+    drag,
+  } = sheets();
   pointer(dialog.handle, "pointerdown", 0, 0);
   context.busy = true;
   pointer(dialog.handle, "pointermove", 0, 150);

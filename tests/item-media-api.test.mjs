@@ -11,7 +11,9 @@ test("authenticated media lifecycle persists icons and safely reuses and retires
   process.env.HOME_STOCK_SECRET = "media-api-test-only";
   const objects = new Map();
   const store = {
-    read(path) { return objects.get(path) || null; },
+    read(path) {
+      return objects.get(path) || null;
+    },
     write(path, bytes, { version }) {
       if ((objects.get(path)?.version ?? null) !== version)
         throw new HttpError(409, "test conflict");
@@ -19,18 +21,23 @@ test("authenticated media lifecycle persists icons and safely reuses and retires
       objects.set(path, { bytes: Buffer.from(bytes), version: next });
       return next;
     },
-    remove(path) { objects.delete(path); },
+    remove(path) {
+      objects.delete(path);
+    },
   };
-  const stock = createStockHandlers(store), photos = createPhotoHandlers(store);
+  const stock = createStockHandlers(store),
+    photos = createPhotoHandlers(store);
   const origin = "http://127.0.0.1:4188";
   let cookie = "";
   const request = (path, body, contentType = "application/json") =>
     new Request(origin + "/api/" + path, {
       method: body === undefined ? "GET" : "POST",
       headers: { origin, cookie, "Content-Type": contentType },
-      ...(body === undefined ? {} : {
-        body: contentType === "application/json" ? JSON.stringify(body) : body,
-      }),
+      ...(body === undefined
+        ? {}
+        : {
+            body: contentType === "application/json" ? JSON.stringify(body) : body,
+          }),
     });
   const read = async () => {
     const response = await stock.GET(request("stock"));
@@ -50,15 +57,23 @@ test("authenticated media lifecycle persists icons and safely reuses and retires
     cookie = loggedIn.headers.get("set-cookie").split(";")[0];
     const initial = await read();
     initial.items = ["ข้าว", "นม"].map((name) => ({
-      id: randomUUID(), name, qty: 2, unit: "ชิ้น", category: "ของสด",
-      location: "", date: "", dateKind: "expiry", photo: null, icon: "box",
+      id: randomUUID(),
+      name,
+      qty: 2,
+      unit: "ชิ้น",
+      category: "ของสด",
+      location: "",
+      date: "",
+      dateKind: "expiry",
+      photo: null,
+      icon: "box",
     }));
     await write(initial);
     assert.equal((await read()).items[0].icon, "box");
 
-    const uploaded = await photos.POST(request(
-      "photo", Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0xff, 0xd9]), "image/jpeg",
-    ));
+    const uploaded = await photos.POST(
+      request("photo", Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0xff, 0xd9]), "image/jpeg"),
+    );
     assert.equal(uploaded.status, 201);
     const { id } = await uploaded.json();
     const withPhoto = await read();

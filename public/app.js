@@ -36,17 +36,15 @@ const round = (number) => Math.round(number * 1000) / 1000;
 const esc = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        c
-      ],
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
   );
 const key = (value) => value.trim().normalize("NFC").toLocaleLowerCase();
 const amount = (item) => amountFormat.format(item.qty) + " " + item.unit;
 const loadingButtons = new WeakMap();
 let pendingActionButton = null;
 function startButtonLoading(button) {
-  if (!button || typeof button.getBoundingClientRect !== "function" || loadingButtons.has(button)) return;
+  if (!button || typeof button.getBoundingClientRect !== "function" || loadingButtons.has(button))
+    return;
   const bounds = button.getBoundingClientRect();
   loadingButtons.set(button, {
     html: button.innerHTML,
@@ -76,8 +74,7 @@ function stopButtonLoading(button) {
 let stock = null;
 // Home-screen shortcuts open /?shortcut=<name>; run it once stock has loaded.
 let pendingShortcut = /[?&]shortcut=([\w-]+)/.exec(location.search || "")?.[1] || "";
-if (pendingShortcut)
-  history.replaceState(null, "", location.pathname + location.hash);
+if (pendingShortcut) history.replaceState(null, "", location.pathname + location.hash);
 let busy = false;
 let generation = 0;
 let draft = null;
@@ -130,14 +127,24 @@ function iconColorValue(value, palette, fallback) {
 function itemIconStyle(item) {
   const foreground = iconColorValue(item?.iconColor, itemIconColors, "green");
   const background = iconColorValue(item?.iconBackground, itemIconBackgrounds, "mint");
-  return ' style="--item-icon-color:' + foreground + ';--item-icon-bg:' + background + '"';
+  return ' style="--item-icon-color:' + foreground + ";--item-icon-bg:" + background + '"';
 }
 
 function itemIconSvg(id, className = "item-icon", color = "green", background = "mint") {
   if (!Object.hasOwn(itemIcons, id)) return "";
   const foreground = iconColorValue(color, itemIconColors, "green");
   const back = iconColorValue(background, itemIconBackgrounds, "mint");
-  return '<svg class="' + className + '" style="color:' + foreground + ';--item-icon-bg:' + back + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/item-icons.svg#item-icon-' + id + '"></use></svg>';
+  return (
+    '<svg class="' +
+    className +
+    '" style="color:' +
+    foreground +
+    ";--item-icon-bg:" +
+    back +
+    '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/item-icons.svg#item-icon-' +
+    id +
+    '"></use></svg>'
+  );
 }
 const stockImportHeaders = [
   "ชื่อของ",
@@ -202,10 +209,7 @@ async function revealPantry(current) {
   const loader = $("#pantry-loading");
   if (animationMode === "off" || loader.hidden) return;
   const minimumWait = 250;
-  const wait = Math.max(
-    0,
-    minimumWait - (Date.now() - pantryLoadingStartedAt),
-  );
+  const wait = Math.max(0, minimumWait - (Date.now() - pantryLoadingStartedAt));
   await new Promise((resolve) => setTimeout(resolve, wait));
   if (current !== generation || loader.hidden) return;
   const openingDuration = 1400;
@@ -213,16 +217,18 @@ async function revealPantry(current) {
   loader.style.setProperty("--pantry-fade-duration", fadeDuration + "ms");
   const animationFinished = new Promise((resolve) => {
     const finish = (event) => {
-      if (event.target !== loader || event.animationName !== "pantry-scene-fade")
-        return;
+      if (event.target !== loader || event.animationName !== "pantry-scene-fade") return;
       loader.removeEventListener("animationend", finish);
       clearTimeout(fallback);
       resolve();
     };
-    const fallback = setTimeout(() => {
-      loader.removeEventListener("animationend", finish);
-      resolve();
-    }, openingDuration + fadeDuration + 300);
+    const fallback = setTimeout(
+      () => {
+        loader.removeEventListener("animationend", finish);
+        resolve();
+      },
+      openingDuration + fadeDuration + 300,
+    );
     loader.addEventListener("animationend", finish);
   });
   if (animationMode === "minimal") {
@@ -235,9 +241,7 @@ async function revealPantry(current) {
   $("#app").style.setProperty("--pantry-open-duration", openingDuration + "ms");
   $("#app").classList.add("pantry-content-approach");
   loader.classList.add("is-opening");
-  await new Promise((resolve) =>
-    setTimeout(resolve, Math.max(0, openingDuration - 100)),
-  );
+  await new Promise((resolve) => setTimeout(resolve, Math.max(0, openingDuration - 100)));
   if (current !== generation || loader.hidden) return;
   loader.classList.add("is-fading");
   await animationFinished;
@@ -279,16 +283,20 @@ function daysLeft(value) {
 function dateLabel(item) {
   if (!item.date) return "";
   const days = daysLeft(item.date);
-  const prefix = item.dateKind === "plan" ? "ตั้งใจใช้" :
-    item.dateKind === "best-before" ? "BBE : ควรบริโภคก่อน" : "EXP : วันหมดอายุ";
+  const prefix =
+    item.dateKind === "plan"
+      ? "ตั้งใจใช้"
+      : item.dateKind === "best-before"
+        ? "BBE : ควรบริโภคก่อน"
+        : "EXP : วันหมดอายุ";
   const relative = days === 0 ? "วันนี้" : days === 1 ? "พรุ่งนี้" : "";
   return prefix + relative + " · " + dateFormat.format(localDay(item.date));
 }
 function shortDateLabel(item) {
   if (!item.date) return "";
   const [year, month, day] = item.date.split("-");
-  const prefix = item.dateKind === "plan" ? "ใช้ภายใน" :
-    item.dateKind === "best-before" ? "BBE" : "EXP";
+  const prefix =
+    item.dateKind === "plan" ? "ใช้ภายใน" : item.dateKind === "best-before" ? "BBE" : "EXP";
   return prefix + " " + day + "/" + month + "/" + year.slice(-2);
 }
 
@@ -303,22 +311,29 @@ function gridDateBadge(item) {
   if (!item.date) return "";
   const days = daysLeft(item.date);
   const alertDays = Number.isInteger(item.notifyBeforeDays) ? item.notifyBeforeDays : 3;
-  const tone = days < 0 ? "past" : days <= alertDays ? "danger" :
-    days <= 7 ? "warning" : "normal";
-  const remaining = days < 0 ? "เลยกำหนด " + humanDuration(-days) :
-    days === 0 ? "ครบกำหนดวันนี้" : "เหลือ " + humanDuration(days);
+  const tone = days < 0 ? "past" : days <= alertDays ? "danger" : days <= 7 ? "warning" : "normal";
+  const remaining =
+    days < 0
+      ? "เลยกำหนด " + humanDuration(-days)
+      : days === 0
+        ? "ครบกำหนดวันนี้"
+        : "เหลือ " + humanDuration(days);
   const exactDate = shortDateLabel(item);
-  return '<span class="item-card-time item-card-time--' + tone + '" title="' +
-    esc(exactDate) + '" aria-label="' + esc(exactDate + " · " + remaining) +
+  return (
+    '<span class="item-card-time item-card-time--' +
+    tone +
+    '" title="' +
+    esc(exactDate) +
+    '" aria-label="' +
+    esc(exactDate + " · " + remaining) +
     '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="item-card-time-label">' +
-    esc(remaining) + '</span></span>';
+    esc(remaining) +
+    "</span></span>"
+  );
 }
 
 function byDate(a, b) {
-  return (
-    (a.date || "9999").localeCompare(b.date || "9999") ||
-    a.name.localeCompare(b.name, "th")
-  );
+  return (a.date || "9999").localeCompare(b.date || "9999") || a.name.localeCompare(b.name, "th");
 }
 
 function sortStockItems(items, mode) {
@@ -349,10 +364,7 @@ async function request(path, options = {}) {
   try {
     response = await fetch("/api/" + path, { cache: "no-store", ...options });
   } catch {
-    throw new ApiError(
-      0,
-      "เชื่อมต่อไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง",
-    );
+    throw new ApiError(0, "เชื่อมต่อไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง");
   }
   let body;
   try {
@@ -375,11 +387,9 @@ function post(path, data) {
 function errorText(error) {
   if (error.status === 0) return error.message;
   if (error.status === 401) return "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง";
-  if (error.status === 503)
-    return "บริการเก็บข้อมูลยังไม่พร้อมใช้งาน กรุณาตรวจการตั้งค่า Vercel แล้วลองอีกครั้ง";
+  if (error.status === 503) return "บริการเก็บข้อมูลยังไม่พร้อมใช้งาน กรุณาตรวจการตั้งค่า Vercel แล้วลองอีกครั้ง";
   if (error.status === 413) return "ไฟล์รูปหรือรายการมีขนาดใหญ่เกินไป";
-  if (error.status === 429)
-    return "มีคำขอมากเกินไป กรุณารอสักครู่แล้วลองอีกครั้ง";
+  if (error.status === 429) return "มีคำขอมากเกินไป กรุณารอสักครู่แล้วลองอีกครั้ง";
   if (error.status === 400 || error.status === 422)
     return error.message || "ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบรายการอีกครั้ง";
   return "ติดต่อบริการไม่สำเร็จ กรุณาลองอีกครั้ง";
@@ -411,10 +421,15 @@ function entry(mode, message = "") {
 async function refresh(force = false) {
   if (
     !force &&
-    (busy || $("#editor").open || $("#meal-editor").open ||
-      $("#excel-import-dialog").open || $("#receipt-dialog").open ||
-      $("#item-media-dialog").open || $("#shortage-summary-dialog").open)
-  ) return;
+    (busy ||
+      $("#editor").open ||
+      $("#meal-editor").open ||
+      $("#excel-import-dialog").open ||
+      $("#receipt-dialog").open ||
+      $("#item-media-dialog").open ||
+      $("#shortage-summary-dialog").open)
+  )
+    return;
   if (!force && Date.now() - lastReadStarted < 3000) return;
   lastReadStarted = Date.now();
   if (!stock) showPantryLoading();
@@ -422,16 +437,13 @@ async function refresh(force = false) {
   try {
     const newer = await request("stock");
     if (current !== generation) return;
-    if (!Array.isArray(newer.items) || !Array.isArray(newer.shopping))
-      throw new Error();
+    if (!Array.isArray(newer.items) || !Array.isArray(newer.shopping)) throw new Error();
     newer.items = newer.items.map((item) => ({
       ...item,
       category: categoryAliases[item.category] || item.category,
     }));
     const changed =
-      !stock ||
-      stock.version !== newer.version ||
-      lastDrawDay !== new Date().toDateString();
+      !stock || stock.version !== newer.version || lastDrawDay !== new Date().toDateString();
     stock = newer;
     $("#entry").hidden = true;
     $("#app").hidden = false;
@@ -447,8 +459,7 @@ async function refresh(force = false) {
     if (error.status === 401) return entry("login");
     const message = errorText(error);
     if (!stock) return entry("unavailable", message);
-    $("#sync-error").textContent =
-      message + " · กำลังแสดงข้อมูลล่าสุดที่เปิดไว้";
+    $("#sync-error").textContent = message + " · กำลังแสดงข้อมูลล่าสุดที่เปิดไว้";
     $("#sync-error").hidden = false;
   }
 }
@@ -464,8 +475,7 @@ $("#login").addEventListener("submit", async (event) => {
     $("#password").value = "";
     await refresh(true);
   } catch (error) {
-    $("#login-error").textContent =
-      error.status === 401 ? "รหัสผ่านไม่ถูกต้อง" : errorText(error);
+    $("#login-error").textContent = error.status === 401 ? "รหัสผ่านไม่ถูกต้อง" : errorText(error);
   } finally {
     stopButtonLoading(button);
     button.disabled = false;
@@ -527,8 +537,7 @@ function paperPlusLabel(label) {
   return addActionLabel("shopping", label);
 }
 const addActionIcons = {
-  stock:
-    '<path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>',
+  stock: '<path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>',
   meal: '<path d="M3 11h18"/><path d="M5 11v6a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-6"/><path d="M12 3v4"/><path d="M7 4l2 3"/><path d="m17 4-2 3"/>',
   recipe: '<path d="M6 3h12v18l-6-4-6 4V3Z"/><path d="M9 8h6m-6 4h6"/>',
   shopping:
@@ -555,9 +564,7 @@ async function loadExcelJS() {
       const script = document.createElement("script");
       script.src = "/exceljs.min.js";
       script.onload = () =>
-        window.ExcelJS
-          ? resolve(window.ExcelJS)
-          : reject(new Error("โหลด ExcelJS ไม่สำเร็จ"));
+        window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error("โหลด ExcelJS ไม่สำเร็จ"));
       script.onerror = () => {
         script.remove();
         reject(new Error("โหลด ExcelJS ไม่สำเร็จ กรุณาลองอีกครั้ง"));
@@ -580,30 +587,28 @@ async function downloadStockTemplate() {
   options.state = "hidden";
 
   const lists = [
-    [
-      "ItemNames",
-      [
-        ...new Set(
-          (stock.items || []).map((item) => item.name).filter(Boolean),
-        ),
-      ],
-    ],
+    ["ItemNames", [...new Set((stock.items || []).map((item) => item.name).filter(Boolean))]],
     [
       "UnitOptions",
-      [...new Set([
-        "ชิ้น", "กล่อง", "ถุง", "ฟอง", "ขวด", "แพ็ก", "กก.", "ลิตร", "ที่",
-        ...stock.items.map((item) => item.unit),
-      ])],
+      [
+        ...new Set([
+          "ชิ้น",
+          "กล่อง",
+          "ถุง",
+          "ฟอง",
+          "ขวด",
+          "แพ็ก",
+          "กก.",
+          "ลิตร",
+          "ที่",
+          ...stock.items.map((item) => item.unit),
+        ]),
+      ],
     ],
     ["CategoryOptions", categories],
     [
       "LocationOptions",
-      [
-        ...new Set([
-          ...rooms,
-          ...(stock.items || []).map((item) => item.location),
-        ]),
-      ]
+      [...new Set([...rooms, ...(stock.items || []).map((item) => item.location)])]
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b, "th")),
     ],
@@ -616,10 +621,7 @@ async function downloadStockTemplate() {
     choices.forEach((value, row) => {
       options.getCell(row + 1, index + 1).value = value;
     });
-    workbook.definedNames.add(
-      `Lists!$${column}$1:$${column}$${choices.length}`,
-      name,
-    );
+    workbook.definedNames.add(`Lists!$${column}$1:$${column}$${choices.length}`, name);
   }
 
   sheet.columns = [
@@ -662,9 +664,7 @@ async function downloadStockTemplate() {
         showErrorMessage,
         errorStyle: showErrorMessage ? "stop" : "warning",
         errorTitle: "ค่าที่ไม่อยู่ในรายการ",
-        error: showErrorMessage
-          ? "กรุณาเลือกค่าจาก dropdown"
-          : "เลือกจาก dropdown หรือกรอกค่าใหม่",
+        error: showErrorMessage ? "กรุณาเลือกค่าจาก dropdown" : "เลือกจาก dropdown หรือกรอกค่าใหม่",
       };
     }
     sheet.getCell(row, 2).dataValidation = {
@@ -679,9 +679,14 @@ async function downloadStockTemplate() {
     };
     sheet.getCell(row, 6).numFmt = "dd/mm/yyyy";
     sheet.getCell(row, 8).dataValidation = {
-      type: "whole", operator: "between", allowBlank: true,
-      formulae: [0, 365], showErrorMessage: true, errorStyle: "stop",
-      errorTitle: "จำนวนวันไม่ถูกต้อง", error: "ใส่จำนวนเต็ม 0 ถึง 365 วัน หรือเว้นว่าง",
+      type: "whole",
+      operator: "between",
+      allowBlank: true,
+      formulae: [0, 365],
+      showErrorMessage: true,
+      errorStyle: "stop",
+      errorTitle: "จำนวนวันไม่ถูกต้อง",
+      error: "ใส่จำนวนเต็ม 0 ถึง 365 วัน หรือเว้นว่าง",
     };
   }
 
@@ -719,8 +724,7 @@ async function downloadStockTemplate() {
 function stockImportValue(cell) {
   const value = cell.value;
   if (value === null || value === undefined) return "";
-  if (typeof value === "string" || typeof value === "number" ||
-    value instanceof Date) return value;
+  if (typeof value === "string" || typeof value === "number" || value instanceof Date) return value;
   if (value.richText) return value.richText.map((part) => part.text).join("");
   throw new Error("ไม่รองรับสูตร ลิงก์ หรือค่าผิดพลาดในเซลล์ กรุณาวางเป็นค่า");
 }
@@ -732,14 +736,15 @@ function stockImportDate(value, date1904 = false) {
     if (!Number.isFinite(value.getTime())) throw new Error("วันที่ไม่ถูกต้อง");
     date = value.toISOString().slice(0, 10);
   } else if (typeof value === "number") {
-    if (!Number.isFinite(value) || value < (date1904 ? 0 : 1) ||
-      (!date1904 && Math.floor(value) === 60))
+    if (
+      !Number.isFinite(value) ||
+      value < (date1904 ? 0 : 1) ||
+      (!date1904 && Math.floor(value) === 60)
+    )
       throw new Error("วันที่ไม่ถูกต้อง");
-    const epoch = Date.UTC(date1904 ? 1904 : 1899, date1904 ? 0 : 11,
-      date1904 ? 1 : 31);
+    const epoch = Date.UTC(date1904 ? 1904 : 1899, date1904 ? 0 : 11, date1904 ? 1 : 31);
     const serial = Math.floor(value);
-    const parsed = new Date(epoch +
-      (serial - (!date1904 && serial > 60 ? 1 : 0)) * 86400000);
+    const parsed = new Date(epoch + (serial - (!date1904 && serial > 60 ? 1 : 0)) * 86400000);
     if (!Number.isFinite(parsed.getTime())) throw new Error("วันที่ไม่ถูกต้อง");
     date = parsed.toISOString().slice(0, 10);
   } else {
@@ -750,9 +755,11 @@ function stockImportDate(value, date1904 = false) {
       : text;
   }
   const parsed = new Date(date + "T00:00:00Z");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
     !Number.isFinite(parsed.getTime()) ||
-    parsed.toISOString().slice(0, 10) !== date)
+    parsed.toISOString().slice(0, 10) !== date
+  )
     throw new Error("วันที่ไม่ถูกต้อง ใช้วัน/เดือน/ปี ค.ศ. หรือ YYYY-MM-DD");
   return date;
 }
@@ -761,20 +768,33 @@ function parseStockImport(workbook) {
   const sheet = workbook.getWorksheet("นำเข้าของ");
   if (!sheet) throw new Error("ไม่พบชีต นำเข้าของ กรุณาใช้ไฟล์เทมเพลต");
   const actualHeaders = stockImportHeaders.map((_, index) =>
-    stockImportValue(sheet.getCell(1, index + 1)));
-  const legacyTemplate = legacyStockImportHeaders.every((header, index) => actualHeaders[index] === header) &&
+    stockImportValue(sheet.getCell(1, index + 1)),
+  );
+  const legacyTemplate =
+    legacyStockImportHeaders.every((header, index) => actualHeaders[index] === header) &&
     !actualHeaders[7];
-  if (!legacyTemplate && stockImportHeaders.some((header, index) => actualHeaders[index] !== header))
+  if (
+    !legacyTemplate &&
+    stockImportHeaders.some((header, index) => actualHeaders[index] !== header)
+  )
     throw new Error("หัวตารางไม่ตรงกับเทมเพลต กรุณาดาวน์โหลดเทมเพลตใหม่");
-  if (sheet.rowCount > 10001)
-    throw new Error("ชีตมีแถวมากเกินไป กรุณาใช้เทมเพลตไม่เกิน 2,000 รายการ");
-  const items = [], errors = [];
+  if (sheet.rowCount > 10001) throw new Error("ชีตมีแถวมากเกินไป กรุณาใช้เทมเพลตไม่เกิน 2,000 รายการ");
+  const items = [],
+    errors = [];
   let count = 0;
   for (let row = 2; row <= sheet.rowCount; row++) {
-    const cells = (legacyTemplate ? legacyStockImportHeaders : stockImportHeaders)
-      .map((_, index) => sheet.getCell(row, index + 1));
-    if (cells.every((cell) => cell.value === null || cell.value === undefined ||
-      (typeof cell.value === "string" && !cell.value.trim()))) continue;
+    const cells = (legacyTemplate ? legacyStockImportHeaders : stockImportHeaders).map((_, index) =>
+      sheet.getCell(row, index + 1),
+    );
+    if (
+      cells.every(
+        (cell) =>
+          cell.value === null ||
+          cell.value === undefined ||
+          (typeof cell.value === "string" && !cell.value.trim()),
+      )
+    )
+      continue;
     count++;
     try {
       const values = cells.map(stockImportValue);
@@ -782,17 +802,20 @@ function parseStockImport(workbook) {
         if (values[index] instanceof Date) throw new Error(label + "ต้องเป็นข้อความ");
         const value = String(values[index]).trim();
         if ((required && !value) || value.length > max)
-          throw new Error(label + "ต้อง" + (required ? "ไม่ว่างและ" : "") +
-            "ยาวไม่เกิน " + max + " ตัวอักษร");
+          throw new Error(
+            label + "ต้อง" + (required ? "ไม่ว่างและ" : "") + "ยาวไม่เกิน " + max + " ตัวอักษร",
+          );
         return value;
       };
       const name = text(0, 80, true, "ชื่อของ");
       const quantity = String(values[1]).trim();
       const qty = Number(quantity);
-      if (!/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(quantity) ||
+      if (
+        !/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(quantity) ||
         !(qty > 0 && qty <= 999999) ||
         Math.abs(qty * 1000 - Math.round(qty * 1000)) > 0.0000001 ||
-        Math.round(qty * 1000) === 0)
+        Math.round(qty * 1000) === 0
+      )
         throw new Error("จำนวนต้องมากกว่า 0 ถึง 999999 ทศนิยมไม่เกิน 3 ตำแหน่ง");
       const unit = text(2, 20, true, "หน่วย");
       const categoryText = text(3, 30, false, "หมวด") || "อื่น ๆ";
@@ -810,9 +833,20 @@ function parseStockImport(workbook) {
           throw new Error("แจ้งเตือนก่อนกำหนดต้องเป็นจำนวนเต็ม 0 ถึง 365 วัน");
       }
       items.push({
-        id: crypto.randomUUID(), name, qty: round(qty), unit, category, location,
-        date, dateKind: kind === "ตั้งใจใช้ภายใน" ? "plan" :
-          kind === "(BBE : ควรบริโภคก่อน)" ? "best-before" : "expiry", photo: null,
+        id: crypto.randomUUID(),
+        name,
+        qty: round(qty),
+        unit,
+        category,
+        location,
+        date,
+        dateKind:
+          kind === "ตั้งใจใช้ภายใน"
+            ? "plan"
+            : kind === "(BBE : ควรบริโภคก่อน)"
+              ? "best-before"
+              : "expiry",
+        photo: null,
         ...(notifyBeforeDays === undefined ? {} : { notifyBeforeDays }),
       });
     } catch (error) {
@@ -842,19 +876,50 @@ async function readStockImport(file) {
     pendingStockImport = parseStockImport(workbook);
     const { items, errors, count } = pendingStockImport;
     $("#excel-import-summary").innerHTML =
-      '<p class="excel-import-count">พบ ' + count +
-      ' รายการ · เพิ่มเป็นรายการใหม่ ไม่ทับของเดิม ไม่มีรูป</p>' +
-      (errors.length ? '<p>กรุณาแก้ไขไฟล์แล้วอัปโหลดใหม่ (' + errors.length +
-        ' ข้อผิดพลาด)</p><ul>' + errors.slice(0, 10).map((error) =>
-        "<li>" + esc(error) + "</li>").join("") + "</ul>" : "") +
-      (items.length ? '<div class="excel-preview"><table><thead><tr>' +
-        stockImportHeaders.map((header) => "<th>" + esc(header) + "</th>").join("") +
-        "</tr></thead><tbody>" + items.slice(0, 20).map((item) => "<tr>" +
-          [item.name, item.qty, item.unit, item.category, item.location, item.date,
-            item.dateKind === "plan" ? "ตั้งใจใช้ภายใน" : item.dateKind === "best-before" ? "(BBE : ควรบริโภคก่อน)" : "(EXP : วันหมดอายุ)", item.notifyBeforeDays ?? ""]
-            .map((value) => "<td>" + esc(value) + "</td>").join("") + "</tr>").join("") +
-        "</tbody></table></div>" +
-        (items.length > 20 ? "<p>แสดงตัวอย่าง 20 รายการแรก</p>" : "") : "");
+      '<p class="excel-import-count">พบ ' +
+      count +
+      " รายการ · เพิ่มเป็นรายการใหม่ ไม่ทับของเดิม ไม่มีรูป</p>" +
+      (errors.length
+        ? "<p>กรุณาแก้ไขไฟล์แล้วอัปโหลดใหม่ (" +
+          errors.length +
+          " ข้อผิดพลาด)</p><ul>" +
+          errors
+            .slice(0, 10)
+            .map((error) => "<li>" + esc(error) + "</li>")
+            .join("") +
+          "</ul>"
+        : "") +
+      (items.length
+        ? '<div class="excel-preview"><table><thead><tr>' +
+          stockImportHeaders.map((header) => "<th>" + esc(header) + "</th>").join("") +
+          "</tr></thead><tbody>" +
+          items
+            .slice(0, 20)
+            .map(
+              (item) =>
+                "<tr>" +
+                [
+                  item.name,
+                  item.qty,
+                  item.unit,
+                  item.category,
+                  item.location,
+                  item.date,
+                  item.dateKind === "plan"
+                    ? "ตั้งใจใช้ภายใน"
+                    : item.dateKind === "best-before"
+                      ? "(BBE : ควรบริโภคก่อน)"
+                      : "(EXP : วันหมดอายุ)",
+                  item.notifyBeforeDays ?? "",
+                ]
+                  .map((value) => "<td>" + esc(value) + "</td>")
+                  .join("") +
+                "</tr>",
+            )
+            .join("") +
+          "</tbody></table></div>" +
+          (items.length > 20 ? "<p>แสดงตัวอย่าง 20 รายการแรก</p>" : "")
+        : "");
     $("#excel-import-error").textContent = "";
     $("#excel-import-confirm").disabled = errors.length > 0;
     $("#excel-import-dialog").showModal();
@@ -868,7 +933,8 @@ async function readStockImport(file) {
 }
 
 $("#stock-import-file").addEventListener("change", (event) =>
-  readStockImport(event.target.files[0]));
+  readStockImport(event.target.files[0]),
+);
 $("#excel-import-dialog").addEventListener("cancel", (event) => {
   if (busy) event.preventDefault();
 });
@@ -876,40 +942,78 @@ $("#excel-import-dialog").addEventListener("close", () => {
   pendingStockImport = null;
 });
 $("#excel-import-confirm").addEventListener("click", () => {
-  if (!pendingStockImport || pendingStockImport.errors.length ||
-    pendingStockImport.stale) return;
+  if (!pendingStockImport || pendingStockImport.errors.length || pendingStockImport.stale) return;
   const { items, version } = pendingStockImport;
-  mutation(async (next) => {
-    if (next.items.length + items.length > 2000)
-      throw new Error("รวมของเดิมแล้วเกิน 2,000 รายการ");
-    next.items.push(...items);
-  }, version, () => {
-    $("#excel-import-dialog").close();
-    alertUser("นำเข้าของแล้ว " + items.length + " รายการ");
-  });
+  mutation(
+    async (next) => {
+      if (next.items.length + items.length > 2000) throw new Error("รวมของเดิมแล้วเกิน 2,000 รายการ");
+      next.items.push(...items);
+    },
+    version,
+    () => {
+      $("#excel-import-dialog").close();
+      alertUser("นำเข้าของแล้ว " + items.length + " รายการ");
+    },
+  );
 });
 let receiptRowId = 0;
 const receiptUnits = ["ชิ้น", "กล่อง", "ถุง", "ฟอง", "ขวด", "แพ็ก", "กก.", "ลิตร"];
 function receiptRow(row = {}) {
   const id = ++receiptRowId;
-  const names = [...new Set([...(stock?.recentItems || []), ...(stock?.items || [])].map((i) => i.name))];
-  const locations = [...new Set([...rooms, ...(stock?.items || []).map((i) => i.location).filter(Boolean)])];
-  const card = document.createElement('div');
-  card.className = 'receipt-row';
-  card.innerHTML = '<div class="receipt-row-header"><small>' + esc(row.raw || 'เพิ่มเอง') + '</small>' +
+  const names = [
+    ...new Set([...(stock?.recentItems || []), ...(stock?.items || [])].map((i) => i.name)),
+  ];
+  const locations = [
+    ...new Set([...rooms, ...(stock?.items || []).map((i) => i.location).filter(Boolean)]),
+  ];
+  const card = document.createElement("div");
+  card.className = "receipt-row";
+  card.innerHTML =
+    '<div class="receipt-row-header"><small>' +
+    esc(row.raw || "เพิ่มเอง") +
+    "</small>" +
     '<button type="button" class="text-button danger" data-action="receipt-remove-row">ลบรายการ</button></div>' +
-    '<div class="receipt-fields"><label class="receipt-name">ชื่อของ<input data-field="name" maxlength="80" list="receipt-names-' + id +
-      '" value="' + esc(row.name || '') + '"><datalist id="receipt-names-' + id + '">' + opts(names) + '</datalist></label>' +
-    '<label>จำนวน<input data-field="qty" type="number" min="0.001" max="999999" step="0.001" value="' + esc(row.qty || 1) + '"></label>' +
-    '<label>หน่วย<input data-field="unit" maxlength="20" list="receipt-units-' + id + '" value="' + esc(row.unit || 'ชิ้น') +
-      '"><datalist id="receipt-units-' + id + '">' + opts(receiptUnits) + '</datalist></label>' +
-    '<label>หมวด<select data-field="category">' + opts(categories, row.category || 'อื่น ๆ') + '</select></label>' +
-    '<label>ที่เก็บ<input data-field="location" maxlength="60" list="receipt-rooms-' + id + '" value="' + esc(row.location || '') +
-      '"><datalist id="receipt-rooms-' + id + '">' + opts(locations) + '</datalist></label>' +
+    '<div class="receipt-fields"><label class="receipt-name">ชื่อของ<input data-field="name" maxlength="80" list="receipt-names-' +
+    id +
+    '" value="' +
+    esc(row.name || "") +
+    '"><datalist id="receipt-names-' +
+    id +
+    '">' +
+    opts(names) +
+    "</datalist></label>" +
+    '<label>จำนวน<input data-field="qty" type="number" min="0.001" max="999999" step="0.001" value="' +
+    esc(row.qty || 1) +
+    '"></label>' +
+    '<label>หน่วย<input data-field="unit" maxlength="20" list="receipt-units-' +
+    id +
+    '" value="' +
+    esc(row.unit || "ชิ้น") +
+    '"><datalist id="receipt-units-' +
+    id +
+    '">' +
+    opts(receiptUnits) +
+    "</datalist></label>" +
+    '<label>หมวด<select data-field="category">' +
+    opts(categories, row.category || "อื่น ๆ") +
+    "</select></label>" +
+    '<label>ที่เก็บ<input data-field="location" maxlength="60" list="receipt-rooms-' +
+    id +
+    '" value="' +
+    esc(row.location || "") +
+    '"><datalist id="receipt-rooms-' +
+    id +
+    '">' +
+    opts(locations) +
+    "</datalist></label>" +
     '<label>วันหมดอายุ (ถ้ามี)<span class="date-control"><span class="date-display" aria-hidden="true">' +
-      esc(dateInputLabel(row.date || '')) + '</span><input data-field="date" type="date" value="' + esc(row.date || '') + '"></span></label>' +
+    esc(dateInputLabel(row.date || "")) +
+    '</span><input data-field="date" type="date" value="' +
+    esc(row.date || "") +
+    '"></span></label>' +
     '<label>บาร์โค้ด<input data-field="barcode" inputmode="numeric" maxlength="14" value="' +
-      esc(row.barcode || '') + '"></label></div>';
+    esc(row.barcode || "") +
+    '"></label></div>';
   return card;
 }
 
@@ -921,22 +1025,22 @@ function enhanceReceiptRow(card) {
 function renderReceiptReview() {
   const review = $("#receipt-review");
   review.replaceChildren();
-  const summary = document.createElement('p');
-  summary.className = 'form-help';
+  const summary = document.createElement("p");
+  summary.className = "form-help";
   summary.textContent = pendingReceipt.rows.length
-    ? 'อ่านได้ ' + pendingReceipt.rows.length + ' รายการ · ลบรายการที่ไม่ต้องการ แล้วตรวจแก้ก่อนบันทึก'
-    : 'ยังแยกรายการสินค้าไม่ได้ กรุณาดูข้อความที่อ่านได้แล้วเพิ่มรายการเอง';
+    ? "อ่านได้ " + pendingReceipt.rows.length + " รายการ · ลบรายการที่ไม่ต้องการ แล้วตรวจแก้ก่อนบันทึก"
+    : "ยังแยกรายการสินค้าไม่ได้ กรุณาดูข้อความที่อ่านได้แล้วเพิ่มรายการเอง";
   review.append(summary);
   for (const row of pendingReceipt.rows) {
     const card = receiptRow(row);
     review.append(card);
     enhanceReceiptRow(card);
   }
-  const details = document.createElement('details');
-  const heading = document.createElement('summary');
-  heading.textContent = 'ดูข้อความที่อ่านจากใบเสร็จ';
-  const raw = document.createElement('pre');
-  raw.textContent = pendingReceipt.text || '(อ่านตัวอักษรไม่ได้)';
+  const details = document.createElement("details");
+  const heading = document.createElement("summary");
+  heading.textContent = "ดูข้อความที่อ่านจากใบเสร็จ";
+  const raw = document.createElement("pre");
+  raw.textContent = pendingReceipt.text || "(อ่านตัวอักษรไม่ได้)";
   details.append(heading, raw);
   review.append(details);
 }
@@ -948,129 +1052,185 @@ async function readReceipt(file) {
   busy = true;
   startButtonLoading(button);
   button.disabled = true;
-  progress.textContent = 'กำลังอ่านใบเสร็จ…';
+  progress.textContent = "กำลังอ่านใบเสร็จ…";
   try {
-    if (!file.type.startsWith('image/')) throw new Error('กรุณาเลือกรูปใบเสร็จ');
-    const { scanReceipt } = await import('/receipt.js');
+    if (!file.type.startsWith("image/")) throw new Error("กรุณาเลือกรูปใบเสร็จ");
+    const { scanReceipt } = await import("/receipt.js");
     const version = stock.version;
-    const {text, rows} = await scanReceipt(file,
+    const { text, rows } = await scanReceipt(
+      file,
       [...stock.items, ...(stock.recentItems || [])],
-      (percent) => { progress.textContent = 'กำลังอ่านใบเสร็จ ' + percent + '%'; });
-    pendingReceipt = {text, rows, version, file, stale: false};
+      (percent) => {
+        progress.textContent = "กำลังอ่านใบเสร็จ " + percent + "%";
+      },
+    );
+    pendingReceipt = { text, rows, version, file, stale: false };
     renderReceiptReview();
-    $("#receipt-error").textContent = '';
-    $("#receipt-ai-status").textContent = '';
+    $("#receipt-error").textContent = "";
+    $("#receipt-ai-status").textContent = "";
     $("#receipt-ai-tools").hidden = true;
     $("#receipt-dialog").showModal();
     try {
-      const availability = await request('receipt-ai');
+      const availability = await request("receipt-ai");
       if (pendingReceipt && availability.available) $("#receipt-ai-tools").hidden = false;
-    } catch { /* Local OCR remains available without the AI service. */ }
+    } catch {
+      /* Local OCR remains available without the AI service. */
+    }
   } catch (error) {
-    alertUser(error.message || 'อ่านใบเสร็จไม่ได้ กรุณาลองใช้รูปที่ชัดขึ้น');
+    alertUser(error.message || "อ่านใบเสร็จไม่ได้ กรุณาลองใช้รูปที่ชัดขึ้น");
   } finally {
     busy = false;
     stopButtonLoading(button);
     button.disabled = false;
-    progress.textContent = '';
-    $("#receipt-file").value = '';
+    progress.textContent = "";
+    $("#receipt-file").value = "";
   }
 }
 
-$("#receipt-file").addEventListener('change', (event) => readReceipt(event.target.files[0]));
-$("#receipt-dialog").addEventListener('cancel', (event) => {
+$("#receipt-file").addEventListener("change", (event) => readReceipt(event.target.files[0]));
+$("#receipt-dialog").addEventListener("cancel", (event) => {
   if (busy) event.preventDefault();
 });
-$("#receipt-dialog").addEventListener('close', () => { pendingReceipt = null; });
-$("#receipt-ai-button").addEventListener('click', async () => {
+$("#receipt-dialog").addEventListener("close", () => {
+  pendingReceipt = null;
+});
+$("#receipt-ai-button").addEventListener("click", async () => {
   if (!pendingReceipt || busy || pendingReceipt.stale) return;
   const button = $("#receipt-ai-button");
   const status = $("#receipt-ai-status");
   busy = true;
   button.disabled = true;
   startButtonLoading(button);
-  status.textContent = 'AI กำลังวิเคราะห์รูปใบเสร็จ…';
-  $("#receipt-error").textContent = '';
+  status.textContent = "AI กำลังวิเคราะห์รูปใบเสร็จ…";
+  $("#receipt-error").textContent = "";
   try {
-    const {prepareAiImage} = await import('/receipt.js');
+    const { prepareAiImage } = await import("/receipt.js");
     const image = await prepareAiImage(pendingReceipt.file);
-    const result = await post('receipt-ai', {...image, ocrText: pendingReceipt.text,
-      model: $("#receipt-ai-model").value});
-    if (!result.rows?.length) throw new Error('AI ไม่พบรายการที่ชัดเจน กรุณาใช้ผลสแกนเดิม');
-    const old = [...$("#receipt-review").querySelectorAll('.receipt-row')].map((card) => ({
+    const result = await post("receipt-ai", {
+      ...image,
+      ocrText: pendingReceipt.text,
+      model: $("#receipt-ai-model").value,
+    });
+    if (!result.rows?.length) throw new Error("AI ไม่พบรายการที่ชัดเจน กรุณาใช้ผลสแกนเดิม");
+    const old = [...$("#receipt-review").querySelectorAll(".receipt-row")].map((card) => ({
       barcode: card.querySelector('[data-field="barcode"]').value.trim(),
       date: card.querySelector('[data-field="date"]').value,
       location: card.querySelector('[data-field="location"]').value.trim(),
     }));
     pendingReceipt.rows = result.rows.map((row, index) => {
-      const previous = old.find((item) => item.barcode && item.barcode === row.barcode) || old[index];
-      return {...row, date: previous?.date || '', location: previous?.location || row.location};
+      const previous =
+        old.find((item) => item.barcode && item.barcode === row.barcode) || old[index];
+      return {
+        ...row,
+        date: previous?.date || "",
+        location: previous?.location || row.location,
+      };
     });
     renderReceiptReview();
-    status.textContent = 'AI แนะนำ ' + result.rows.length + ' รายการ · กรุณาตรวจแก้ก่อนรับเข้าบ้าน';
+    status.textContent = "AI แนะนำ " + result.rows.length + " รายการ · กรุณาตรวจแก้ก่อนรับเข้าบ้าน";
   } catch (error) {
-    if (error.status === 401) entry('login', errorText(error));
-    else status.textContent = error.message || 'AI ตรวจใบเสร็จไม่ได้ กรุณาใช้ผลสแกนเดิม';
+    if (error.status === 401) entry("login", errorText(error));
+    else status.textContent = error.message || "AI ตรวจใบเสร็จไม่ได้ กรุณาใช้ผลสแกนเดิม";
   } finally {
     busy = false;
     stopButtonLoading(button);
     button.disabled = false;
   }
 });
-$("#receipt-confirm").addEventListener('click', () => {
+$("#receipt-confirm").addEventListener("click", () => {
   if (!pendingReceipt || pendingReceipt.stale) return;
-  const selected = [...$("#receipt-review").querySelectorAll('.receipt-row')];
+  const selected = [...$("#receipt-review").querySelectorAll(".receipt-row")];
   const error = $("#receipt-error");
-  if (!selected.length) { error.textContent = 'ไม่มีรายการให้รับเข้าบ้าน กรุณาเพิ่มรายการอย่างน้อย 1 รายการ'; return; }
+  if (!selected.length) {
+    error.textContent = "ไม่มีรายการให้รับเข้าบ้าน กรุณาเพิ่มรายการอย่างน้อย 1 รายการ";
+    return;
+  }
   const items = [];
   for (const [index, card] of selected.entries()) {
     const field = (name) => card.querySelector('[data-field="' + name + '"]').value.trim();
-    const name = field('name'), unit = field('unit'), qty = Number(field('qty'));
-    if (!name || !unit || !Number.isFinite(qty) || qty < 0.001 || qty > 999999 ||
-      round(qty) !== qty || name.length > 80 || unit.length > 20) {
-      error.textContent = 'รายการที่ ' + (index + 1) + ': กรุณาตรวจชื่อ จำนวน และหน่วย';
+    const name = field("name"),
+      unit = field("unit"),
+      qty = Number(field("qty"));
+    if (
+      !name ||
+      !unit ||
+      !Number.isFinite(qty) ||
+      qty < 0.001 ||
+      qty > 999999 ||
+      round(qty) !== qty ||
+      name.length > 80 ||
+      unit.length > 20
+    ) {
+      error.textContent = "รายการที่ " + (index + 1) + ": กรุณาตรวจชื่อ จำนวน และหน่วย";
       return;
     }
-    const barcode = field('barcode');
+    const barcode = field("barcode");
     if (barcode && !/^\d{8,14}$/.test(barcode)) {
-      error.textContent = 'รายการที่ ' + (index + 1) + ': บาร์โค้ดต้องเป็นตัวเลข 8–14 หลัก';
+      error.textContent = "รายการที่ " + (index + 1) + ": บาร์โค้ดต้องเป็นตัวเลข 8–14 หลัก";
       return;
     }
-    const item = {id: crypto.randomUUID(), name, qty: round(qty), unit,
-      category: field('category'), location: field('location'), date: field('date'),
-      dateKind: 'expiry', photo: null};
+    const item = {
+      id: crypto.randomUUID(),
+      name,
+      qty: round(qty),
+      unit,
+      category: field("category"),
+      location: field("location"),
+      date: field("date"),
+      dateKind: "expiry",
+      photo: null,
+    };
     if (barcode) item.barcode = barcode;
     items.push(item);
   }
-  error.textContent = '';
-  mutation((next) => {
-    if (next.items.length + items.length > 2000)
-      throw new Error('รวมของเดิมแล้วเกิน 2,000 รายการ');
-    next.items.push(...items);
-    for (const item of items) {
-      const remembered = {name: item.name, unit: item.unit, category: item.category,
-        location: item.location, barcode: item.barcode || ''};
-      next.recentItems = [remembered, ...(next.recentItems || []).filter((entry) =>
-        key(entry.name) !== key(item.name) || key(entry.unit) !== key(item.unit))].slice(0, 100);
-    }
-  }, pendingReceipt.version, () => {
-    $("#receipt-dialog").close();
-    alertUser('รับเข้าสต็อกแล้ว ' + items.length + ' รายการ');
-  });
+  error.textContent = "";
+  mutation(
+    (next) => {
+      if (next.items.length + items.length > 2000) throw new Error("รวมของเดิมแล้วเกิน 2,000 รายการ");
+      next.items.push(...items);
+      for (const item of items) {
+        const remembered = {
+          name: item.name,
+          unit: item.unit,
+          category: item.category,
+          location: item.location,
+          barcode: item.barcode || "",
+        };
+        next.recentItems = [
+          remembered,
+          ...(next.recentItems || []).filter(
+            (entry) => key(entry.name) !== key(item.name) || key(entry.unit) !== key(item.unit),
+          ),
+        ].slice(0, 100);
+      }
+    },
+    pendingReceipt.version,
+    () => {
+      $("#receipt-dialog").close();
+      alertUser("รับเข้าสต็อกแล้ว " + items.length + " รายการ");
+    },
+  );
 });
 function thumb(item, editable = false) {
   const content = item.photo
     ? '<img class="thumb" decoding="async" loading="lazy" alt="" src="/api/photo?id=' +
-        encodeURIComponent(item.photo) +
-        '">'
-    : '<span aria-hidden="true" class="thumb placeholder"' + itemIconStyle(item) + '>' +
-        (itemIconSvg(item.icon, "item-icon", item.iconColor) || esc([...item.name][0] || "·")) +
-        "</span>";
+      encodeURIComponent(item.photo) +
+      '">'
+    : '<span aria-hidden="true" class="thumb placeholder"' +
+      itemIconStyle(item) +
+      ">" +
+      (itemIconSvg(item.icon, "item-icon", item.iconColor) || esc([...item.name][0] || "·")) +
+      "</span>";
   if (!editable) return content;
-  return '<button type="button" class="item-media-trigger" data-action="choose-item-media" data-id="' +
-    esc(item.id) + '" aria-label="' +
+  return (
+    '<button type="button" class="item-media-trigger" data-action="choose-item-media" data-id="' +
+    esc(item.id) +
+    '" aria-label="' +
     esc((item.photo || item.icon ? "เปลี่ยนรูปหรือไอคอนของ " : "เพิ่มรูปหรือไอคอนของ ") + item.name) +
-    '">' + content + "</button>";
+    '">' +
+    content +
+    "</button>"
+  );
 }
 const badgeDetails = {
   category: {
@@ -1095,9 +1255,7 @@ const badgeDetails = {
 function valueBadge(value, type) {
   const detail =
     badgeDetails[type][value] ||
-    (type === "location"
-      ? { icon: "📍", tone: "custom" }
-      : { icon: "📦", tone: "other" });
+    (type === "location" ? { icon: "📍", tone: "custom" } : { icon: "📦", tone: "other" });
   return (
     '<span class="stock-badge stock-badge--' +
     detail.tone +
@@ -1110,16 +1268,26 @@ function valueBadge(value, type) {
 }
 function cardFilterBadge(value, type) {
   const label = type === "category" ? "หมวด" : "ที่เก็บ";
-  return '<button type="button" class="item-card-filter" data-action="filter-card-badge" data-filter-type="' +
-    type + '" data-filter-value="' + esc(value) + '" aria-label="กรองของในบ้านตาม' +
-    label + ' ' + esc(value) + '">' + valueBadge(value, type) + '</button>';
+  return (
+    '<button type="button" class="item-card-filter" data-action="filter-card-badge" data-filter-type="' +
+    type +
+    '" data-filter-value="' +
+    esc(value) +
+    '" aria-label="กรองของในบ้านตาม' +
+    label +
+    " " +
+    esc(value) +
+    '">' +
+    valueBadge(value, type) +
+    "</button>"
+  );
 }
 function getItemView(page) {
   try {
-    return localStorage.getItem("home-stock-item-view-" + page) === "grid"
-      ? "grid"
-      : "list";
-  } catch { return "list"; }
+    return localStorage.getItem("home-stock-item-view-" + page) === "grid" ? "grid" : "list";
+  } catch {
+    return "list";
+  }
 }
 function itemViewToggle(page) {
   const mode = getItemView(page);
@@ -1127,43 +1295,82 @@ function itemViewToggle(page) {
     list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>',
     grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   };
-  const option = (value, label) => '<button type="button" class="item-view-option' +
-    (mode === value ? " is-active" : "") + '" data-action="set-item-view" data-id="' + value +
-    '" aria-label="แสดงแบบ' + label + '" title="' + label + '" aria-pressed="' +
-    (mode === value) + '">' + icons[value] + "</button>";
-  return '<div class="item-view-toggle" role="group" aria-label="รูปแบบการแสดงผล">' +
-    option("list", "รายการ") + option("grid", "รูปใหญ่") +
-    "</div>";
+  const option = (value, label) =>
+    '<button type="button" class="item-view-option' +
+    (mode === value ? " is-active" : "") +
+    '" data-action="set-item-view" data-id="' +
+    value +
+    '" aria-label="แสดงแบบ' +
+    label +
+    '" title="' +
+    label +
+    '" aria-pressed="' +
+    (mode === value) +
+    '">' +
+    icons[value] +
+    "</button>";
+  return (
+    '<div class="item-view-toggle" role="group" aria-label="รูปแบบการแสดงผล">' +
+    option("list", "รายการ") +
+    option("grid", "รูปใหญ่") +
+    "</div>"
+  );
 }
 function itemMenu(item, shopping = false, gridMode = false) {
-  const editLabel = '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><span>แก้ไข</span>';
-  const mediaLabel = '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>เปลี่ยนรูปหรือไอคอน</span>';
+  const editLabel =
+    '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><span>แก้ไข</span>';
+  const mediaLabel =
+    '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>เปลี่ยนรูปหรือไอคอน</span>';
   const choices = shopping
     ? button("receive", "รับเข้าบ้าน", item.id, "item-menu-option") +
       button("edit-shopping", editLabel, item.id, "item-menu-option")
     : gridMode
-      ? button("use", item.qty < 1 ? "- ใช้หมด" : "- 1 " + esc(item.unit), item.id, "item-menu-option") +
+      ? button(
+          "use",
+          item.qty < 1 ? "- ใช้หมด" : "- 1 " + esc(item.unit),
+          item.id,
+          "item-menu-option",
+        ) +
         button("custom-use", "- ระบุจำนวน", item.id, "item-menu-option") +
         button("edit-item", editLabel, item.id, "item-menu-option") +
-        (tab() === "stock" ? button("choose-item-media", mediaLabel, item.id, "item-menu-option") : "") +
-        button("shopping-from-item", paperPlusLabel("เพิ่มไปในรายการซื้อ"), item.id, "item-menu-option") +
+        (tab() === "stock"
+          ? button("choose-item-media", mediaLabel, item.id, "item-menu-option")
+          : "") +
+        button(
+          "shopping-from-item",
+          paperPlusLabel("เพิ่มไปในรายการซื้อ"),
+          item.id,
+          "item-menu-option",
+        ) +
         button("confirm-remove-item", "ลบรายการ", item.id, "item-menu-option danger")
-    : button("edit-item", editLabel, item.id, "item-menu-option") +
-      button("shopping-from-item", paperPlusLabel("เพิ่มไปในรายการซื้อ"), item.id, "item-menu-option") +
-      button("confirm-remove-item", "ลบรายการ", item.id, "item-menu-option danger");
-  return '<div class="item-menu-wrap"><button type="button" class="item-menu-trigger" data-action="toggle-item-menu" data-id="' +
-    esc(item.id) + '" aria-label="การทำงานเพิ่มเติมสำหรับ ' + esc(item.name) + '" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">⋮</span></button>' +
-    '<div class="item-menu" role="menu" hidden>' + choices + "</div></div>";
+      : button("edit-item", editLabel, item.id, "item-menu-option") +
+        button(
+          "shopping-from-item",
+          paperPlusLabel("เพิ่มไปในรายการซื้อ"),
+          item.id,
+          "item-menu-option",
+        ) +
+        button("confirm-remove-item", "ลบรายการ", item.id, "item-menu-option danger");
+  return (
+    '<div class="item-menu-wrap"><button type="button" class="item-menu-trigger" data-action="toggle-item-menu" data-id="' +
+    esc(item.id) +
+    '" aria-label="การทำงานเพิ่มเติมสำหรับ ' +
+    esc(item.name) +
+    '" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">⋮</span></button>' +
+    '<div class="item-menu" role="menu" hidden>' +
+    choices +
+    "</div></div>"
+  );
 }
 function row(item, shopping = false) {
   let meta, detail, actions;
-  const gridMode = !shopping && ["today", "stock"].includes(tab()) &&
-    getItemView(tab()) === "grid";
+  const gridMode = !shopping && ["today", "stock"].includes(tab()) && getItemView(tab()) === "grid";
   if (shopping) {
     const total = totalFor(item);
     detail = "ซื้อ " + amount(item);
     meta = "ที่บ้านเหลือ " + amountFormat.format(total) + " " + item.unit;
-    actions = button("receive", addActionLabel("stock", "ซื้อแล้ว"), item.id) +
+    actions =
+      button("receive", addActionLabel("stock", "ซื้อแล้ว"), item.id) +
       button("edit-shopping", "แก้ไข", item.id, "action small");
   } else {
     detail = amount(item);
@@ -1184,16 +1391,16 @@ function row(item, shopping = false) {
         button("custom-use", "- ระบุจำนวน", item.id, "stock-action stock-action-custom") +
         itemMenu(item);
   }
-  const date = shopping || gridMode
-    ? ""
-    : '<div class="meta ' +
-      (daysLeft(item.date) <= 0 ? "warn" : "") +
-      '">' +
-      esc(dateLabel(item)) +
-      "</div>";
+  const date =
+    shopping || gridMode
+      ? ""
+      : '<div class="meta ' +
+        (daysLeft(item.date) <= 0 ? "warn" : "") +
+        '">' +
+        esc(dateLabel(item)) +
+        "</div>";
   const media = gridMode
-    ? '<div class="item-card-media">' + thumb(item) +
-      gridDateBadge(item) + "</div>"
+    ? '<div class="item-card-media">' + thumb(item) + gridDateBadge(item) + "</div>"
     : thumb(item, !shopping && tab() === "stock");
   const gridBadges = gridMode
     ? '<div class="item-grid-badges">' +
@@ -1202,19 +1409,39 @@ function row(item, shopping = false) {
       "</div>"
     : "";
   const nameAndQty = gridMode
-    ? '<div class="item-name">' + esc(item.name) + '</div><div class="qty item-grid-qty">' + esc(detail) + "</div>"
-    : '<div class="item-name">' + esc(item.name) + ' <span class="qty">· ' + esc(detail) + "</span></div>";
+    ? '<div class="item-name">' +
+      esc(item.name) +
+      '</div><div class="qty item-grid-qty">' +
+      esc(detail) +
+      "</div>"
+    : '<div class="item-name">' +
+      esc(item.name) +
+      ' <span class="qty">· ' +
+      esc(detail) +
+      "</span></div>";
   return (
-    '<article class="line-item' + (gridMode ? " is-grid-card" : "") + '"' +
-    (gridMode ? ' data-action="toggle-card-menu" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-label="เปิด action menu ของ ' + esc(item.name) + '"' : "") + '>' +
+    '<article class="line-item' +
+    (gridMode ? " is-grid-card" : "") +
+    '"' +
+    (gridMode
+      ? ' data-action="toggle-card-menu" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-label="เปิด action menu ของ ' +
+        esc(item.name) +
+        '"'
+      : "") +
+    ">" +
     media +
-    '<div class="item-info">' + nameAndQty + gridBadges +
+    '<div class="item-info">' +
+    nameAndQty +
+    gridBadges +
     date +
-    (gridMode ? "" : '<div class="meta' +
-    (shopping ? "" : " item-badges") +
-    '">' +
-    (shopping ? esc(meta) : meta) +
-    "</div>") + '</div><div class="item-actions">' +
+    (gridMode
+      ? ""
+      : '<div class="meta' +
+        (shopping ? "" : " item-badges") +
+        '">' +
+        (shopping ? esc(meta) : meta) +
+        "</div>") +
+    '</div><div class="item-actions">' +
     actions +
     "</div></article>"
   );
@@ -1222,24 +1449,26 @@ function row(item, shopping = false) {
 function totalFor(item) {
   return round(
     stock.items
-      .filter(
-        (i) => key(i.name) === key(item.name) && key(i.unit) === key(item.unit),
-      )
+      .filter((i) => key(i.name) === key(item.name) && key(i.unit) === key(item.unit))
       .reduce((sum, i) => sum + i.qty, 0),
   );
 }
 function section(title, items, options = {}) {
-  const mode = options.shopping || !["today", "stock"].includes(tab())
-    ? "list" : getItemView(tab());
+  const mode =
+    options.shopping || !["today", "stock"].includes(tab()) ? "list" : getItemView(tab());
   return (
-    '<section class="section' + (options.dashboardDue ? ' dashboard-due' : '') + '"><div class="section-head ' +
+    '<section class="section' +
+    (options.dashboardDue ? " dashboard-due" : "") +
+    '"><div class="section-head ' +
     (options.urgent ? "urgent" : "") +
     '"><h2>' +
     esc(title) +
     "</h2><span>" +
     items.length +
     " รายการ</span></div>" +
-    '<div class="item-collection view-' + mode + '">' +
+    '<div class="item-collection view-' +
+    mode +
+    '">' +
     items.map((i) => row(i, options.shopping)).join("") +
     "</div>" +
     "</section>"
@@ -1281,8 +1510,7 @@ function mealShortages(plan, items = stock?.items || []) {
         items
           .filter(
             (item) =>
-              key(item.name) === key(ingredient.name) &&
-              key(item.unit) === key(ingredient.unit),
+              key(item.name) === key(ingredient.name) && key(item.unit) === key(ingredient.unit),
           )
           .reduce((sum, item) => sum + item.qty, 0),
       );
@@ -1340,8 +1568,7 @@ function ingredientUnitFieldHtml(rowId, unit, locked) {
 }
 
 function ingredientHintHtml(locked, stockQty, qty, unit) {
-  if (!locked)
-    return '<span class="stock-badge stock-badge--custom">ไม่มีในบ้าน</span>';
+  if (!locked) return '<span class="stock-badge stock-badge--custom">ไม่มีในบ้าน</span>';
   const remaining = round(stockQty - (Number(qty) || 0));
   const remainingHtml =
     remaining < 0
@@ -1369,22 +1596,15 @@ function refreshIngredientRow(row) {
   const name = row.querySelector(".meal-ingredient-name")?.value.trim() || "";
   const matches = stockMatchesForName(name);
   const locked = matches.length > 0;
-  const currentUnit =
-    row.querySelector(".meal-ingredient-unit")?.value.trim() || "";
+  const currentUnit = row.querySelector(".meal-ingredient-unit")?.value.trim() || "";
   const match =
-    (currentUnit &&
-      matches.find((entry) => key(entry.unit) === key(currentUnit))) ||
-    matches[0];
+    (currentUnit && matches.find((entry) => key(entry.unit) === key(currentUnit))) || matches[0];
   const unit = locked ? match.unit : currentUnit;
   row.dataset.locked = locked ? "1" : "0";
   row.dataset.stockUnit = unit;
   row.dataset.stockQty = String(locked ? match.qty : 0);
   const unitWrap = row.querySelector(".meal-ingredient-unit-field");
-  unitWrap.innerHTML = ingredientUnitFieldHtml(
-    row.dataset.ingredientId,
-    unit,
-    locked,
-  );
+  unitWrap.innerHTML = ingredientUnitFieldHtml(row.dataset.ingredientId, unit, locked);
   if (!locked) enhanceDatalists(unitWrap);
   updateIngredientHint(row);
 }
@@ -1448,11 +1668,7 @@ function mealPlanCard(plan) {
         : "") + button("complete-meal-plan", "เสร็จสิ้น", plan.id, "primary");
   }
   const statusLabel =
-    plan.status === "completed"
-      ? "เสร็จสิ้นแล้ว"
-      : plan.status === "cooked"
-        ? "ทำแล้ว"
-        : "วางแผน";
+    plan.status === "completed" ? "เสร็จสิ้นแล้ว" : plan.status === "cooked" ? "ทำแล้ว" : "วางแผน";
   const dateLabel = dateFormat.format(localDay(plan.date));
   return (
     '<article class="meal-plan-card"><div class="meal-plan-card-head"><h4>🍲 ' +
@@ -1475,11 +1691,7 @@ function mealPlanCard(plan) {
         shortages
           .map(
             (item) =>
-              esc(item.name) +
-              " " +
-              amountFormat.format(item.missing) +
-              " " +
-              esc(item.unit),
+              esc(item.name) + " " + amountFormat.format(item.missing) + " " + esc(item.unit),
           )
           .join(" · ") +
         "</p>"
@@ -1510,16 +1722,10 @@ function mealPlanListRow(plan) {
                 plan.id,
                 "secondary",
               )
-            : "") +
-          button("complete-meal-plan", "เสร็จสิ้น", plan.id, "primary")
-        : "") +
-    button("remove-meal-plan", "ลบแผน", plan.id, "text-button danger");
+            : "") + button("complete-meal-plan", "เสร็จสิ้น", plan.id, "primary")
+        : "") + button("remove-meal-plan", "ลบแผน", plan.id, "text-button danger");
   const statusLabel =
-    plan.status === "completed"
-      ? "เสร็จสิ้นแล้ว"
-      : plan.status === "cooked"
-        ? "ทำแล้ว"
-        : "วางแผน";
+    plan.status === "completed" ? "เสร็จสิ้นแล้ว" : plan.status === "cooked" ? "ทำแล้ว" : "วางแผน";
   return (
     '<article class="meal-plan-list-row"><div class="meal-plan-list-main"><div class="meal-plan-list-title"><h3>🍲 ' +
     esc(plan.name) +
@@ -1539,11 +1745,7 @@ function mealPlanListRow(plan) {
         shortages
           .map(
             (item) =>
-              esc(item.name) +
-              " " +
-              amountFormat.format(item.missing) +
-              " " +
-              esc(item.unit),
+              esc(item.name) + " " + amountFormat.format(item.missing) + " " + esc(item.unit),
           )
           .join(" · ") +
         "</p>"
@@ -1575,12 +1777,7 @@ function mealRecipeCard(recipe) {
     ' ที่</span></div><div class="recipe-ingredients">' +
     ingredients +
     '</div><div class="recipe-card-actions">' +
-    button(
-      "plan-recipe",
-      addActionLabel("meal", "วางแผนเมนูนี้"),
-      recipe.id,
-      "primary",
-    ) +
+    button("plan-recipe", addActionLabel("meal", "วางแผนเมนูนี้"), recipe.id, "primary") +
     button("edit-recipe", "แก้ไขเมนู", recipe.id, "secondary") +
     button("remove-recipe", "ลบเมนู", recipe.id, "text-button danger") +
     "</div></article>"
@@ -1601,11 +1798,7 @@ function mealCollectionSection(
     items.length +
     " รายการ</span></div>" +
     (items.length
-      ? '<div class="' +
-        listClass +
-        '">' +
-        items.map(renderItem).join("") +
-        "</div>"
+      ? '<div class="' + listClass + '">' + items.map(renderItem).join("") + "</div>"
       : '<p class="meal-page-empty">' + esc(emptyMessage) + "</p>") +
     "</section>"
   );
@@ -1615,11 +1808,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
   const firstDay = new Date(calendarYear, calendarMonth, 1);
   const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
   const today = new Date();
-  const todayKey = calendarDateKey(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
+  const todayKey = calendarDateKey(today.getFullYear(), today.getMonth(), today.getDate());
   const counts = new Map();
   const planCounts = new Map();
   for (const item of items) {
@@ -1632,18 +1821,11 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
   }
 
   const weekdays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-  let cells = weekdays
-    .map((day) => '<span class="calendar-weekday">' + day + "</span>")
-    .join("");
+  let cells = weekdays.map((day) => '<span class="calendar-weekday">' + day + "</span>").join("");
   const leadingDays = firstDay.getDay();
   const gridDays = Math.ceil((leadingDays + daysInMonth) / 7) * 7;
   for (let index = 0; index < gridDays; index++) {
-    const date = new Date(
-      calendarYear,
-      calendarMonth,
-      index - leadingDays + 1,
-      12,
-    );
+    const date = new Date(calendarYear, calendarMonth, index - leadingDays + 1, 12);
     const dateYear = date.getFullYear();
     const dateMonth = date.getMonth();
     const day = date.getDate();
@@ -1684,14 +1866,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
       '" data-action="select-expiry-date" data-id="' +
       dateKey +
       '" aria-label="' +
-      esc(
-        dateLabel +
-          ", วันกำหนด EXP/BBE " +
-          count +
-          " รายการ, แผนทำอาหาร " +
-          mealCount +
-          " เมนู",
-      ) +
+      esc(dateLabel + ", วันกำหนด EXP/BBE " + count + " รายการ, แผนทำอาหาร " + mealCount + " เมนู") +
       '" aria-pressed="' +
       selected +
       '"' +
@@ -1699,9 +1874,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
       '"><span class="calendar-day-number">' +
       day +
       "</span>" +
-      (countBadges
-        ? '<span class="calendar-day-counts">' + countBadges + "</span>"
-        : "") +
+      (countBadges ? '<span class="calendar-day-counts">' + countBadges + "</span>" : "") +
       "</button>";
   }
 
@@ -1732,9 +1905,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
       selectedPlans.length +
       " เมนู</h3>" +
       (selectedPlans.length
-        ? '<div class="meal-plan-list">' +
-          selectedPlans.map(mealPlanCard).join("") +
-          "</div>"
+        ? '<div class="meal-plan-list">' + selectedPlans.map(mealPlanCard).join("") + "</div>"
         : '<p class="calendar-no-expiry">ยังไม่มีแผนทำอาหารวันนี้</p>') +
       "</section></div>";
   }
@@ -1764,11 +1935,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
 function settingsContent() {
   const choices = [
     ["full", "เต็ม", "เปิดประตู ซูมเข้า และขยายเนื้อหาแบบ parallax"],
-    [
-      "minimal",
-      "แบบย่อ",
-      "แสดงประตูกับลูกบิดหมุนระหว่างโหลด แล้วค่อย ๆ จางหาย",
-    ],
+    ["minimal", "แบบย่อ", "แสดงประตูกับลูกบิดหมุนระหว่างโหลด แล้วค่อย ๆ จางหาย"],
     ["off", "ปิด", "ไม่แสดงฉากแอนิเมชันตอนโหลด"],
   ];
   return (
@@ -1782,7 +1949,7 @@ function settingsContent() {
           value +
           '"' +
           (animationMode === value ? " checked" : "") +
-          '><span><strong>' +
+          "><span><strong>" +
           title +
           "</strong><small>" +
           description +
@@ -1791,7 +1958,8 @@ function settingsContent() {
       .join("") +
     '</fieldset><p id="settings-error" class="error" role="alert"></p>' +
     '<section class="settings-stock"><h2>จำนวนขั้นต่ำ</h2><p class="form-help">เมื่อของเหลือน้อยกว่าที่ตั้งไว้ แอปจะแสดงในรายการซื้อ</p>' +
-    minimumSettings() + '</section>' +
+    minimumSettings() +
+    "</section>" +
     '<section class="settings-stock"><h2>แจ้งเตือนของใกล้หมดอายุ</h2>' +
     '<p class="form-help">ส่งวันละครั้งประมาณ 09:00 น. ค่าใน Settings เป็นค่าเริ่มต้น; รายการที่กำหนดวันเตือนเองจะใช้ค่านั้นแทน</p>' +
     '<label>เตือนล่วงหน้า<select id="alert-days"><option value="0">ปิด</option><option value="1">1 วัน</option><option value="3">3 วัน</option><option value="7">7 วัน</option></select></label>' +
@@ -1809,104 +1977,184 @@ function minimumSettings() {
   const names = new Map();
   for (const item of [...(stock.recentItems || []), ...stock.items])
     names.set(key(item.name) + "\u0000" + key(item.unit), item);
-  return [...names.values()].sort((a, b) => a.name.localeCompare(b.name, "th"))
-    .map((item) => {
-      const level = (stock.minLevels || []).find((entry) =>
-        key(entry.name) === key(item.name) && key(entry.unit) === key(item.unit));
-      return '<label class="minimum-row"><span>' + esc(item.name) + ' · ' + esc(item.unit) +
-        '</span><input type="number" inputmode="decimal" min="0" max="999999" step=".001" placeholder="ไม่ตั้ง" value="' +
-        esc(level?.qty ?? "") + '" data-min-name="' + esc(item.name) + '" data-min-unit="' + esc(item.unit) + '"></label>';
-    }).join("") || '<p class="form-help">เพิ่มของชิ้นแรกก่อนตั้งจำนวนขั้นต่ำ</p>';
+  return (
+    [...names.values()]
+      .sort((a, b) => a.name.localeCompare(b.name, "th"))
+      .map((item) => {
+        const level = (stock.minLevels || []).find(
+          (entry) => key(entry.name) === key(item.name) && key(entry.unit) === key(item.unit),
+        );
+        return (
+          '<label class="minimum-row"><span>' +
+          esc(item.name) +
+          " · " +
+          esc(item.unit) +
+          '</span><input type="number" inputmode="decimal" min="0" max="999999" step=".001" placeholder="ไม่ตั้ง" value="' +
+          esc(level?.qty ?? "") +
+          '" data-min-name="' +
+          esc(item.name) +
+          '" data-min-unit="' +
+          esc(item.unit) +
+          '"></label>'
+        );
+      })
+      .join("") || '<p class="form-help">เพิ่มของชิ้นแรกก่อนตั้งจำนวนขั้นต่ำ</p>'
+  );
 }
 
 function lowStockSection() {
-  const needs = (stock.minLevels || []).map((level) => {
-    const remaining = round(stock.items.filter((item) => key(item.name) === key(level.name) &&
-      key(item.unit) === key(level.unit)).reduce((sum, item) => sum + item.qty, 0));
-    return {...level, remaining, missing: round(level.qty - remaining)};
-  }).filter((item) => item.missing > 0);
+  const needs = (stock.minLevels || [])
+    .map((level) => {
+      const remaining = round(
+        stock.items
+          .filter(
+            (item) => key(item.name) === key(level.name) && key(item.unit) === key(level.unit),
+          )
+          .reduce((sum, item) => sum + item.qty, 0),
+      );
+      return { ...level, remaining, missing: round(level.qty - remaining) };
+    })
+    .filter((item) => item.missing > 0);
   if (!needs.length) return "";
-  return '<section class="low-stock"><h2>ใกล้หมด · ควรซื้อเพิ่ม</h2>' + needs.map((item) =>
-    '<div class="low-stock-row"><span>' + esc(item.name) + ' เหลือ ' + amountFormat.format(item.remaining) + ' ' + esc(item.unit) +
-    ' จากขั้นต่ำ ' + amountFormat.format(item.qty) + '</span>' +
-    button('buy-low', 'จดซื้อ ' + amountFormat.format(item.missing) + ' ' + esc(item.unit),
-      encodeURIComponent(item.name) + '|' + encodeURIComponent(item.unit), 'secondary') + '</div>').join('') + '</section>';
+  return (
+    '<section class="low-stock"><h2>ใกล้หมด · ควรซื้อเพิ่ม</h2>' +
+    needs
+      .map(
+        (item) =>
+          '<div class="low-stock-row"><span>' +
+          esc(item.name) +
+          " เหลือ " +
+          amountFormat.format(item.remaining) +
+          " " +
+          esc(item.unit) +
+          " จากขั้นต่ำ " +
+          amountFormat.format(item.qty) +
+          "</span>" +
+          button(
+            "buy-low",
+            "จดซื้อ " + amountFormat.format(item.missing) + " " + esc(item.unit),
+            encodeURIComponent(item.name) + "|" + encodeURIComponent(item.unit),
+            "secondary",
+          ) +
+          "</div>",
+      )
+      .join("") +
+    "</section>"
+  );
 }
 
 async function loadAlertSettings() {
   try {
-    const settings = await request('alerts');
-    const select = $('#alert-days');
+    const settings = await request("alerts");
+    const select = $("#alert-days");
     if (select) select.value = String(settings.days || 0);
-    if (!settings.publicKey && $('#alert-status'))
-      $('#alert-status').textContent = 'ยังไม่พร้อมใช้งาน กรุณาตั้งค่าเซิร์ฟเวอร์แจ้งเตือน';
+    if (!settings.publicKey && $("#alert-status"))
+      $("#alert-status").textContent = "ยังไม่พร้อมใช้งาน กรุณาตั้งค่าเซิร์ฟเวอร์แจ้งเตือน";
   } catch (error) {
-    if ($('#alert-status')) $('#alert-status').textContent = errorText(error);
+    if ($("#alert-status")) $("#alert-status").textContent = errorText(error);
   }
 }
 
 async function saveAlertSettings() {
-  const status = $('#alert-status');
+  const status = $("#alert-status");
   const button = document.querySelector('[data-action="save-alerts"]');
   startButtonLoading(button);
   button.disabled = true;
   try {
-    const days = Number($('#alert-days').value);
-    const hasItemAlerts = (stock?.items || []).some((item) => item.date &&
-      ["expiry", "best-before"].includes(item.dateKind) && Number.isInteger(item.notifyBeforeDays));
+    const days = Number($("#alert-days").value);
+    const hasItemAlerts = (stock?.items || []).some(
+      (item) =>
+        item.date &&
+        ["expiry", "best-before"].includes(item.dateKind) &&
+        Number.isInteger(item.notifyBeforeDays),
+    );
     if (days || hasItemAlerts) {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window))
-        throw new Error('อุปกรณ์นี้ยังไม่รองรับการแจ้งเตือนจากเว็บ');
-      const settings = await request('alerts');
-      if (!settings.publicKey) throw new Error('ระบบแจ้งเตือนยังไม่พร้อม');
+      if (!("serviceWorker" in navigator) || !("PushManager" in window))
+        throw new Error("อุปกรณ์นี้ยังไม่รองรับการแจ้งเตือนจากเว็บ");
+      const settings = await request("alerts");
+      if (!settings.publicKey) throw new Error("ระบบแจ้งเตือนยังไม่พร้อม");
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') throw new Error('กรุณาอนุญาตการแจ้งเตือนในเบราว์เซอร์');
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      const bytes = Uint8Array.from(atob(settings.publicKey.replace(/-/g,'+').replace(/_/g,'/')),
-        (character) => character.charCodeAt(0));
-      const subscription = await registration.pushManager.getSubscription() ||
-        await registration.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:bytes});
-      await post('alerts', {days, subscription:subscription.toJSON()});
-      status.textContent = days ? 'เปิดแจ้งเตือนแล้ว' : 'ปิดค่าเริ่มต้นแล้ว · รายการที่กำหนดวันเตือนเองยังแจ้งเตือนได้';
+      if (permission !== "granted") throw new Error("กรุณาอนุญาตการแจ้งเตือนในเบราว์เซอร์");
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      const bytes = Uint8Array.from(
+        atob(settings.publicKey.replace(/-/g, "+").replace(/_/g, "/")),
+        (character) => character.charCodeAt(0),
+      );
+      const subscription =
+        (await registration.pushManager.getSubscription()) ||
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: bytes,
+        }));
+      await post("alerts", { days, subscription: subscription.toJSON() });
+      status.textContent = days
+        ? "เปิดแจ้งเตือนแล้ว"
+        : "ปิดค่าเริ่มต้นแล้ว · รายการที่กำหนดวันเตือนเองยังแจ้งเตือนได้";
     } else {
-      const registration = 'serviceWorker' in navigator && await navigator.serviceWorker.getRegistration('/');
-      const subscription = registration && await registration.pushManager.getSubscription();
-      await post('alerts', {days:0, ...(subscription && {subscription:subscription.toJSON()})});
+      const registration =
+        "serviceWorker" in navigator && (await navigator.serviceWorker.getRegistration("/"));
+      const subscription = registration && (await registration.pushManager.getSubscription());
+      await post("alerts", {
+        days: 0,
+        ...(subscription && { subscription: subscription.toJSON() }),
+      });
       await subscription?.unsubscribe();
-      status.textContent = 'ปิดแจ้งเตือนแล้ว';
+      status.textContent = "ปิดแจ้งเตือนแล้ว";
     }
-  } catch(error) { status.textContent = error.message || errorText(error); }
-  finally { stopButtonLoading(button); button.disabled = false; }
+  } catch (error) {
+    status.textContent = error.message || errorText(error);
+  } finally {
+    stopButtonLoading(button);
+    button.disabled = false;
+  }
 }
 
 async function testAlert(later = false) {
-  const button = document.querySelector('[data-action="test-alert-' + (later ? 'later' : 'now') + '"]');
-  const status = $('#alert-status');
-  const seconds = later ? Number($('#alert-test-seconds')?.value) : 0;
+  const button = document.querySelector(
+    '[data-action="test-alert-' + (later ? "later" : "now") + '"]',
+  );
+  const status = $("#alert-status");
+  const seconds = later ? Number($("#alert-test-seconds")?.value) : 0;
   if (later && (!Number.isInteger(seconds) || seconds < 1 || seconds > 3600)) {
-    status.textContent = 'กรุณาระบุเวลาตั้งแต่ 1 ถึง 3600 วินาที';
+    status.textContent = "กรุณาระบุเวลาตั้งแต่ 1 ถึง 3600 วินาที";
     return;
   }
   startButtonLoading(button);
   button.disabled = true;
   try {
-    if (!('serviceWorker' in navigator) || !('showNotification' in ServiceWorkerRegistration.prototype))
-      throw new Error('อุปกรณ์นี้ยังไม่รองรับการแจ้งเตือนจากเว็บ');
-    if (!('Notification' in window)) throw new Error('เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน');
+    if (
+      !("serviceWorker" in navigator) ||
+      !("showNotification" in ServiceWorkerRegistration.prototype)
+    )
+      throw new Error("อุปกรณ์นี้ยังไม่รองรับการแจ้งเตือนจากเว็บ");
+    if (!("Notification" in window)) throw new Error("เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน");
     let permission = Notification.permission;
-    if (permission === 'default') permission = await Notification.requestPermission();
-    if (permission !== 'granted') throw new Error('กรุณาอนุญาตการแจ้งเตือนในเบราว์เซอร์');
-    const registration = await navigator.serviceWorker.register('/sw.js');
+    if (permission === "default") permission = await Notification.requestPermission();
+    if (permission !== "granted") throw new Error("กรุณาอนุญาตการแจ้งเตือนในเบราว์เซอร์");
+    const registration = await navigator.serviceWorker.register("/sw.js");
     if (later) {
-      status.textContent = 'ตั้งเวลาแจ้งเตือนทดสอบในอีก ' + seconds + ' วินาทีแล้ว';
-      setTimeout(() => registration.showNotification('ทดสอบการแจ้งเตือน', {
-        body: 'ระบบแจ้งเตือนของใกล้หมดอายุทำงานแล้ว', tag: 'home-stock-alert-test', data: {url: '/'}
-      }).catch((error) => { if ($('#alert-status')) $('#alert-status').textContent = error.message || 'ส่งการแจ้งเตือนทดสอบไม่สำเร็จ'; }), seconds * 1000);
+      status.textContent = "ตั้งเวลาแจ้งเตือนทดสอบในอีก " + seconds + " วินาทีแล้ว";
+      setTimeout(
+        () =>
+          registration
+            .showNotification("ทดสอบการแจ้งเตือน", {
+              body: "ระบบแจ้งเตือนของใกล้หมดอายุทำงานแล้ว",
+              tag: "home-stock-alert-test",
+              data: { url: "/" },
+            })
+            .catch((error) => {
+              if ($("#alert-status"))
+                $("#alert-status").textContent = error.message || "ส่งการแจ้งเตือนทดสอบไม่สำเร็จ";
+            }),
+        seconds * 1000,
+      );
     } else {
-      await registration.showNotification('ทดสอบการแจ้งเตือน', {
-        body: 'ระบบแจ้งเตือนของใกล้หมดอายุทำงานแล้ว', tag: 'home-stock-alert-test', data: {url: '/'}
+      await registration.showNotification("ทดสอบการแจ้งเตือน", {
+        body: "ระบบแจ้งเตือนของใกล้หมดอายุทำงานแล้ว",
+        tag: "home-stock-alert-test",
+        data: { url: "/" },
       });
-      status.textContent = 'ส่งการแจ้งเตือนทดสอบแล้ว';
+      status.textContent = "ส่งการแจ้งเตือนทดสอบแล้ว";
     }
   } catch (error) {
     status.textContent = error.message || errorText(error);
@@ -1920,15 +2168,20 @@ let photoObserver = null;
 function prepareVisiblePhotos() {
   photoObserver?.disconnect();
   const photos = [...$("#content").querySelectorAll('img.thumb[loading="lazy"]')];
-  photos.slice(0, 6).forEach((photo) => { photo.loading = "eager"; });
+  photos.slice(0, 6).forEach((photo) => {
+    photo.loading = "eager";
+  });
   if (!("IntersectionObserver" in window)) return;
-  const observer = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      entry.target.loading = "eager";
-      observer.unobserve(entry.target);
-    }
-  }, { rootMargin: "1400px 0px" });
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        entry.target.loading = "eager";
+        observer.unobserve(entry.target);
+      }
+    },
+    { rootMargin: "1400px 0px" },
+  );
   photoObserver = observer;
   photos.slice(6).forEach((photo) => observer.observe(photo));
 }
@@ -1943,15 +2196,10 @@ function draw() {
       if (link.dataset.tab === page) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     });
-  if (page === "settings")
-    $(".settings-link").setAttribute("aria-current", "page");
+  if (page === "settings") $(".settings-link").setAttribute("aria-current", "page");
   else $(".settings-link").removeAttribute("aria-current");
   const today = new Date();
-  const todayKey = calendarDateKey(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
+  const todayKey = calendarDateKey(today.getFullYear(), today.getMonth(), today.getDate());
   lastDrawDay = today.toDateString();
   $("#date-label").textContent = new Intl.DateTimeFormat("th-TH", {
     weekday: "long",
@@ -1978,8 +2226,7 @@ function draw() {
         : page === "recipes"
           ? "add-recipe"
           : "add";
-  if (page === "meals")
-    $("#page-add").dataset.id = selectedCalendarDate || todayKey;
+  if (page === "meals") $("#page-add").dataset.id = selectedCalendarDate || todayKey;
   else delete $("#page-add").dataset.id;
   $("#shopping-count").textContent = stock.shopping.length;
   $("#tools").hidden = page !== "stock";
@@ -1995,20 +2242,23 @@ function draw() {
     const late = sorted.filter(
       (i) => ["expiry", "best-before"].includes(i.dateKind) && daysLeft(i.date) < 0,
     );
-    const nearSoon = expiring.filter((item) => Number.isInteger(item.notifyBeforeDays) &&
-      daysLeft(item.date) >= 0 && daysLeft(item.date) <= item.notifyBeforeDays);
+    const nearSoon = expiring.filter(
+      (item) =>
+        Number.isInteger(item.notifyBeforeDays) &&
+        daysLeft(item.date) >= 0 &&
+        daysLeft(item.date) <= item.notifyBeforeDays,
+    );
     const nearSoonIds = new Set(nearSoon.map((item) => item.id));
     const due = sorted.filter(
       (i) =>
-        ["expiry", "best-before"].includes(i.dateKind) && daysLeft(i.date) >= 0 &&
-        daysLeft(i.date) <= 7 && !nearSoonIds.has(i.id),
+        ["expiry", "best-before"].includes(i.dateKind) &&
+        daysLeft(i.date) >= 0 &&
+        daysLeft(i.date) <= 7 &&
+        !nearSoonIds.has(i.id),
     );
-    const planned = sorted.filter(
-      (i) => i.dateKind === "plan" && daysLeft(i.date) <= 7,
-    );
+    const planned = sorted.filter((i) => i.dateKind === "plan" && daysLeft(i.date) <= 7);
     const upcoming = [...late, ...nearSoon, ...due, ...planned];
-    if (upcoming.length)
-      html += section("ของที่ต้องติดตาม", upcoming, { dashboardDue: true });
+    if (upcoming.length) html += section("ของที่ต้องติดตาม", upcoming, { dashboardDue: true });
     if (!html)
       html = sorted.length
         ? empty(
@@ -2028,20 +2278,28 @@ function draw() {
   } else if (page === "stock") {
     const roomsSelect = $("#location-filter"),
       selected = roomsSelect.value;
-    const locations = [
-      ...new Set(sorted.map((i) => i.location).filter(Boolean)),
-    ].sort((a, b) => a.localeCompare(b, "th"));
+    const locations = [...new Set(sorted.map((i) => i.location).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b, "th"),
+    );
     roomsSelect.innerHTML =
       '<option value="">ทุกที่เก็บ</option>' +
       locations.map((x) => "<option>" + esc(x) + "</option>").join("");
     if (locations.includes(selected)) roomsSelect.value = selected;
     refreshSearchSelect(roomsSelect);
+    const hasActiveFilters = Boolean(
+      $("#query").value.trim() ||
+      $("#category-filter").value ||
+      roomsSelect.value ||
+      $("#sort-filter").value !== "date-asc" ||
+      $("#group-filter").value !== "none",
+    );
+    $("#clear-filter-button").hidden = !hasActiveFilters;
+    $("#tools").classList.toggle("has-active-filters", hasActiveFilters);
     const query = key($("#query").value);
     const filtered = sorted.filter(
       (i) =>
         (!query || key(i.name + " " + i.location).includes(query)) &&
-        (!$("#category-filter").value ||
-          i.category === $("#category-filter").value) &&
+        (!$("#category-filter").value || i.category === $("#category-filter").value) &&
         (!roomsSelect.value || i.location === roomsSelect.value),
     );
     const grouped = new Map();
@@ -2056,9 +2314,7 @@ function draw() {
           '<p class="stock-total">' +
           esc(filtered[0].name) +
           " รวม " +
-          esc(
-            amountFormat.format(filtered.reduce((sum, i) => sum + i.qty, 0)),
-          ) +
+          esc(amountFormat.format(filtered.reduce((sum, i) => sum + i.qty, 0))) +
           " " +
           esc(filtered[0].unit) +
           "</p>";
@@ -2079,18 +2335,8 @@ function draw() {
       }
     } else
       html = sorted.length
-        ? empty(
-            "ไม่พบของที่ตรงกัน",
-            "ลองเปลี่ยนชื่อ หมวด หรือที่เก็บ",
-            "clear-filter",
-            "ล้างตัวกรอง",
-          )
-        : empty(
-            "ยังไม่มีของในบ้าน",
-            "เพิ่มของสด ของแห้ง หรือของใช้อื่น ๆ ที่ต้องการติดตาม",
-            "add",
-            "เพิ่มของชิ้นแรก",
-          );
+        ? empty("ไม่พบของที่ตรงกัน", "ลองเปลี่ยนชื่อ หมวด หรือที่เก็บ", "clear-filter", "ล้างตัวกรอง")
+        : empty("ยังไม่มีของในบ้าน", "เพิ่มของสด ของแห้ง หรือของใช้อื่น ๆ ที่ต้องการติดตาม", "add", "เพิ่มของชิ้นแรก");
   } else if (page === "meals") {
     const plannedPlans = (stock.mealPlans || [])
       .filter((plan) => plan.status === "planned")
@@ -2125,8 +2371,7 @@ function draw() {
           "จดรายการแรก",
         );
   }
-  if (["today", "stock"].includes(page) && stock.items.length)
-    html = itemViewToggle(page) + html;
+  if (["today", "stock"].includes(page) && stock.items.length) html = itemViewToggle(page) + html;
   $("#content").innerHTML = html;
   prepareVisiblePhotos();
 }
@@ -2148,9 +2393,7 @@ function opts(values, selected) {
 let selectId = 0;
 const openSearchDropdowns = new Set();
 document.addEventListener("pointerdown", (event) => {
-  const activeRoot = document.activeElement?.closest?.(
-    "[data-search-select-root]",
-  );
+  const activeRoot = document.activeElement?.closest?.("[data-search-select-root]");
   if (activeRoot && !activeRoot.contains(event.target)) {
     activeRoot.closeSearchDropdown();
     document.activeElement.blur();
@@ -2168,9 +2411,7 @@ function enhanceSelect(select) {
   const labelName =
     label?.querySelector(":scope > span")?.textContent.trim() ||
     [...(label?.childNodes || [])]
-      .find(
-        (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
-      )
+      .find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim())
       ?.textContent.trim() ||
     "ตัวเลือก";
   const listId = "search-select-list-" + ++selectId;
@@ -2196,8 +2437,7 @@ function enhanceSelect(select) {
   toggle.className = "search-select-toggle";
   toggle.setAttribute("aria-label", "เปิดตัวเลือก " + labelName);
   toggle.setAttribute("aria-expanded", "false");
-  toggle.innerHTML =
-    '<span class="search-select-chevron" aria-hidden="true"></span>';
+  toggle.innerHTML = '<span class="search-select-chevron" aria-hidden="true"></span>';
 
   const panel = document.createElement("div");
   panel.className = "search-select-panel";
@@ -2218,7 +2458,8 @@ function enhanceSelect(select) {
   function renderOptions(query = "") {
     const normalized = key(query);
     const badgeType =
-      select.id === "category-filter" || select.id === "f-category" ||
+      select.id === "category-filter" ||
+      select.id === "f-category" ||
       (select.dataset.field === "category" && select.closest(".receipt-row"))
         ? "category"
         : select.id === "location-filter"
@@ -2241,9 +2482,7 @@ function enhanceSelect(select) {
               '" aria-selected="' +
               (option.value === select.value) +
               '">' +
-              (badgeType
-                ? valueBadge(option.textContent, badgeType)
-                : esc(option.textContent)) +
+              (badgeType ? valueBadge(option.textContent, badgeType) : esc(option.textContent)) +
               "</div>",
           )
           .join("")
@@ -2305,16 +2544,12 @@ function enhanceSelect(select) {
   });
   input.addEventListener("click", show);
   input.addEventListener("blur", (event) => {
-    if (!root.contains(event.relatedTarget))
-      root.classList.remove("search-select-focused");
+    if (!root.contains(event.relatedTarget)) root.classList.remove("search-select-focused");
     if (event.relatedTarget !== toggle) close();
   });
-  toggle.addEventListener("focus", () =>
-    root.classList.add("search-select-focused"),
-  );
+  toggle.addEventListener("focus", () => root.classList.add("search-select-focused"));
   toggle.addEventListener("blur", () => {
-    if (!root.contains(document.activeElement))
-      root.classList.remove("search-select-focused");
+    if (!root.contains(document.activeElement)) root.classList.remove("search-select-focused");
   });
   input.addEventListener("input", () => renderOptions(input.value));
   input.addEventListener("keydown", (event) => {
@@ -2352,8 +2587,7 @@ function enhanceSelect(select) {
     toggleShouldClose = false;
   });
   toggle.addEventListener("keydown", (event) => {
-    if (!open || (event.key !== "ArrowDown" && event.key !== "ArrowUp"))
-      return;
+    if (!open || (event.key !== "ArrowDown" && event.key !== "ArrowUp")) return;
     event.preventDefault();
     input.focus();
     activate(event.key === "ArrowDown" ? 0 : visibleOptions.length - 1);
@@ -2380,9 +2614,7 @@ function enhanceSelects(container) {
 function enhanceDatalist(input) {
   if (input.dataset.searchList === "true" || !input.list) return;
   const datalist = input.list;
-  const options = [
-    ...new Set([...datalist.options].map((option) => option.value)),
-  ];
+  const options = [...new Set([...datalist.options].map((option) => option.value))];
   if (!options.length) return;
   input.dataset.searchList = "true";
   input.removeAttribute("list");
@@ -2391,9 +2623,7 @@ function enhanceDatalist(input) {
   const labelName =
     label?.querySelector(":scope > span")?.textContent.trim() ||
     [...(label?.childNodes || [])]
-      .find(
-        (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
-      )
+      .find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim())
       ?.textContent.trim() ||
     "ตัวเลือก";
   const listId = "search-suggestions-" + ++selectId;
@@ -2419,8 +2649,7 @@ function enhanceDatalist(input) {
   toggle.className = "search-select-toggle";
   toggle.setAttribute("aria-label", "แสดงคำแนะนำ " + labelName);
   toggle.setAttribute("aria-expanded", "false");
-  toggle.innerHTML =
-    '<span class="search-select-chevron" aria-hidden="true"></span>';
+  toggle.innerHTML = '<span class="search-select-chevron" aria-hidden="true"></span>';
   const panel = document.createElement("div");
   panel.className = "search-select-panel";
   panel.hidden = true;
@@ -2442,12 +2671,12 @@ function enhanceDatalist(input) {
 
   function renderOptions(query = input.value) {
     const normalized = key(query);
-    const badgeType = input.id === "f-location" ||
+    const badgeType =
+      input.id === "f-location" ||
       (input.dataset.field === "location" && input.closest(".receipt-row"))
-      ? "location" : null;
-    visibleOptions = options.filter((option) =>
-      key(option).includes(normalized),
-    );
+        ? "location"
+        : null;
+    visibleOptions = options.filter((option) => key(option).includes(normalized));
     activeIndex = -1;
     list.innerHTML = visibleOptions.length
       ? visibleOptions
@@ -2537,19 +2766,13 @@ function enhanceDatalist(input) {
     root.classList.remove("search-select-focused");
     close();
   });
-  toggle.addEventListener("focus", () =>
-    root.classList.add("search-select-focused"),
-  );
+  toggle.addEventListener("focus", () => root.classList.add("search-select-focused"));
   toggle.addEventListener("blur", () => {
-    if (!root.contains(document.activeElement))
-      root.classList.remove("search-select-focused");
+    if (!root.contains(document.activeElement)) root.classList.remove("search-select-focused");
   });
-  edit.addEventListener("focus", () =>
-    root.classList.add("search-select-focused"),
-  );
+  edit.addEventListener("focus", () => root.classList.add("search-select-focused"));
   edit.addEventListener("blur", () => {
-    if (!root.contains(document.activeElement))
-      root.classList.remove("search-select-focused");
+    if (!root.contains(document.activeElement)) root.classList.remove("search-select-focused");
   });
   input.addEventListener("input", () => {
     if (focusSession) focusValueChanged = true;
@@ -2651,17 +2874,13 @@ function editorFields(data, isShopping) {
     '<label>ที่เก็บ<input id="f-location" autocomplete="off" maxlength="60" list="rooms" value="' +
     esc(data.location) +
     '"><datalist id="rooms">' +
-    opts([
-      ...new Set([
-        ...rooms,
-        ...stock.items.map((i) => i.location).filter(Boolean),
-      ]),
-    ]) +
+    opts([...new Set([...rooms, ...stock.items.map((i) => i.location).filter(Boolean)])]) +
     "</datalist></label>" +
     '<div class="span photo-edit"><label>รูปภาพ (ถ้ามี)<input type="file" id="f-photo" accept="image/*"></label><div id="photo-preview"></div></div>' +
     '<div class="span barcode-field"><label for="f-barcode">บาร์โค้ดสินค้า (ถ้ามี)</label>' +
     '<div class="barcode-input-row"><input id="f-barcode" inputmode="numeric" pattern="[0-9]{8,14}" maxlength="14" value="' +
-    esc(data.barcode || "") + '">' +
+    esc(data.barcode || "") +
+    '">' +
     '<button type="button" class="secondary" data-action="scan-barcode">สแกน</button></div>' +
     '<p id="barcode-hint" class="form-help" role="status"></p>' +
     '<div id="barcode-scanner" class="barcode-scanner" hidden><video id="barcode-video" autoplay muted playsinline></video>' +
@@ -2681,7 +2900,8 @@ function editorFields(data, isShopping) {
     esc(data.date) +
     '"></span></label>' +
     '<label class="span">แจ้งเตือนก่อนกำหนดภายใน (วัน)<input id="f-notify-before-days" type="number" inputmode="numeric" min="0" max="365" step="1" placeholder="ใช้ค่าเริ่มต้นจาก Settings" value="' +
-    esc(data.notifyBeforeDays ?? "") + '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใส่ 0 เพื่อเตือนในวันที่กำหนด · ใช้กับ EXP/BBE และต้องตั้งค่าการแจ้งเตือนใน Settings บนอุปกรณ์นี้</span></label></div>'
+    esc(data.notifyBeforeDays ?? "") +
+    '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใส่ 0 เพื่อเตือนในวันที่กำหนด · ใช้กับ EXP/BBE และต้องตั้งค่าการแจ้งเตือนใน Settings บนอุปกรณ์นี้</span></label></div>'
   );
 }
 
@@ -2719,15 +2939,15 @@ function mealIngredientRow(item = {}) {
     esc(qty) +
     '"></label><label>หน่วย<span class="meal-ingredient-unit-field">' +
     ingredientUnitFieldHtml(rowId, unit, locked) +
-    '</span></label>' +
+    "</span></label>" +
     '<div class="meal-ingredient-actions">' +
-    '<p class="meal-ingredient-hint">'+
+    '<p class="meal-ingredient-hint">' +
     ingredientHintHtml(locked, stockQty, qty, unit) +
     "</p>" +
     '<button type="button" class="meal-remove-ingredient text-button danger" data-action="remove-meal-ingredient" aria-label="ลบวัตถุดิบ">' +
     '<svg class="trash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>' +
-    '<span>ลบ</span>' +
-    '</button>' +
+    "<span>ลบ</span>" +
+    "</button>" +
     "</div></div>"
   );
 }
@@ -2751,9 +2971,7 @@ function mealEditorFields(plan, defaultDate, selectedRecipeId = "") {
         "</option>",
     )
     .join("");
-  const templateSaveLabel = templateId
-    ? "อัปเดตเมนูต้นแบบด้วย"
-    : "บันทึกเมนูนี้ไว้ใช้ครั้งต่อไป";
+  const templateSaveLabel = templateId ? "อัปเดตเมนูต้นแบบด้วย" : "บันทึกเมนูนี้ไว้ใช้ครั้งต่อไป";
   return (
     '<div class="form-grid"><label class="span">เริ่มจากเมนูที่บันทึกไว้<select id="meal-template"><option value="">สร้างแผนใหม่</option>' +
     templateOptions +
@@ -2807,11 +3025,7 @@ function startRecipeEditor(recipe = null) {
   if (!$("#meal-editor").open) $("#meal-editor").showModal();
 }
 
-function startMealEditor(
-  plan = null,
-  date = selectedCalendarDate,
-  recipeId = "",
-) {
+function startMealEditor(plan = null, date = selectedCalendarDate, recipeId = "") {
   if (!stock || busy) return;
   mealDraft = {
     mode: "plan",
@@ -2821,11 +3035,8 @@ function startMealEditor(
   };
   const today = new Date();
   const defaultDate =
-    date ||
-    calendarDateKey(today.getFullYear(), today.getMonth(), today.getDate());
-  $("#meal-editor-title").textContent = plan
-    ? "แก้ไขแผนทำอาหาร"
-    : "วางแผนทำอาหาร";
+    date || calendarDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  $("#meal-editor-title").textContent = plan ? "แก้ไขแผนทำอาหาร" : "วางแผนทำอาหาร";
   $("#meal-error").textContent = "";
   $("#meal-save").textContent = plan ? "บันทึกแผน" : "วางแผน";
   $("#meal-save").disabled = false;
@@ -2836,9 +3047,7 @@ function startMealEditor(
 }
 
 function mealFormIngredients() {
-  const rows = [
-    ...$("#meal-ingredients").querySelectorAll(".meal-ingredient-row"),
-  ];
+  const rows = [...$("#meal-ingredients").querySelectorAll(".meal-ingredient-row")];
   if (!rows.length) throw new Error("เพิ่มวัตถุดิบอย่างน้อย 1 รายการ");
   return rows.map((row) => {
     const name = row.querySelector(".meal-ingredient-name")?.value.trim();
@@ -2884,8 +3093,7 @@ async function mealMutation(change, done) {
       : error instanceof ApiError
         ? errorText(error)
         : error.message || "บันทึกแผนไม่ได้";
-    if (conflict || error.status === 0 || error.status >= 500)
-      await refresh(true);
+    if (conflict || error.status === 0 || error.status >= 500) await refresh(true);
     if ($("#meal-editor").open) {
       $("#meal-error").textContent = message;
       if (conflict) mealDraft.stale = true;
@@ -2893,8 +3101,7 @@ async function mealMutation(change, done) {
   } finally {
     busy = false;
     stopButtonLoading(loadingButton);
-    if ($("#meal-editor").open)
-      $("#meal-save").disabled = Boolean(mealDraft?.stale);
+    if ($("#meal-editor").open) $("#meal-save").disabled = Boolean(mealDraft?.stale);
   }
 }
 
@@ -2902,15 +3109,12 @@ $("#meal-fields").addEventListener("change", (event) => {
   if (event.target.id !== "meal-template") return;
   const recipe = stock.recipes?.find((item) => item.id === event.target.value);
   if (!recipe) {
-    $("#meal-template-save-label").textContent =
-      "บันทึกเมนูนี้ไว้ใช้ครั้งต่อไป";
+    $("#meal-template-save-label").textContent = "บันทึกเมนูนี้ไว้ใช้ครั้งต่อไป";
     return;
   }
   $("#meal-name").value = recipe.name;
   $("#meal-servings").value = recipe.servings;
-  $("#meal-ingredients").innerHTML = recipe.ingredients
-    .map(mealIngredientRow)
-    .join("");
+  $("#meal-ingredients").innerHTML = recipe.ingredients.map(mealIngredientRow).join("");
   $("#meal-save-template").checked = false;
   $("#meal-template-save-label").textContent = "อัปเดตเมนูต้นแบบด้วย";
   enhanceDatalists($("#meal-ingredients"));
@@ -2919,10 +3123,8 @@ $("#meal-fields").addEventListener("change", (event) => {
 $("#meal-fields").addEventListener("input", (event) => {
   const row = event.target.closest(".meal-ingredient-row");
   if (!row) return;
-  if (event.target.classList.contains("meal-ingredient-name"))
-    return refreshIngredientRow(row);
-  if (event.target.classList.contains("meal-ingredient-qty"))
-    return updateIngredientHint(row);
+  if (event.target.classList.contains("meal-ingredient-name")) return refreshIngredientRow(row);
+  if (event.target.classList.contains("meal-ingredient-qty")) return updateIngredientHint(row);
 });
 
 $("#meal-form").addEventListener("submit", async (event) => {
@@ -2940,21 +3142,14 @@ $("#meal-form").addEventListener("submit", async (event) => {
   const name = $("#meal-name").value.trim();
   const servings = Number($("#meal-servings").value);
   if (mealDraft.mode === "recipe") {
-    if (
-      !name ||
-      !Number.isInteger(servings) ||
-      servings < 1 ||
-      servings > 100
-    ) {
+    if (!name || !Number.isInteger(servings) || servings < 1 || servings > 100) {
       $("#meal-error").textContent = "กรุณาตรวจชื่อเมนูและจำนวนเสิร์ฟ (1-100)";
       return;
     }
     await mealMutation(
       (next) => {
         next.recipes ||= [];
-        const current = next.recipes.find(
-          (recipe) => recipe.id === mealDraft.recipeId,
-        );
+        const current = next.recipes.find((recipe) => recipe.id === mealDraft.recipeId);
         const recipe = {
           id: mealDraft.recipeId || crypto.randomUUID(),
           name,
@@ -2972,13 +3167,7 @@ $("#meal-form").addEventListener("submit", async (event) => {
   const date = $("#meal-date").value;
   const selectedRecipeId = $("#meal-template").value || null;
   const saveTemplate = $("#meal-save-template").checked;
-  if (
-    !name ||
-    !date ||
-    !Number.isInteger(servings) ||
-    servings < 1 ||
-    servings > 100
-  ) {
+  if (!name || !date || !Number.isInteger(servings) || servings < 1 || servings > 100) {
     $("#meal-error").textContent = "กรุณาตรวจชื่อเมนู วันที่ และจำนวนเสิร์ฟ";
     return;
   }
@@ -3018,9 +3207,7 @@ $("#meal-form").addEventListener("submit", async (event) => {
           });
         }
       }
-      const existing = next.mealPlans.find(
-        (item) => item.id === mealDraft.planId,
-      );
+      const existing = next.mealPlans.find((item) => item.id === mealDraft.planId);
       const plan = {
         id: mealDraft.planId || crypto.randomUUID(),
         recipeId,
@@ -3098,11 +3285,9 @@ function startEditor(mode, data = {}, sourceId = "") {
           : "บันทึก";
   let fields;
   if (mode === "remove-meal-plan")
-    fields =
-      "<p>ลบแผนทำอาหาร <strong>“" + esc(base.name) + "”</strong> ใช่ไหม</p>";
+    fields = "<p>ลบแผนทำอาหาร <strong>“" + esc(base.name) + "”</strong> ใช่ไหม</p>";
   else if (mode === "remove-recipe")
-    fields =
-      "<p>ลบเมนูต้นแบบ <strong>“" + esc(base.name) + "”</strong> ใช่ไหม</p>";
+    fields = "<p>ลบเมนูต้นแบบ <strong>“" + esc(base.name) + "”</strong> ใช่ไหม</p>";
   else if (mode.startsWith("remove-"))
     fields =
       "<p>ลบ " +
@@ -3175,8 +3360,7 @@ function initializeDialogSheets() {
     const dismiss = () => {
       if (!dialog.open || busy) return;
       // Use the same cancellation guards and close cleanup as Escape.
-      if (dialog.dispatchEvent(new Event("cancel", { cancelable: true })))
-        dialog.close();
+      if (dialog.dispatchEvent(new Event("cancel", { cancelable: true }))) dialog.close();
     };
     const reset = () => {
       const active = gesture;
@@ -3188,13 +3372,23 @@ function initializeDialogSheets() {
     };
     const start = (event) => {
       if (!gesture) suppressClick = false;
-      if (!mobile.matches || !dialog.open || busy || gesture ||
-          !event.isPrimary || event.button !== 0 ||
-          (event.currentTarget !== handle &&
-            event.target.closest("button, input, select, textarea, a"))) return;
+      if (
+        !mobile.matches ||
+        !dialog.open ||
+        busy ||
+        gesture ||
+        !event.isPrimary ||
+        event.button !== 0 ||
+        (event.currentTarget !== handle &&
+          event.target.closest("button, input, select, textarea, a"))
+      )
+        return;
       gesture = {
-        id: event.pointerId, surface: event.currentTarget,
-        x: event.clientX, y: event.clientY, distance: 0,
+        id: event.pointerId,
+        surface: event.currentTarget,
+        x: event.clientX,
+        y: event.clientY,
+        distance: 0,
       };
       gesture.surface.setPointerCapture(gesture.id);
     };
@@ -3242,50 +3436,91 @@ initializeDialogSheets();
 function renderPhoto() {
   const holder = $("#photo-preview");
   if (!holder) return;
-  const src =
-    previewUrl ||
-    (draft.photo ? "/api/photo?id=" + encodeURIComponent(draft.photo) : "");
+  const src = previewUrl || (draft.photo ? "/api/photo?id=" + encodeURIComponent(draft.photo) : "");
   holder.innerHTML = src
     ? '<img alt="รูปของที่เลือก" src="' +
       esc(src) +
       '">' +
       button("remove-photo", "ลบรูป", "", "text-button")
     : draft.icon
-      ? '<span class="thumb placeholder"' + itemIconStyle(draft) + '>' + itemIconSvg(draft.icon, "item-icon", draft.iconColor, draft.iconBackground) + "</span>" +
+      ? '<span class="thumb placeholder"' +
+        itemIconStyle(draft) +
+        ">" +
+        itemIconSvg(draft.icon, "item-icon", draft.iconColor, draft.iconBackground) +
+        "</span>" +
         button("remove-photo", "ลบไอคอน", "", "text-button")
       : "";
 }
 function renderItemMediaColorOptions() {
   if (!mediaDraft) return;
-  const render = (options, selected, action) => Object.entries(options).map(([id, color]) =>
-    '<button type="button" class="item-media-color-swatch" data-action="' + action +
-    '" data-id="' + id + '" style="--swatch-color:' + color.value + '" aria-label="' +
-    color.label + '" title="' + color.label + '" aria-pressed="' + (selected === id) + '"></button>'
-  ).join("");
-  $("#item-media-icon-color-options").innerHTML = render(itemIconColors, mediaDraft.iconColor, "select-item-icon-color");
-  $("#item-media-icon-bg-options").innerHTML = render(itemIconBackgrounds, mediaDraft.iconBackground, "select-item-icon-background");
-  $("#item-media-custom-icon-color").value = iconColorValue(mediaDraft.iconColor, itemIconColors, "green");
-  $("#item-media-custom-icon-background").value = iconColorValue(mediaDraft.iconBackground, itemIconBackgrounds, "mint");
+  const render = (options, selected, action) =>
+    Object.entries(options)
+      .map(
+        ([id, color]) =>
+          '<button type="button" class="item-media-color-swatch" data-action="' +
+          action +
+          '" data-id="' +
+          id +
+          '" style="--swatch-color:' +
+          color.value +
+          '" aria-label="' +
+          color.label +
+          '" title="' +
+          color.label +
+          '" aria-pressed="' +
+          (selected === id) +
+          '"></button>',
+      )
+      .join("");
+  $("#item-media-icon-color-options").innerHTML = render(
+    itemIconColors,
+    mediaDraft.iconColor,
+    "select-item-icon-color",
+  );
+  $("#item-media-icon-bg-options").innerHTML = render(
+    itemIconBackgrounds,
+    mediaDraft.iconBackground,
+    "select-item-icon-background",
+  );
+  $("#item-media-custom-icon-color").value = iconColorValue(
+    mediaDraft.iconColor,
+    itemIconColors,
+    "green",
+  );
+  $("#item-media-custom-icon-background").value = iconColorValue(
+    mediaDraft.iconBackground,
+    itemIconBackgrounds,
+    "mint",
+  );
 }
 function renderItemMediaPreview() {
   if (!mediaDraft) return;
-  const src = mediaDraft.preview ||
+  const src =
+    mediaDraft.preview ||
     (mediaDraft.photo ? "/api/photo?id=" + encodeURIComponent(mediaDraft.photo) : "");
   $("#item-media-preview").innerHTML = src
     ? '<img alt="รูปของที่เลือก" src="' + esc(src) + '">'
-    : '<span class="thumb placeholder"' + itemIconStyle(mediaDraft) + '>' +
-      (itemIconSvg(mediaDraft.icon, "item-icon", mediaDraft.iconColor, mediaDraft.iconBackground) || esc([...mediaDraft.name][0] || "·")) + "</span>";
+    : '<span class="thumb placeholder"' +
+      itemIconStyle(mediaDraft) +
+      ">" +
+      (itemIconSvg(mediaDraft.icon, "item-icon", mediaDraft.iconColor, mediaDraft.iconBackground) ||
+        esc([...mediaDraft.name][0] || "·")) +
+      "</span>";
   $("#item-media-icon-colors").hidden = !mediaDraft.icon;
   renderItemMediaColorOptions();
   document.querySelectorAll(".item-media-choice").forEach((choice) => {
-    const selected = choice.dataset.action === "select-item-photo"
-      ? !mediaDraft.blob && mediaDraft.photo === choice.dataset.id
-      : choice.dataset.action === "select-item-icon" && mediaDraft.icon === choice.dataset.id;
+    const selected =
+      choice.dataset.action === "select-item-photo"
+        ? !mediaDraft.blob && mediaDraft.photo === choice.dataset.id
+        : choice.dataset.action === "select-item-icon" && mediaDraft.icon === choice.dataset.id;
     choice.setAttribute("aria-pressed", String(selected));
     const icon = choice.querySelector(".item-icon");
     if (icon) {
       icon.style.color = iconColorValue(mediaDraft.iconColor, itemIconColors, "green");
-      icon.style.setProperty("--item-icon-bg", iconColorValue(mediaDraft.iconBackground, itemIconBackgrounds, "mint"));
+      icon.style.setProperty(
+        "--item-icon-bg",
+        iconColorValue(mediaDraft.iconBackground, itemIconBackgrounds, "mint"),
+      );
     }
   });
   $("#item-media-save").disabled = Boolean(mediaDraft.processing || mediaDraft.stale);
@@ -3295,24 +3530,52 @@ function startItemMedia(item) {
   if (busy || !stock) return;
   ++generation;
   mediaDraft = {
-    id: item.id, name: item.name, version: stock.version,
-    photo: item.photo || null, icon: item.icon || null,
-    iconColor: item.iconColor || "green", iconBackground: item.iconBackground || "mint",
-    blob: null, preview: "", task: 0, processing: false, stale: false,
+    id: item.id,
+    name: item.name,
+    version: stock.version,
+    photo: item.photo || null,
+    icon: item.icon || null,
+    iconColor: item.iconColor || "green",
+    iconBackground: item.iconBackground || "mint",
+    blob: null,
+    preview: "",
+    task: 0,
+    processing: false,
+    stale: false,
   };
   $("#item-media-name").textContent = item.name;
   $("#item-media-error").textContent = "";
   $("#item-media-file").value = "";
-  const photos = [...new Map(stock.items.filter((entry) => entry.photo)
-    .map((entry) => [entry.photo, entry])).values()];
+  const photos = [
+    ...new Map(
+      stock.items.filter((entry) => entry.photo).map((entry) => [entry.photo, entry]),
+    ).values(),
+  ];
   $("#item-media-photos").innerHTML = photos.length
-    ? photos.map((entry) => button("select-item-photo",
-      thumb(entry) + "<span>" + esc(entry.name) + "</span>", entry.photo,
-      "item-media-choice")).join("")
+    ? photos
+        .map((entry) =>
+          button(
+            "select-item-photo",
+            thumb(entry) + "<span>" + esc(entry.name) + "</span>",
+            entry.photo,
+            "item-media-choice",
+          ),
+        )
+        .join("")
     : '<p class="form-help">ยังไม่มีรูปที่เคยอัปโหลด</p>';
-  $("#item-media-icons").innerHTML = Object.entries(itemIcons).map(([id, icon]) =>
-    button("select-item-icon", itemIconSvg(id, "item-icon", mediaDraft.iconColor, mediaDraft.iconBackground) + "<span>" + esc(icon.label) +
-      "</span>", id, "item-media-choice")).join("");
+  $("#item-media-icons").innerHTML = Object.entries(itemIcons)
+    .map(([id, icon]) =>
+      button(
+        "select-item-icon",
+        itemIconSvg(id, "item-icon", mediaDraft.iconColor, mediaDraft.iconBackground) +
+          "<span>" +
+          esc(icon.label) +
+          "</span>",
+        id,
+        "item-media-choice",
+      ),
+    )
+    .join("");
   renderItemMediaPreview();
   $("#item-media-dialog").showModal();
 }
@@ -3323,9 +3586,13 @@ function selectItemMedia(photo, icon) {
   ++mediaDraft.task;
   if (mediaDraft.preview) URL.revokeObjectURL(mediaDraft.preview);
   Object.assign(mediaDraft, {
-    photo, icon, blob: null, preview: "", processing: false,
-    iconColor: icon ? (mediaDraft.iconColor || "green") : "green",
-    iconBackground: icon ? (mediaDraft.iconBackground || "mint") : "mint",
+    photo,
+    icon,
+    blob: null,
+    preview: "",
+    processing: false,
+    iconColor: icon ? mediaDraft.iconColor || "green" : "green",
+    iconBackground: icon ? mediaDraft.iconBackground || "mint" : "mint",
   });
   $("#item-media-file").value = "";
   $("#item-media-error").textContent = "";
@@ -3335,7 +3602,8 @@ function selectItemMedia(photo, icon) {
 $("#item-media-file").addEventListener("change", async (event) => {
   const file = event.target.files[0];
   if (!file || !mediaDraft || busy || mediaDraft.stale) return;
-  const editing = mediaDraft, token = ++editing.task;
+  const editing = mediaDraft,
+    token = ++editing.task;
   editing.processing = true;
   startButtonLoading($("#item-media-save"));
   $("#item-media-save").disabled = true;
@@ -3345,7 +3613,10 @@ $("#item-media-file").addEventListener("change", async (event) => {
     if (mediaDraft !== editing || editing.task !== token) return;
     if (editing.preview) URL.revokeObjectURL(editing.preview);
     Object.assign(editing, {
-      blob, photo: null, icon: null, preview: URL.createObjectURL(blob),
+      blob,
+      photo: null,
+      icon: null,
+      preview: URL.createObjectURL(blob),
     });
     $("#item-media-error").textContent = "";
   } catch (error) {
@@ -3374,34 +3645,39 @@ async function saveItemMedia() {
   if (!mediaDraft || busy || mediaDraft.processing || mediaDraft.stale) return;
   const editing = mediaDraft;
   $("#item-media-error").textContent = "";
-  await mutation(async (next) => {
-    const item = next.items.find((entry) => entry.id === editing.id);
-    if (!item) throw new Error("ไม่พบรายการนี้ กรุณาโหลดของในบ้านใหม่");
-    if (editing.blob) {
-      const uploaded = await request("photo", {
-        method: "POST", headers: { "Content-Type": "image/jpeg" }, body: editing.blob,
-      });
-      editing.photo = uploaded.id;
-      editing.blob = null;
-    }
-    item.photo = editing.photo;
-    item.icon = editing.icon;
-    if (editing.icon) {
-      item.iconColor = editing.iconColor;
-      item.iconBackground = editing.iconBackground;
-    } else {
-      delete item.iconColor;
-      delete item.iconBackground;
-    }
-  }, editing.version, () => {
-    $("#item-media-dialog").close();
-    alertUser("บันทึกรูปหรือไอคอนแล้ว");
-  });
+  await mutation(
+    async (next) => {
+      const item = next.items.find((entry) => entry.id === editing.id);
+      if (!item) throw new Error("ไม่พบรายการนี้ กรุณาโหลดของในบ้านใหม่");
+      if (editing.blob) {
+        const uploaded = await request("photo", {
+          method: "POST",
+          headers: { "Content-Type": "image/jpeg" },
+          body: editing.blob,
+        });
+        editing.photo = uploaded.id;
+        editing.blob = null;
+      }
+      item.photo = editing.photo;
+      item.icon = editing.icon;
+      if (editing.icon) {
+        item.iconColor = editing.iconColor;
+        item.iconBackground = editing.iconBackground;
+      } else {
+        delete item.iconColor;
+        delete item.iconBackground;
+      }
+    },
+    editing.version,
+    () => {
+      $("#item-media-dialog").close();
+      alertUser("บันทึกรูปหรือไอคอนแล้ว");
+    },
+  );
 }
 
 async function jpeg(file) {
-  if (file.size > 25 * 1024 * 1024)
-    throw new Error("กรุณาเลือกรูปขนาดไม่เกิน 25 MB");
+  if (file.size > 25 * 1024 * 1024) throw new Error("กรุณาเลือกรูปขนาดไม่เกิน 25 MB");
   const url = URL.createObjectURL(file);
   try {
     const img = new Image();
@@ -3422,9 +3698,7 @@ async function jpeg(file) {
     const sx = Math.floor((img.naturalWidth - side) / 2);
     const sy = Math.floor((img.naturalHeight - side) / 2);
     ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.5),
-    );
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.5));
     if (blob && blob.size <= 450000) return blob;
     throw new Error("ย่อรูปไม่ได้ กรุณาเลือกรูปขนาดเล็กลง");
   } finally {
@@ -3447,9 +3721,17 @@ function stopBarcodeScan() {
   clearTimeout(nativeBarcodeTimer);
   nativeBarcodeTimer = 0;
   const zoom = $("#barcode-zoom");
-  if (zoom) { zoom.disabled = true; zoom.value = "1"; zoom.min = "1"; zoom.max = "1"; }
+  if (zoom) {
+    zoom.disabled = true;
+    zoom.value = "1";
+    zoom.min = "1";
+    zoom.max = "1";
+  }
   const torch = $("#barcode-torch");
-  if (torch) { torch.hidden = true; torch.textContent = "เปิดไฟฉาย"; }
+  if (torch) {
+    torch.hidden = true;
+    torch.textContent = "เปิดไฟฉาย";
+  }
   const video = $("#barcode-video");
   video?.srcObject?.getTracks().forEach((track) => track.stop());
   if (video) video.srcObject = null;
@@ -3460,8 +3742,9 @@ function applyBarcode(code) {
   const hint = $("#barcode-hint");
   if (!hint || !/^[0-9]{8,14}$/.test(code)) return;
   $("#f-barcode").value = code;
-  const known = [...(stock.recentItems || []), ...stock.items]
-    .find((item) => item.barcode === code);
+  const known = [...(stock.recentItems || []), ...stock.items].find(
+    (item) => item.barcode === code,
+  );
   if (known) {
     $("#f-name").value = known.name;
     $("#f-unit").value = known.unit;
@@ -3494,11 +3777,14 @@ async function startNativeBarcodeFallback(video, token, hint) {
   let detector;
   try {
     const supported = await window.BarcodeDetector.getSupportedFormats();
-    const formats = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "itf"]
-      .filter((format) => supported.includes(format));
+    const formats = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "itf"].filter(
+      (format) => supported.includes(format),
+    );
     if (!formats.length) return;
-    detector = new window.BarcodeDetector({formats});
-  } catch { return; }
+    detector = new window.BarcodeDetector({ formats });
+  } catch {
+    return;
+  }
   const scan = async () => {
     if (token !== barcodeScanToken || !video.srcObject) return;
     try {
@@ -3509,21 +3795,28 @@ async function startNativeBarcodeFallback(video, token, hint) {
         applyBarcode(match.rawValue);
         return;
       }
-    } catch { /* Keep ZXing running if native detection is unavailable for this frame. */ }
+    } catch {
+      /* Keep ZXing running if native detection is unavailable for this frame. */
+    }
     nativeBarcodeTimer = setTimeout(scan, 180);
   };
   scan();
 }
 
 $("#barcode-zoom")?.addEventListener("input", (event) => {
-  if (barcodeTrack) barcodeTrack.applyConstraints({advanced: [{zoom: Number(event.target.value)}]}).catch(() => {});
+  if (barcodeTrack)
+    barcodeTrack
+      .applyConstraints({ advanced: [{ zoom: Number(event.target.value) }] })
+      .catch(() => {});
 });
 
 async function toggleBarcodeTorch() {
   if (!barcodeTrack) return;
   barcodeTorchOn = !barcodeTorchOn;
   try {
-    await barcodeTrack.applyConstraints({advanced: [{torch: barcodeTorchOn}]});
+    await barcodeTrack.applyConstraints({
+      advanced: [{ torch: barcodeTorchOn }],
+    });
     $("#barcode-torch").textContent = barcodeTorchOn ? "ปิดไฟฉาย" : "เปิดไฟฉาย";
   } catch {
     barcodeTorchOn = false;
@@ -3543,21 +3836,38 @@ async function startBarcodeScan() {
   $("#barcode-scanner").hidden = false;
   hint.textContent = "กำลังเปิดกล้อง…";
   try {
-    const {BrowserMultiFormatOneDReader, BarcodeFormat, DecodeHintType} = await import('/barcode-scanner.js');
+    const { BrowserMultiFormatOneDReader, BarcodeFormat, DecodeHintType } =
+      await import("/barcode-scanner.js");
     if (token !== barcodeScanToken || !$("#editor").open) return;
     const hints = new Map([
       [DecodeHintType.TRY_HARDER, true],
-      [DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A,
-        BarcodeFormat.UPC_E, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
-        BarcodeFormat.ITF,
-      ]],
+      [
+        DecodeHintType.POSSIBLE_FORMATS,
+        [
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.UPC_A,
+          BarcodeFormat.UPC_E,
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.ITF,
+        ],
+      ],
     ]);
     const reader = new BrowserMultiFormatOneDReader(hints, {
-      delayBetweenScanAttempts: 180, delayBetweenScanSuccess: 180,
+      delayBetweenScanAttempts: 180,
+      delayBetweenScanSuccess: 180,
     });
     const controls = await reader.decodeFromConstraints(
-      {video: {facingMode: {ideal: 'environment'}, width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 30}}}, $("#barcode-video"),
+      {
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 },
+        },
+      },
+      $("#barcode-video"),
       (result) => {
         if (token !== barcodeScanToken || !result) return;
         const code = result.getText();
@@ -3567,7 +3877,8 @@ async function startBarcodeScan() {
         }
         stopBarcodeScan();
         applyBarcode(code);
-      });
+      },
+    );
     if (token !== barcodeScanToken || !$("#editor").open) controls.stop();
     else {
       barcodeScanControls = controls;
@@ -3578,9 +3889,10 @@ async function startBarcodeScan() {
     }
   } catch (error) {
     stopBarcodeScan();
-    hint.textContent = error?.name === 'NotAllowedError' ?
-      "กรุณาอนุญาตให้ใช้กล้อง หรือพิมพ์เลขบาร์โค้ด" :
-      "เปิดกล้องหรืออ่านบาร์โค้ดไม่ได้ กรุณาพิมพ์เลขบาร์โค้ด";
+    hint.textContent =
+      error?.name === "NotAllowedError"
+        ? "กรุณาอนุญาตให้ใช้กล้อง หรือพิมพ์เลขบาร์โค้ด"
+        : "เปิดกล้องหรืออ่านบาร์โค้ดไม่ได้ กรุณาพิมพ์เลขบาร์โค้ด";
   }
 }
 
@@ -3591,12 +3903,10 @@ function populateKnown() {
     .find((i) => key(i.name) === key($("#f-name").value));
   if (!known) return;
   if ($("#f-unit").value === "ชิ้น") $("#f-unit").value = known.unit;
-  if ($("#f-location") && !$("#f-location").value)
-    $("#f-location").value = known.location;
+  if ($("#f-location") && !$("#f-location").value) $("#f-location").value = known.location;
   if ($("#f-category") && $("#f-category").value === "อื่น ๆ")
     $("#f-category").value = known.category;
-  if ($("#f-barcode") && !$("#f-barcode").value)
-    $("#f-barcode").value = known.barcode || "";
+  if ($("#f-barcode") && !$("#f-barcode").value) $("#f-barcode").value = known.barcode || "";
 }
 
 $("#fields").addEventListener("change", async (event) => {
@@ -3670,13 +3980,15 @@ function formItem() {
     date: $("#f-date").value,
     dateKind: $("#f-kind").value,
     ...(notifyBeforeDays === undefined ? {} : { notifyBeforeDays }),
-    ...($("#f-barcode").value.trim() ? {barcode: $("#f-barcode").value.trim()} : {}),
+    ...($("#f-barcode").value.trim() ? { barcode: $("#f-barcode").value.trim() } : {}),
     photo: draft.photo,
     ...(draft.icon !== undefined ? { icon: draft.icon } : {}),
-    ...(draft.icon ? {
-      iconColor: draft.iconColor || "green",
-      iconBackground: draft.iconBackground || "mint",
-    } : {}),
+    ...(draft.icon
+      ? {
+          iconColor: draft.iconColor || "green",
+          iconBackground: draft.iconBackground || "mint",
+        }
+      : {}),
   };
 }
 
@@ -3686,8 +3998,15 @@ async function mutation(change, expected, done) {
   const inImportDialog = $("#excel-import-dialog").open;
   const inReceiptDialog = $("#receipt-dialog").open;
   const inMediaDialog = $("#item-media-dialog").open;
-  const loadingButton = inDialog ? $("#save") : inImportDialog ? $("#excel-import-confirm") :
-    inReceiptDialog ? $("#receipt-confirm") : inMediaDialog ? $("#item-media-save") : pendingActionButton;
+  const loadingButton = inDialog
+    ? $("#save")
+    : inImportDialog
+      ? $("#excel-import-confirm")
+      : inReceiptDialog
+        ? $("#receipt-confirm")
+        : inMediaDialog
+          ? $("#item-media-save")
+          : pendingActionButton;
   pendingActionButton = null;
   startButtonLoading(loadingButton);
   busy = true;
@@ -3721,26 +4040,21 @@ async function mutation(change, expected, done) {
       : error instanceof ApiError
         ? errorText(error)
         : error.message || "บันทึกไม่ได้";
-    if (conflict || error.status === 0 || error.status >= 500)
-      await refresh(true);
+    if (conflict || error.status === 0 || error.status >= 500) await refresh(true);
     if (inDialog && $("#editor").open) {
       $("#form-error").textContent = message;
-      if (conflict || (draft && draft.version !== stock?.version))
-        draft.stale = true;
+      if (conflict || (draft && draft.version !== stock?.version)) draft.stale = true;
     } else if (inImportDialog && $("#excel-import-dialog").open) {
       $("#excel-import-error").textContent = message;
-      if (pendingStockImport &&
-        (conflict || error.status === 0 || error.status >= 500)) {
+      if (pendingStockImport && (conflict || error.status === 0 || error.status >= 500)) {
         pendingStockImport.stale = true;
-        $("#excel-import-error").textContent +=
-          " · กรุณาตรวจของในบ้านก่อนอัปโหลดใหม่ เพื่อไม่ให้นำเข้าซ้ำ";
+        $("#excel-import-error").textContent += " · กรุณาตรวจของในบ้านก่อนอัปโหลดใหม่ เพื่อไม่ให้นำเข้าซ้ำ";
       }
     } else if (inReceiptDialog && $("#receipt-dialog").open) {
       $("#receipt-error").textContent = message;
       if (pendingReceipt && (conflict || error.status === 0 || error.status >= 500)) {
         pendingReceipt.stale = true;
-        $("#receipt-error").textContent +=
-          ' · กรุณาปิดแล้วสแกนใหม่ เพื่อป้องกันรายการซ้ำ';
+        $("#receipt-error").textContent += " · กรุณาปิดแล้วสแกนใหม่ เพื่อป้องกันรายการซ้ำ";
       }
     } else if (inMediaDialog && $("#item-media-dialog").open) {
       $("#item-media-error").textContent = message;
@@ -3752,12 +4066,10 @@ async function mutation(change, expected, done) {
   } finally {
     busy = false;
     stopButtonLoading(loadingButton);
-    if ($("#editor").open)
-      $("#save").disabled = Boolean(draft?.stale || draft?.processing);
+    if ($("#editor").open) $("#save").disabled = Boolean(draft?.stale || draft?.processing);
     if ($("#excel-import-dialog").open)
       $("#excel-import-confirm").disabled = Boolean(
-        !pendingStockImport || pendingStockImport.stale ||
-        pendingStockImport.errors.length,
+        !pendingStockImport || pendingStockImport.stale || pendingStockImport.errors.length,
       );
     if ($("#receipt-dialog").open)
       $("#receipt-confirm").disabled = Boolean(!pendingReceipt || pendingReceipt.stale);
@@ -3781,10 +4093,9 @@ async function consume(item, qty, version) {
         !next.items.some((i) => i.id !== item.id && i.photo === item.photo)
       ) {
         try {
-          const response = await fetch(
-            "/api/photo?id=" + encodeURIComponent(item.photo),
-            { cache: "no-store" },
-          );
+          const response = await fetch("/api/photo?id=" + encodeURIComponent(item.photo), {
+            cache: "no-store",
+          });
           if (response.ok) removedPhoto = await response.blob();
         } catch {
           /* The stock change can still proceed when a photo is unavailable. */
@@ -3799,9 +4110,7 @@ async function consume(item, qty, version) {
       const savedVersion = stock.version;
       const total = totalFor(item);
       const canUndo =
-        !item.photo ||
-        removedPhoto ||
-        stock.items.some((i) => i.photo === item.photo);
+        !item.photo || removedPhoto || stock.items.some((i) => i.photo === item.photo);
       const undo = canUndo
         ? () =>
             mutation(
@@ -3837,12 +4146,7 @@ async function consume(item, qty, version) {
         );
       else
         alertUser(
-          "ใช้ " +
-            item.name +
-            " ไป " +
-            amountFormat.format(qty) +
-            " " +
-            item.unit,
+          "ใช้ " + item.name + " ไป " + amountFormat.format(qty) + " " + item.unit,
           undo,
           "ย้อนกลับ",
         );
@@ -3856,8 +4160,7 @@ $("#editor-form").addEventListener("submit", async (event) => {
   pendingActionButton = event.submitter;
   const { mode, sourceId, version, initial } = draft;
   $("#form-error").textContent = "";
-  if (mode === "use")
-    return consume(initial, Number($("#f-used").value), version);
+  if (mode === "use") return consume(initial, Number($("#f-used").value), version);
   await mutation(
     async (next) => {
       if (mode === "remove-item") {
@@ -3873,9 +4176,7 @@ $("#editor-form").addEventListener("submit", async (event) => {
         return;
       }
       if (mode === "remove-recipe") {
-        next.recipes = (next.recipes || []).filter(
-          (recipe) => recipe.id !== sourceId,
-        );
+        next.recipes = (next.recipes || []).filter((recipe) => recipe.id !== sourceId);
         next.mealPlans = (next.mealPlans || []).map((plan) =>
           plan.recipeId === sourceId ? { ...plan, recipeId: null } : plan,
         );
@@ -3896,26 +4197,29 @@ $("#editor-form").addEventListener("submit", async (event) => {
         draft.blob = null;
         item.photo = uploaded.id;
       }
-      if (mode === "edit-item")
-        next.items = next.items.map((i) => (i.id === sourceId ? item : i));
+      if (mode === "edit-item") next.items = next.items.map((i) => (i.id === sourceId ? item : i));
       else next.items.push(item);
-      const remembered = {name: item.name, unit: item.unit, category: item.category,
-        location: item.location, barcode: item.barcode || ""};
-      next.recentItems = [remembered, ...(next.recentItems || []).filter((entry) =>
-        key(entry.name) !== key(item.name) || key(entry.unit) !== key(item.unit))].slice(0, 100);
+      const remembered = {
+        name: item.name,
+        unit: item.unit,
+        category: item.category,
+        location: item.location,
+        barcode: item.barcode || "",
+      };
+      next.recentItems = [
+        remembered,
+        ...(next.recentItems || []).filter(
+          (entry) => key(entry.name) !== key(item.name) || key(entry.unit) !== key(item.unit),
+        ),
+      ].slice(0, 100);
       if (draft.mealPlanId) {
-        const plan = next.mealPlans?.find(
-          (entry) => entry.id === draft.mealPlanId,
-        );
+        const plan = next.mealPlans?.find((entry) => entry.id === draft.mealPlanId);
         if (!plan || plan.status !== "cooked" || plan.cookedItemCreated)
-          throw new Error(
-            "แผนนี้ถูกเพิ่มเข้ารายการปรุงสุกแล้ว กรุณาโหลดข้อมูลใหม่",
-          );
+          throw new Error("แผนนี้ถูกเพิ่มเข้ารายการปรุงสุกแล้ว กรุณาโหลดข้อมูลใหม่");
         plan.status = "completed";
         plan.cookedItemCreated = true;
       }
-      if (mode === "receive")
-        next.shopping = next.shopping.filter((i) => i.id !== sourceId);
+      if (mode === "receive") next.shopping = next.shopping.filter((i) => i.id !== sourceId);
     },
     version,
     () =>
@@ -3970,24 +4274,16 @@ function openShortageSummary(plan, target) {
     target === "inventory" ? "เพิ่มของในบ้าน" : "จดรายการซื้อ";
   $("#shortage-summary-error").textContent = "";
   $("#shortage-summary-confirm").disabled = false;
-  $("#shortage-summary-list").innerHTML = shortageSummary.items
-    .map(shortageSummaryRow)
-    .join("");
-  if (!$("#shortage-summary-dialog").open)
-    $("#shortage-summary-dialog").showModal();
+  $("#shortage-summary-list").innerHTML = shortageSummary.items.map(shortageSummaryRow).join("");
+  if (!$("#shortage-summary-dialog").open) $("#shortage-summary-dialog").showModal();
 }
 
 function shortageSummaryItemsFromForm() {
-  const rows = [
-    ...$("#shortage-summary-list").querySelectorAll(".shortage-summary-row"),
-  ];
+  const rows = [...$("#shortage-summary-list").querySelectorAll(".shortage-summary-row")];
   return rows.map((row) => {
-    const base = shortageSummary.items.find(
-      (item) => item.id === row.dataset.id,
-    );
+    const base = shortageSummary.items.find((item) => item.id === row.dataset.id);
     const qty = Number(row.querySelector(".shortage-summary-qty")?.value);
-    if (!(qty > 0 && qty <= 999999))
-      throw new Error("กรุณากรอกจำนวนให้ถูกต้อง");
+    if (!(qty > 0 && qty <= 999999)) throw new Error("กรุณากรอกจำนวนให้ถูกต้อง");
     return { ...base, qty: round(qty) };
   });
 }
@@ -4040,11 +4336,7 @@ async function confirmShortageSummary() {
     stock = next;
     if ($("#shortage-summary-dialog").open) $("#shortage-summary-dialog").close();
     draw();
-    alertUser(
-      target === "inventory"
-        ? "เพิ่มวัตถุดิบที่ขาดในของในบ้านแล้ว"
-        : "เพิ่มวัตถุดิบที่ขาดในรายการซื้อแล้ว",
-    );
+    alertUser(target === "inventory" ? "เพิ่มวัตถุดิบที่ขาดในของในบ้านแล้ว" : "เพิ่มวัตถุดิบที่ขาดในรายการซื้อแล้ว");
   } catch (error) {
     if (error.status === 401) {
       entry("login", errorText(error));
@@ -4056,8 +4348,7 @@ async function confirmShortageSummary() {
       : error instanceof ApiError
         ? errorText(error)
         : error.message || "บันทึกไม่ได้";
-    if (conflict || error.status === 0 || error.status >= 500)
-      await refresh(true);
+    if (conflict || error.status === 0 || error.status >= 500) await refresh(true);
     if ($("#shortage-summary-dialog").open) {
       $("#shortage-summary-error").textContent = message;
       if (conflict) shortageSummary.stale = true;
@@ -4109,15 +4400,16 @@ async function finishMealPlan(plan, createCookedStock = false) {
         const batches = next.items
           .filter(
             (item) =>
-              key(item.name) === key(ingredient.name) &&
-              key(item.unit) === key(ingredient.unit),
+              key(item.name) === key(ingredient.name) && key(item.unit) === key(ingredient.unit),
           )
           .sort((a, b) => {
-            const dateA = ["expiry", "best-before"].includes(a.dateKind) ? a.date || "9999" : "9999";
-            const dateB = ["expiry", "best-before"].includes(b.dateKind) ? b.date || "9999" : "9999";
-            return (
-              dateA.localeCompare(dateB) || a.name.localeCompare(b.name, "th")
-            );
+            const dateA = ["expiry", "best-before"].includes(a.dateKind)
+              ? a.date || "9999"
+              : "9999";
+            const dateB = ["expiry", "best-before"].includes(b.dateKind)
+              ? b.date || "9999"
+              : "9999";
+            return dateA.localeCompare(dateB) || a.name.localeCompare(b.name, "th");
           });
         for (const batch of batches) {
           if (remaining <= 0.0001) break;
@@ -4130,15 +4422,11 @@ async function finishMealPlan(plan, createCookedStock = false) {
       current.status = "cooked";
     },
     stock.version,
-    createCookedStock
-      ? null
-      : () => alertUser(plan.name + " ทำเสร็จแล้ว และตัดวัตถุดิบจากสต็อกแล้ว"),
+    createCookedStock ? null : () => alertUser(plan.name + " ทำเสร็จแล้ว และตัดวัตถุดิบจากสต็อกแล้ว"),
   );
   if (
     createCookedStock &&
-    stock?.mealPlans?.some(
-      (item) => item.id === plan.id && item.status === "cooked",
-    )
+    stock?.mealPlans?.some((item) => item.id === plan.id && item.status === "cooked")
   )
     startEditor("add", {
       name: plan.name,
@@ -4153,7 +4441,9 @@ document.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-action]");
   if (!target || busy) return;
   pendingActionButton = target.tagName === "BUTTON" ? target : null;
-  setTimeout(() => { if (pendingActionButton === target) pendingActionButton = null; }, 0);
+  setTimeout(() => {
+    if (pendingActionButton === target) pendingActionButton = null;
+  }, 0);
   const action = target.dataset.action,
     id = target.dataset.id;
   const item = stock?.items.find((i) => i.id === id);
@@ -4161,7 +4451,9 @@ document.addEventListener("click", async (event) => {
   const mealPlan = stock?.mealPlans?.find((plan) => plan.id === id);
   const recipe = stock?.recipes?.find((item) => item.id === id);
   if (action === "set-item-view") {
-    try { localStorage.setItem("home-stock-item-view-" + tab(), id); } catch {}
+    try {
+      localStorage.setItem("home-stock-item-view-" + tab(), id);
+    } catch {}
     return draw();
   }
   if (action === "filter-card-badge") {
@@ -4188,8 +4480,11 @@ document.addEventListener("click", async (event) => {
   if (action === "retry") {
     startButtonLoading(target);
     entry("checking");
-    try { await refresh(true); }
-    finally { stopButtonLoading(target); }
+    try {
+      await refresh(true);
+    } finally {
+      stopButtonLoading(target);
+    }
     return;
   }
   if (action === "logout") {
@@ -4266,7 +4561,11 @@ document.addEventListener("click", async (event) => {
     renderItemMediaPreview();
     return;
   }
-  if (action === "select-item-icon-background" && mediaDraft && Object.hasOwn(itemIconBackgrounds, id)) {
+  if (
+    action === "select-item-icon-background" &&
+    mediaDraft &&
+    Object.hasOwn(itemIconBackgrounds, id)
+  ) {
     mediaDraft.iconBackground = id;
     renderItemMediaPreview();
     return;
@@ -4277,24 +4576,24 @@ document.addEventListener("click", async (event) => {
     if ($("#excel-import-dialog").open) $("#excel-import-dialog").close();
     return;
   }
-  if (action === 'choose-receipt') {
+  if (action === "choose-receipt") {
     $("#receipt-file").click();
     return;
   }
-  if (action === 'close-receipt') {
+  if (action === "close-receipt") {
     if ($("#receipt-dialog").open) $("#receipt-dialog").close();
     return;
   }
-  if (action === 'receipt-add-row' && pendingReceipt) {
+  if (action === "receipt-add-row" && pendingReceipt) {
     const card = receiptRow();
-    $("#receipt-review").querySelector('details').before(card);
+    $("#receipt-review").querySelector("details").before(card);
     enhanceReceiptRow(card);
     card.querySelector('[data-field="name"]').focus();
     return;
   }
-  if (action === 'receipt-remove-row' && pendingReceipt) {
-    target.closest('.receipt-row')?.remove();
-    $("#receipt-error").textContent = '';
+  if (action === "receipt-remove-row" && pendingReceipt) {
+    target.closest(".receipt-row")?.remove();
+    $("#receipt-error").textContent = "";
     return;
   }
   if (action === "choose-stock-import") {
@@ -4321,8 +4620,7 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "add-recipe") return startRecipeEditor();
   if (action === "edit-recipe" && recipe) return startRecipeEditor(recipe);
-  if (action === "remove-recipe" && recipe)
-    return startEditor("remove-recipe", recipe, id);
+  if (action === "remove-recipe" && recipe) return startEditor("remove-recipe", recipe, id);
   if (action === "add-meal-plan") return startMealEditor(null, id);
   if (action === "plan-recipe" && recipe)
     return startMealEditor(null, selectedCalendarDate, recipe.id);
@@ -4355,21 +4653,14 @@ document.addEventListener("click", async (event) => {
     return openShortageSummary(mealPlan, "inventory");
   if (action === "add-shortages-shopping" && mealPlan)
     return openShortageSummary(mealPlan, "shopping");
-  if (action === "add-meal-shortages" && mealPlan)
-    return openShortageSummary(mealPlan, "shopping");
+  if (action === "add-meal-shortages" && mealPlan) return openShortageSummary(mealPlan, "shopping");
   if (action === "close-shortage-summary") {
-    if (!busy && $("#shortage-summary-dialog").open)
-      $("#shortage-summary-dialog").close();
+    if (!busy && $("#shortage-summary-dialog").open) $("#shortage-summary-dialog").close();
     return;
   }
   if (action === "confirm-shortage-summary") return confirmShortageSummary();
-  if (action === "mark-meal-cooked" && mealPlan)
-    return finishMealPlan(mealPlan);
-  if (
-    action === "complete-meal-plan" &&
-    mealPlan &&
-    mealPlan.status === "cooked"
-  ) {
+  if (action === "mark-meal-cooked" && mealPlan) return finishMealPlan(mealPlan);
+  if (action === "complete-meal-plan" && mealPlan && mealPlan.status === "cooked") {
     return mutation(
       async (next) => {
         const current = next.mealPlans.find((plan) => plan.id === id);
@@ -4379,8 +4670,7 @@ document.addEventListener("click", async (event) => {
       () => alertUser("เปลี่ยนสถานะเป็นเสร็จสิ้นแล้ว"),
     );
   }
-  if (action === "create-cooked-stock" && mealPlan)
-    return finishMealPlan(mealPlan, true);
+  if (action === "create-cooked-stock" && mealPlan) return finishMealPlan(mealPlan, true);
   if (action === "remove-meal-plan" && mealPlan)
     return startEditor("remove-meal-plan", mealPlan, id);
   if (action === "open-stock") {
@@ -4391,31 +4681,37 @@ document.addEventListener("click", async (event) => {
     $("#query").value = "";
     $("#category-filter").value = "";
     $("#location-filter").value = "";
+    $("#sort-filter").value = "date-asc";
+    $("#group-filter").value = "none";
     draw();
     refreshSearchSelect($("#category-filter"));
     refreshSearchSelect($("#location-filter"));
+    refreshSearchSelect($("#sort-filter"));
+    refreshSearchSelect($("#group-filter"));
     return;
   }
   if (action === "buy-low") {
     const [name, unit] = id.split("|").map(decodeURIComponent);
-    const level = stock.minLevels?.find((entry) => key(entry.name) === key(name) && key(entry.unit) === key(unit));
+    const level = stock.minLevels?.find(
+      (entry) => key(entry.name) === key(name) && key(entry.unit) === key(unit),
+    );
     if (level) {
-      const remaining = round(stock.items.filter((item) => key(item.name) === key(name) && key(item.unit) === key(unit))
-        .reduce((sum, item) => sum + item.qty, 0));
+      const remaining = round(
+        stock.items
+          .filter((item) => key(item.name) === key(name) && key(item.unit) === key(unit))
+          .reduce((sum, item) => sum + item.qty, 0),
+      );
       const missing = round(level.qty - remaining);
-      if (missing > 0) return startEditor("new-shopping", {name, unit, qty: missing});
+      if (missing > 0) return startEditor("new-shopping", { name, unit, qty: missing });
     }
   }
   if (action === "add" || action === "new-shopping") return startEditor(action);
-  if (action === "use" && item)
-    return consume(item, Math.min(1, item.qty), stock.version);
+  if (action === "use" && item) return consume(item, Math.min(1, item.qty), stock.version);
   if (action === "edit-item" && item) return startEditor(action, item, id);
-  if (action === "edit-shopping" && wanted)
-    return startEditor(action, wanted, id);
+  if (action === "edit-shopping" && wanted) return startEditor(action, wanted, id);
   if (action === "receive" && wanted) {
     const known = stock.items.find(
-      (i) =>
-        key(i.name) === key(wanted.name) && key(i.unit) === key(wanted.unit),
+      (i) => key(i.name) === key(wanted.name) && key(i.unit) === key(wanted.unit),
     );
     return startEditor(
       "receive",
@@ -4430,15 +4726,10 @@ document.addEventListener("click", async (event) => {
   if (action === "custom-use" && item) return startEditor("use", item, id);
   if (action === "shopping-from-item" && item)
     return startEditor("new-shopping", { name: item.name, unit: item.unit });
-  if (action === "confirm-remove-item" && item)
-    return startEditor("remove-item", item, id);
+  if (action === "confirm-remove-item" && item) return startEditor("remove-item", item, id);
   if (action === "confirm-remove") {
     const isItem = draft.mode === "edit-item";
-    return startEditor(
-      isItem ? "remove-item" : "remove-shopping",
-      draft.initial,
-      id,
-    );
+    return startEditor(isItem ? "remove-item" : "remove-shopping", draft.initial, id);
   }
   if (action === "remove-photo" && draft) {
     stopButtonLoading($("#save"));
@@ -4479,9 +4770,13 @@ function positionHorizontalCardMenu(menu, card) {
   menu.style.top = Math.max(8, top) + "px";
 }
 
-document.addEventListener("scroll", (event) => {
-  if (event.target.matches?.(".dashboard-due .item-collection")) closeItemMenus();
-}, true);
+document.addEventListener(
+  "scroll",
+  (event) => {
+    if (event.target.matches?.(".dashboard-due .item-collection")) closeItemMenus();
+  },
+  true,
+);
 window.addEventListener("scroll", () => closeItemMenus(), { passive: true });
 window.addEventListener("resize", () => closeItemMenus());
 
@@ -4491,8 +4786,11 @@ document.addEventListener("pointerdown", (event) => {
 });
 document.addEventListener("keydown", (event) => {
   const card = event.target.closest?.('.line-item.is-grid-card[data-action="toggle-card-menu"]');
-  if (card && !event.target.closest("button, [role=menuitem]") &&
-      (event.key === "Enter" || event.key === " ")) {
+  if (
+    card &&
+    !event.target.closest("button, [role=menuitem]") &&
+    (event.key === "Enter" || event.key === " ")
+  ) {
     event.preventDefault();
     card.click();
     return;
@@ -4511,8 +4809,7 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
     event.preventDefault();
     const direction = event.key === "ArrowDown" ? 1 : -1;
-    const next =
-      index < 0 ? 0 : (index + direction + items.length) % items.length;
+    const next = index < 0 ? 0 : (index + direction + items.length) % items.length;
     items[next]?.focus();
   }
 });
@@ -4525,18 +4822,31 @@ $("#group-filter").addEventListener("change", draw);
 document.addEventListener("change", (event) => {
   if (event.target.matches("[data-min-name]")) {
     const input = event.target;
-    const name = input.dataset.minName, unit = input.dataset.minUnit;
+    const name = input.dataset.minName,
+      unit = input.dataset.minUnit;
     const qty = Number(input.value);
-    if (input.value && (!Number.isFinite(qty) || qty < 0 || qty > 999999 || Math.abs(qty * 1000 - Math.round(qty * 1000)) > 0.0000001)) {
+    if (
+      input.value &&
+      (!Number.isFinite(qty) ||
+        qty < 0 ||
+        qty > 999999 ||
+        Math.abs(qty * 1000 - Math.round(qty * 1000)) > 0.0000001)
+    ) {
       input.setCustomValidity("กรุณาใส่จำนวน 0–999,999 ทศนิยมไม่เกิน 3 ตำแหน่ง");
-      input.reportValidity(); return;
+      input.reportValidity();
+      return;
     }
     input.setCustomValidity("");
-    mutation((next) => {
-      next.minLevels = (next.minLevels || []).filter((entry) =>
-        key(entry.name) !== key(name) || key(entry.unit) !== key(unit));
-      if (qty > 0 && input.value) next.minLevels.push({name, unit, qty});
-    }, stock.version, () => alertUser("บันทึกจำนวนขั้นต่ำแล้ว"));
+    mutation(
+      (next) => {
+        next.minLevels = (next.minLevels || []).filter(
+          (entry) => key(entry.name) !== key(name) || key(entry.unit) !== key(unit),
+        );
+        if (qty > 0 && input.value) next.minLevels.push({ name, unit, qty });
+      },
+      stock.version,
+      () => alertUser("บันทึกจำนวนขั้นต่ำแล้ว"),
+    );
     return;
   }
 
@@ -4549,13 +4859,10 @@ document.addEventListener("change", (event) => {
     $("#settings-error").textContent = "";
   } catch (error) {
     console.error("บันทึกการตั้งค่าแอนิเมชันไม่ได้", error);
-    $("#settings-error").textContent =
-      "บันทึกการตั้งค่าไม่ได้ เบราว์เซอร์อาจปิดการใช้พื้นที่จัดเก็บ";
-    document
-      .querySelectorAll('input[name="animation-mode"]')
-      .forEach((choice) => {
-        choice.checked = choice.value === animationMode;
-      });
+    $("#settings-error").textContent = "บันทึกการตั้งค่าไม่ได้ เบราว์เซอร์อาจปิดการใช้พื้นที่จัดเก็บ";
+    document.querySelectorAll('input[name="animation-mode"]').forEach((choice) => {
+      choice.checked = choice.value === animationMode;
+    });
   }
 });
 window.addEventListener("hashchange", () => {
@@ -4597,13 +4904,11 @@ document.addEventListener("input", (event) => {
 });
 document.addEventListener("click", (event) => {
   const input = event.target.closest?.(".date-control input[type='date']");
-  if (!input || !event.isTrusted || typeof input.showPicker !== "function")
-    return;
+  if (!input || !event.isTrusted || typeof input.showPicker !== "function") return;
   event.preventDefault();
   input.showPicker();
 });
 setInterval(() => {
-  if (stock && !document.hidden && Date.now() - lastActive < idleAfter)
-    refresh();
+  if (stock && !document.hidden && Date.now() - lastActive < idleAfter) refresh();
 }, 60000);
 refresh(true);

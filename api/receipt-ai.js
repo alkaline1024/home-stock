@@ -1,4 +1,4 @@
-import {createReceiptAiHandlers} from '../lib/receipt-ai.js';
+import { createReceiptAiHandlers } from "../lib/receipt-ai.js";
 
 const handlers = createReceiptAiHandlers();
 export const GET = handlers.GET;

@@ -38,23 +38,16 @@ db.exec(
   "CREATE TABLE IF NOT EXISTS objects(path TEXT PRIMARY KEY, version TEXT NOT NULL, bytes BLOB NOT NULL)",
 );
 const read = db.prepare("SELECT version,bytes FROM objects WHERE path=?");
-const create = db.prepare(
-  "INSERT OR IGNORE INTO objects(path,version,bytes) VALUES(?,?,?)",
-);
-const replace = db.prepare(
-  "UPDATE objects SET version=?, bytes=? WHERE path=? AND version=?",
-);
+const create = db.prepare("INSERT OR IGNORE INTO objects(path,version,bytes) VALUES(?,?,?)");
+const replace = db.prepare("UPDATE objects SET version=?, bytes=? WHERE path=? AND version=?");
 const remove = db.prepare("DELETE FROM objects WHERE path=?");
 const store = {
   read: (path) => read.get(path) || null,
   write(path, bytes, { version }) {
     const next = randomUUID();
     const result =
-      version === null
-        ? create.run(path, next, bytes)
-        : replace.run(next, bytes, path, version);
-    if (!result.changes)
-      throw new HttpError(409, "ข้อมูลมีการเปลี่ยนแปลง กรุณาลองอีกครั้ง");
+      version === null ? create.run(path, next, bytes) : replace.run(next, bytes, path, version);
+    if (!result.changes) throw new HttpError(409, "ข้อมูลมีการเปลี่ยนแปลง กรุณาลองอีกครั้ง");
     return next;
   },
   remove: (path) => {
@@ -64,7 +57,7 @@ const store = {
 const routes = {
   "/api/stock": createStockHandlers(store),
   "/api/alerts": createAlertHandlers(store),
-  "/api/alerts-cron": {GET: createCronHandler(store)},
+  "/api/alerts-cron": { GET: createCronHandler(store) },
   "/api/photo": createPhotoHandlers(store),
   "/api/session": { POST: login },
   "/api/receipt-ai": createReceiptAiHandlers(),
@@ -85,22 +78,25 @@ const assets = new Map([
   ["/favicon.ico", ["favicon.ico", "image/x-icon"]],
   [
     "/exceljs.min.js",
-    [
-      "../node_modules/exceljs/dist/exceljs.min.js",
-      "text/javascript; charset=utf-8",
-    ],
+    ["../node_modules/exceljs/dist/exceljs.min.js", "text/javascript; charset=utf-8"],
   ],
   ["/home-stock.html", ["home-stock.html", "text/html; charset=utf-8"]],
 ]);
 for (const name of readdirSync(resolve(root, "public/ocr/core")))
-  assets.set("/ocr/core/" + name, ["ocr/core/" + name,
-    name.endsWith(".wasm") ? "application/wasm" : "text/javascript; charset=utf-8"]);
+  assets.set("/ocr/core/" + name, [
+    "ocr/core/" + name,
+    name.endsWith(".wasm") ? "application/wasm" : "text/javascript; charset=utf-8",
+  ]);
 for (const name of readdirSync(resolve(root, "public/icons")))
-  assets.set("/icons/" + name, ["icons/" + name,
-    name.endsWith(".svg") ? "image/svg+xml" : "image/png"]);
+  assets.set("/icons/" + name, [
+    "icons/" + name,
+    name.endsWith(".svg") ? "image/svg+xml" : "image/png",
+  ]);
 for (const language of ["tha", "eng"])
-  assets.set("/ocr/lang/" + language + ".traineddata.gz",
-    ["ocr/lang/" + language + ".traineddata.gz", "application/gzip"]);
+  assets.set("/ocr/lang/" + language + ".traineddata.gz", [
+    "ocr/lang/" + language + ".traineddata.gz",
+    "application/gzip",
+  ]);
 const server = createServer(async (req, res) => {
   try {
     const port = server.address().port;
@@ -119,10 +115,7 @@ const server = createServer(async (req, res) => {
           allowedHosts.add(address.address.replace(/^::ffff:/, ""));
     }
     const requestHostname = requestOrigin.hostname.replace(/^\[|\]$/g, "");
-    if (
-      requestOrigin.port !== String(port) ||
-      !allowedHosts.has(requestHostname)
-    ) {
+    if (requestOrigin.port !== String(port) || !allowedHosts.has(requestHostname)) {
       res.writeHead(403).end();
       return;
     }
@@ -131,8 +124,7 @@ const server = createServer(async (req, res) => {
       res.writeHead(403).end();
       return;
     }
-    const handlers =
-      Object.hasOwn(routes, url.pathname) && routes[url.pathname];
+    const handlers = Object.hasOwn(routes, url.pathname) && routes[url.pathname];
     if (handlers) {
       const handler = handlers[req.method];
       if (!handler) {
@@ -143,10 +135,7 @@ const server = createServer(async (req, res) => {
       if (req.method === "POST")
         Object.assign(options, { body: Readable.toWeb(req), duplex: "half" });
       const result = await handler(new Request(url, options));
-      res.writeHead(
-        result.status,
-        Object.fromEntries(result.headers.entries()),
-      );
+      res.writeHead(result.status, Object.fromEntries(result.headers.entries()));
       res.end(Buffer.from(await result.arrayBuffer()));
       return;
     }
@@ -181,6 +170,5 @@ server.listen(Number(process.env.PORT || 4177), bindHost, () => {
           console.log("Network: http://" + address.address + ":" + port);
     console.log("Network access enabled; use only on a trusted network.");
   }
-  if (!process.env.HOME_STOCK_DIR)
-    console.log("Local access key (if generated): " + keyPath);
+  if (!process.env.HOME_STOCK_DIR) console.log("Local access key (if generated): " + keyPath);
 });

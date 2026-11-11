@@ -2635,26 +2635,23 @@ html&gt;body{padding:0}&lt;/style&gt;
         if (!(frame instanceof HTMLIFrameElement)) {
           return;
         }
-        const isShare = document.documentElement.classList.contains(
-          "visualization-share-root",
-        );
+        const isShare = document.documentElement.classList.contains("visualization-share-root");
         let viewportHeight = globalThis.innerHeight;
         let sizeFingerprint = null;
         let sizeWriteTimeout;
         let lastSize = null;
         let pendingSize = null;
-        const storageKey = `codex:visualization-widget-state-v2:${JSON.stringify(
-          [globalThis.location.pathname, globalThis.location.search],
-        )}`;
+        const storageKey = `codex:visualization-widget-state-v2:${JSON.stringify([
+          globalThis.location.pathname,
+          globalThis.location.search,
+        ])}`;
         const sizeStorageKey = `${storageKey}:share-size-v1`;
         const parseState = (serializedState) => {
           if (
             typeof serializedState !== "string" ||
             new TextEncoder().encode(serializedState).length > 16 * 1024
           ) {
-            throw new TypeError(
-              "Widget state must be a JSON object of at most 16 KiB",
-            );
+            throw new TypeError("Widget state must be a JSON object of at most 16 KiB");
           }
           /** @type {unknown} */
           const state = JSON.parse(serializedState);
@@ -2662,8 +2659,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             state == null ||
             typeof state !== "object" ||
             Array.isArray(state) ||
-            ("imageIds" in state &&
-              (!Array.isArray(state.imageIds) || state.imageIds.length > 0))
+            ("imageIds" in state && (!Array.isArray(state.imageIds) || state.imageIds.length > 0))
           ) {
             throw new TypeError("Widget state must be a JSON object");
           }
@@ -2682,9 +2678,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             },
           );
           if (new TextEncoder().encode(canonicalState).length > 16 * 1024) {
-            throw new TypeError(
-              "Widget state must be a JSON object of at most 16 KiB",
-            );
+            throw new TypeError("Widget state must be a JSON object of at most 16 KiB");
           }
           return storedState;
         };
@@ -2756,24 +2750,18 @@ html&gt;body{padding:0}&lt;/style&gt;
           }
           if (data.type === "height") {
             const height = data.height;
-            if (
-              typeof height !== "number" ||
-              !Number.isFinite(height) ||
-              height < 0
-            ) {
+            if (typeof height !== "number" || !Number.isFinite(height) || height < 0) {
               return;
             }
             if (height <= 10_000) {
-              const width =
-                isShare && storage != null ? frame.clientWidth : null;
+              const width = isShare && storage != null ? frame.clientWidth : null;
               frame.style.height = Math.ceil(height) + "px";
               if (isShare && storage != null) {
                 const size = JSON.stringify({
                   fingerprint: sizeFingerprint,
                   width,
                   viewportHeight: globalThis.innerHeight,
-                  dark: globalThis.matchMedia("(prefers-color-scheme: dark)")
-                    .matches,
+                  dark: globalThis.matchMedia("(prefers-color-scheme: dark)").matches,
                   scale: globalThis.devicePixelRatio,
                   height: Math.ceil(height),
                 });
@@ -2787,16 +2775,11 @@ html&gt;body{padding:0}&lt;/style&gt;
             }
             if (isShare) {
               // Keep unusually tall content accessible without accepting an unbounded height.
-              if (
-                height > 10_000 &&
-                Number.parseFloat(frame.style.height) === 0
-              ) {
+              if (height > 10_000 && Number.parseFloat(frame.style.height) === 0) {
                 frame.style.removeProperty("height");
               }
               frame.scrolling = height > 10_000 ? "auto" : "no";
-              document.documentElement.classList.add(
-                "visualization-share-ready",
-              );
+              document.documentElement.classList.add("visualization-share-ready");
             }
             return;
           }
@@ -2809,9 +2792,7 @@ html&gt;body{padding:0}&lt;/style&gt;
               globalThis.navigator.userActivation?.isActive === true
             ) {
               globalThis.scrollTo({
-                top: Math.ceil(
-                  globalThis.scrollY + frame.getBoundingClientRect().top + top,
-                ),
+                top: Math.ceil(globalThis.scrollY + frame.getBoundingClientRect().top + top),
               });
             }
             return;
@@ -2851,10 +2832,7 @@ html&gt;body{padding:0}&lt;/style&gt;
               return;
             }
             const title = data.title;
-            globalThis.prompt(
-              typeof title === "string" ? title : prompt,
-              prompt,
-            );
+            globalThis.prompt(typeof title === "string" ? title : prompt, prompt);
           }
         });
         channel.port1.start();
@@ -2864,10 +2842,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         }
         globalThis.addEventListener("resize", () => {
           const height = Number.parseFloat(frame.style.height);
-          if (
-            !isShare &&
-            (!Number.isFinite(height) || height <= viewportHeight)
-          ) {
+          if (!isShare && (!Number.isFinite(height) || height <= viewportHeight)) {
             frame.style.removeProperty("height");
           }
           viewportHeight = globalThis.innerHeight;
@@ -2876,11 +2851,9 @@ html&gt;body{padding:0}&lt;/style&gt;
         frame.addEventListener(
           "load",
           () => {
-            frame.contentWindow?.postMessage(
-              { type: "codex-visualization-initialize" },
-              "*",
-              [channel.port2],
-            );
+            frame.contentWindow?.postMessage({ type: "codex-visualization-initialize" }, "*", [
+              channel.port2,
+            ]);
           },
           { once: true },
         );
@@ -2906,8 +2879,7 @@ html&gt;body{padding:0}&lt;/style&gt;
               size?.fingerprint === sizeFingerprint &&
               size.width === frame.clientWidth &&
               size.viewportHeight === globalThis.innerHeight &&
-              size.dark ===
-                globalThis.matchMedia("(prefers-color-scheme: dark)").matches &&
+              size.dark === globalThis.matchMedia("(prefers-color-scheme: dark)").matches &&
               size.scale === globalThis.devicePixelRatio &&
               typeof size.height === "number" &&
               Number.isFinite(size.height) &&
@@ -2925,7 +2897,11 @@ html&gt;body{padding:0}&lt;/style&gt;
       })();
     </script>
     <script>
-      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+      window.si =
+        window.si ||
+        function () {
+          (window.siq = window.siq || []).push(arguments);
+        };
     </script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
   </body>

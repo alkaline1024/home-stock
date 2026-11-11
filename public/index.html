@@ -4,10 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#203f37" />
-    <meta
-      name="description"
-      content="จดของในบ้าน ดูของที่ควรใช้ก่อน และเตรียมรายการซื้อในที่เดียว"
-    />
+    <meta name="description" content="จดของในบ้าน ดูของที่ควรใช้ก่อน และเตรียมรายการซื้อในที่เดียว" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
@@ -25,23 +22,20 @@
     <link rel="stylesheet" href="/app.css" />
     <script src="/app.js" defer></script>
     <script type="module">
-      import { inject } from '/analytics.mjs';
+      import { inject } from "/analytics.mjs";
       inject();
     </script>
   </head>
   <body>
     <main id="entry" class="entry">
       <section class="cover" aria-label="home-stock">
-        <div class="brand">
-          <span class="mark" aria-hidden="true"></span>home-stock
-        </div>
+        <div class="brand"><span class="mark" aria-hidden="true"></span>home-stock</div>
         <div class="cover-copy">
           <h1>วันนี้ในบ้าน<br />มีอะไรบ้าง<span class="dot">.</span></h1>
           <p>จดของที่มีอยู่ รู้วันหมดอายุ<br />และเตรียมรายการซื้อครั้งถัดไป</p>
         </div>
         <div class="still-life" aria-hidden="true">
-          <i class="tin"></i><i class="jar"></i><i class="box"></i
-          ><i class="shelf"></i>
+          <i class="tin"></i><i class="jar"></i><i class="box"></i><i class="shelf"></i>
         </div>
       </section>
       <section class="entry-panel">
@@ -49,12 +43,7 @@
           <h2 id="entry-title">เปิดตู้กับข้าว</h2>
           <form id="login" hidden>
             <label for="password">รหัสผ่านของบ้าน</label>
-            <input
-              id="password"
-              type="password"
-              autocomplete="current-password"
-              required
-            />
+            <input id="password" type="password" autocomplete="current-password" required />
             <p id="login-error" class="error" role="alert"></p>
             <button class="primary full" type="submit">
               เข้าสู่ระบบ <span aria-hidden="true">→</span>
@@ -63,9 +52,7 @@
           <div id="checking" role="status">กำลังเปิดรายการ…</div>
           <div id="unavailable" hidden>
             <p id="unavailable-text"></p>
-            <button type="button" class="secondary" data-action="retry">
-              ลองอีกครั้ง
-            </button>
+            <button type="button" class="secondary" data-action="retry">ลองอีกครั้ง</button>
           </div>
           <a class="sample" href="/home-stock.html"
             >ลองดูตัวอย่างการใช้งาน <span aria-hidden="true">↗</span></a
@@ -76,13 +63,22 @@
     <div id="app" class="app-wrapper">
       <header class="app-header">
         <div class="wrap top">
-          <a class="brand" href="#today"
-            ><span class="mark" aria-hidden="true"></span>home-stock</a
+          <a class="brand" href="#today"><span class="mark" aria-hidden="true"></span>home-stock</a
           ><a class="settings-link" href="#settings" aria-label="การตั้งค่า" title="การตั้งค่า">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="12" cy="12" r="8" />
               <circle cx="12" cy="12" r="3" />
-              <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42m0-14.14-1.42 1.42m-11.3 11.3-1.42 1.42" />
+              <path
+                d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42m0-14.14-1.42 1.42m-11.3 11.3-1.42 1.42"
+              />
             </svg>
           </a>
         </div>
@@ -214,7 +210,22 @@
           </button>
         </div>
         <div class="excel-tools">
-          <button type="button" class="secondary" id="receipt-trigger" data-action="choose-receipt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>สแกนใบเสร็จ</button>
+          <button type="button" class="secondary" id="receipt-trigger" data-action="choose-receipt">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"
+              />
+              <circle cx="12" cy="13" r="3" /></svg
+            >สแกนใบเสร็จ
+          </button>
           <input id="receipt-file" type="file" accept="image/*" capture="environment" hidden />
           <span id="receipt-progress" role="status" class="form-help"></span>
           <details class="excel-dropdown">
@@ -237,9 +248,7 @@
               <button type="button" data-action="download-stock-template">
                 ดาวน์โหลดไฟล์เทมเพลตนำเข้าของ
               </button>
-              <button type="button" data-action="choose-stock-import">
-                อัปโหลดไฟล์นำเข้าของ
-              </button>
+              <button type="button" data-action="choose-stock-import">อัปโหลดไฟล์นำเข้าของ</button>
             </div>
           </details>
           <input id="stock-import-file" type="file" accept=".xlsx" hidden />
@@ -247,11 +256,7 @@
         <div id="tools" class="filters" hidden>
           <label class="search"
             ><span>ค้นหาของ</span
-            ><input
-              id="query"
-              type="search"
-              placeholder="ชื่อของหรือที่เก็บ"
-              autocomplete="off"
+            ><input id="query" type="search" placeholder="ชื่อของหรือที่เก็บ" autocomplete="off"
           /></label>
           <label class="category-filter-field"
             ><span>หมวด</span
@@ -274,37 +279,53 @@
               <option value="">ทุกที่เก็บ</option>
             </select></label
           >
-          <button type="button" class="secondary filter-clear" data-action="clear-filter">ล้างการค้นหา</button>
           <div class="stock-arrange-tools">
-            <label>จัดเรียงตาม<select id="sort-filter">
-              <option value="date-asc">วันที่ใกล้ที่สุด</option>
-              <option value="date-desc">วันที่ไกลที่สุด</option>
-              <option value="name-asc">ชื่อ ก–ฮ</option>
-              <option value="name-desc">ชื่อ ฮ–ก</option>
-              <option value="qty-asc">จำนวนน้อยก่อน</option>
-              <option value="qty-desc">จำนวนมากก่อน</option>
-            </select></label>
-            <label>จัดกลุ่มตาม<select id="group-filter">
-              <option value="none">ไม่จัดกลุ่ม</option>
-              <option value="category">หมวด</option>
-              <option value="location">ที่เก็บ</option>
-            </select></label>
+            <label
+              >จัดเรียงตาม<select id="sort-filter">
+                <option value="date-asc">วันที่ใกล้ที่สุด</option>
+                <option value="date-desc">วันที่ไกลที่สุด</option>
+                <option value="name-asc">ชื่อ ก–ฮ</option>
+                <option value="name-desc">ชื่อ ฮ–ก</option>
+                <option value="qty-asc">จำนวนน้อยก่อน</option>
+                <option value="qty-desc">จำนวนมากก่อน</option>
+              </select></label
+            >
+            <label
+              >จัดกลุ่มตาม<select id="group-filter">
+                <option value="none">ไม่จัดกลุ่ม</option>
+                <option value="category">หมวด</option>
+                <option value="location">ที่เก็บ</option>
+              </select></label
+            >
           </div>
         </div>
+        <button
+          type="button"
+          id="clear-filter-button"
+          class="secondary filter-clear"
+          data-action="clear-filter"
+          aria-label="ล้างการค้นหา ตัวกรอง การจัดเรียง และการจัดกลุ่ม"
+          hidden
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 11a9 9 0 1 1 2.6 6.4" />
+            <path d="M3 3v8h8" />
+          </svg>
+          <span>ล้างการค้นหา</span>
+        </button>
         <div id="content"></div>
-        <footer>
-          <span>home-stock</span
-          ><a href="/home-stock.html">ดูตัวอย่างการใช้งาน ↗</a>
-        </footer>
+        <footer><span>home-stock</span><a href="/home-stock.html">ดูตัวอย่างการใช้งาน ↗</a></footer>
       </main>
     </div>
-    <div
-      id="pantry-loading"
-      class="pantry-loading"
-      role="status"
-      aria-live="polite"
-      hidden
-    >
+    <div id="pantry-loading" class="pantry-loading" role="status" aria-live="polite" hidden>
       <div class="pantry-lightwell" aria-hidden="true">
         <span class="pantry-room-sign">ห้องครัว</span>
       </div>
@@ -323,21 +344,13 @@
     <dialog id="editor" aria-labelledby="editor-title">
       <div class="dialog-head">
         <h2 id="editor-title"></h2>
-        <button
-          type="button"
-          class="close"
-          aria-label="ปิด"
-          data-action="close"
-        >
-          ×
-        </button>
+        <button type="button" class="close" aria-label="ปิด" data-action="close">×</button>
       </div>
       <form id="editor-form">
         <div id="fields"></div>
         <p id="form-error" role="alert" class="error"></p>
         <div class="dialog-actions">
-          <button type="button" class="secondary" data-action="close">
-            ยกเลิก</button
+          <button type="button" class="secondary" data-action="close">ยกเลิก</button
           ><button type="submit" id="save" class="primary">บันทึก</button>
         </div>
       </form>
@@ -345,36 +358,57 @@
     <dialog id="item-media-dialog" aria-labelledby="item-media-title">
       <div class="dialog-head">
         <h2 id="item-media-title">รูปหรือไอคอนของ</h2>
-        <button type="button" class="close" aria-label="ปิด" data-action="close-item-media">×</button>
+        <button type="button" class="close" aria-label="ปิด" data-action="close-item-media">
+          ×
+        </button>
       </div>
       <p id="item-media-name" class="form-help"></p>
       <div id="item-media-preview" class="item-media-preview"></div>
-      <label>อัปโหลดรูปใหม่<input id="item-media-file" type="file" accept="image/*"></label>
+      <label>อัปโหลดรูปใหม่<input id="item-media-file" type="file" accept="image/*" /></label>
       <h3 class="item-media-heading">เลือกจากรูปที่เคยอัปโหลด</h3>
       <p class="form-help">รูปที่ยังใช้อยู่ในของในบ้าน เลือกใช้ร่วมกันได้</p>
       <div id="item-media-photos" class="item-media-grid"></div>
       <h3 class="item-media-heading">เลือกไอคอน ไม่ต้องอัปโหลดรูป</h3>
       <div id="item-media-icons" class="item-media-grid"></div>
       <div id="item-media-icon-colors" class="item-media-icon-colors" hidden>
-        <fieldset><legend>สีไอคอน</legend><div id="item-media-icon-color-options" class="item-media-swatches"></div><label class="item-media-custom-color">กำหนดสีเอง<input id="item-media-custom-icon-color" type="color" value="#386641" aria-label="กำหนดสีไอคอนเอง"></label></fieldset>
-        <fieldset><legend>สีพื้นหลัง</legend><div id="item-media-icon-bg-options" class="item-media-swatches"></div><label class="item-media-custom-color">กำหนดสีเอง<input id="item-media-custom-icon-background" type="color" value="#e2efe1" aria-label="กำหนดสีพื้นหลังเอง"></label></fieldset>
+        <fieldset>
+          <legend>สีไอคอน</legend>
+          <div id="item-media-icon-color-options" class="item-media-swatches"></div>
+          <label class="item-media-custom-color"
+            >กำหนดสีเอง<input
+              id="item-media-custom-icon-color"
+              type="color"
+              value="#386641"
+              aria-label="กำหนดสีไอคอนเอง"
+          /></label>
+        </fieldset>
+        <fieldset>
+          <legend>สีพื้นหลัง</legend>
+          <div id="item-media-icon-bg-options" class="item-media-swatches"></div>
+          <label class="item-media-custom-color"
+            >กำหนดสีเอง<input
+              id="item-media-custom-icon-background"
+              type="color"
+              value="#e2efe1"
+              aria-label="กำหนดสีพื้นหลังเอง"
+          /></label>
+        </fieldset>
       </div>
-      <button type="button" class="text-button" data-action="clear-item-media">รีเซ็ทเป็นค่าเริ่มต้น</button>
+      <button type="button" class="text-button" data-action="clear-item-media">
+        รีเซ็ทเป็นค่าเริ่มต้น
+      </button>
       <p id="item-media-error" role="alert" class="error"></p>
       <div class="dialog-actions">
         <button type="button" class="secondary" data-action="close-item-media">ยกเลิก</button>
-        <button type="button" id="item-media-save" class="primary" data-action="save-item-media">บันทึก</button>
+        <button type="button" id="item-media-save" class="primary" data-action="save-item-media">
+          บันทึก
+        </button>
       </div>
     </dialog>
     <dialog id="meal-editor" aria-labelledby="meal-editor-title">
       <div class="dialog-head">
         <h2 id="meal-editor-title">วางแผนทำอาหาร</h2>
-        <button
-          type="button"
-          class="close"
-          aria-label="ปิด"
-          data-action="close-meal-editor"
-        >
+        <button type="button" class="close" aria-label="ปิด" data-action="close-meal-editor">
           ×
         </button>
       </div>
@@ -382,13 +416,7 @@
         <div id="meal-fields"></div>
         <p id="meal-error" role="alert" class="error"></p>
         <div class="dialog-actions">
-          <button
-            type="button"
-            class="secondary"
-            data-action="close-meal-editor"
-          >
-            ยกเลิก
-          </button>
+          <button type="button" class="secondary" data-action="close-meal-editor">ยกเลิก</button>
           <button type="submit" id="meal-save" class="primary">วางแผน</button>
         </div>
       </form>
@@ -396,12 +424,7 @@
     <dialog id="shortage-summary-dialog" aria-labelledby="shortage-summary-title">
       <div class="dialog-head">
         <h2 id="shortage-summary-title">สรุปรายการ</h2>
-        <button
-          type="button"
-          class="close"
-          aria-label="ปิด"
-          data-action="close-shortage-summary"
-        >
+        <button type="button" class="close" aria-label="ปิด" data-action="close-shortage-summary">
           ×
         </button>
       </div>
@@ -409,13 +432,7 @@
       <div id="shortage-summary-list"></div>
       <p id="shortage-summary-error" role="alert" class="error"></p>
       <div class="dialog-actions">
-        <button
-          type="button"
-          class="secondary"
-          data-action="close-shortage-summary"
-        >
-          ยกเลิก
-        </button>
+        <button type="button" class="secondary" data-action="close-shortage-summary">ยกเลิก</button>
         <button
           type="button"
           id="shortage-summary-confirm"
@@ -427,67 +444,72 @@
       </div>
     </dialog>
     <dialog id="receipt-dialog" aria-labelledby="receipt-title">
-      <div class="dialog-head"><h2 id="receipt-title">ตรวจรายการจากใบเสร็จ</h2>
-        <button type="button" class="close" aria-label="ปิด" data-action="close-receipt">×</button></div>
-      <p class="form-help">ตัวอ่านอาจอ่านชื่อภาษาไทยผิด กรุณาตรวจชื่อ จำนวน หน่วย บาร์โค้ด และวันหมดอายุบนสินค้า ก่อนรับเข้าบ้าน</p>
+      <div class="dialog-head">
+        <h2 id="receipt-title">ตรวจรายการจากใบเสร็จ</h2>
+        <button type="button" class="close" aria-label="ปิด" data-action="close-receipt">×</button>
+      </div>
+      <p class="form-help">
+        ตัวอ่านอาจอ่านชื่อภาษาไทยผิด กรุณาตรวจชื่อ จำนวน หน่วย บาร์โค้ด และวันหมดอายุบนสินค้า ก่อนรับเข้าบ้าน
+      </p>
       <div id="receipt-ai-tools" hidden>
         <div class="receipt-ai-row">
-          <label class="receipt-ai-model">โมเดล AI<select id="receipt-ai-model">
-            <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash Lite</option>
-          </select></label>
-          <button type="button" id="receipt-ai-button" class="primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>วิเคราะห์รูปภาพด้วย AI</button>
+          <label class="receipt-ai-model"
+            >โมเดล AI<select id="receipt-ai-model">
+              <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash Lite</option>
+            </select></label
+          >
+          <button type="button" id="receipt-ai-button" class="primary">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+              <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" /></svg
+            >วิเคราะห์รูปภาพด้วย AI
+          </button>
         </div>
-        <p class="form-help">ให้ AI อ่านรูปใบเสร็จอีกครั้งเพื่อแยกชื่อสินค้า จำนวน หน่วย และหมวดให้แม่นขึ้น รูปและข้อความที่สแกนได้จะถูกส่งไปยัง Google Gemini · ผลจาก AI จะแทนที่รายการด้านล่าง (ที่เก็บและวันหมดอายุที่กรอกไว้จะคงอยู่) กรุณาตรวจอีกครั้งก่อนรับเข้าบ้าน</p>
+        <p class="form-help">
+          ให้ AI อ่านรูปใบเสร็จอีกครั้งเพื่อแยกชื่อสินค้า จำนวน หน่วย และหมวดให้แม่นขึ้น รูปและข้อความที่สแกนได้จะถูกส่งไปยัง
+          Google Gemini · ผลจาก AI จะแทนที่รายการด้านล่าง (ที่เก็บและวันหมดอายุที่กรอกไว้จะคงอยู่)
+          กรุณาตรวจอีกครั้งก่อนรับเข้าบ้าน
+        </p>
       </div>
       <p id="receipt-ai-status" class="form-help" role="status"></p>
       <div id="receipt-review"></div>
       <p id="receipt-error" class="error" role="alert"></p>
-      <div class="dialog-actions"><button type="button" class="secondary" data-action="receipt-add-row">เพิ่มรายการ</button>
+      <div class="dialog-actions">
+        <button type="button" class="secondary" data-action="receipt-add-row">เพิ่มรายการ</button>
         <button type="button" class="secondary" data-action="close-receipt">ยกเลิก</button>
-        <button type="button" id="receipt-confirm" class="primary">รับเข้าบ้าน</button></div>
+        <button type="button" id="receipt-confirm" class="primary">รับเข้าบ้าน</button>
+      </div>
     </dialog>
     <dialog id="excel-import-dialog" aria-labelledby="excel-import-title">
       <div class="dialog-head">
         <h2 id="excel-import-title">ตรวจสอบรายการนำเข้า</h2>
-        <button
-          type="button"
-          class="close"
-          aria-label="ปิด"
-          data-action="close-excel-import"
-        >
+        <button type="button" class="close" aria-label="ปิด" data-action="close-excel-import">
           ×
         </button>
       </div>
       <div id="excel-import-summary"></div>
       <p id="excel-import-error" role="alert" class="error"></p>
       <div class="dialog-actions">
-        <button
-          type="button"
-          class="secondary"
-          data-action="close-excel-import"
-        >
-          ยกเลิก
-        </button>
-        <button
-          type="button"
-          id="excel-import-confirm"
-          class="primary"
-          disabled
-        >
-          นำเข้า
-        </button>
+        <button type="button" class="secondary" data-action="close-excel-import">ยกเลิก</button>
+        <button type="button" id="excel-import-confirm" class="primary" disabled>นำเข้า</button>
       </div>
     </dialog>
-    <div
-      id="notice"
-      class="notice"
-      role="status"
-      aria-live="polite"
-      hidden
-    ></div>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <noscript>กรุณาเปิด JavaScript เพื่อใช้งาน home-stock</noscript>
     <script>
-      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+      window.si =
+        window.si ||
+        function () {
+          (window.siq = window.siq || []).push(arguments);
+        };
     </script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
   </body>

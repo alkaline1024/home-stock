@@ -7,49 +7,77 @@ import ExcelJS from "exceljs";
 import { itemIconIds, validatedStock } from "../lib/inventory.js";
 
 const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
-const browserExcel = readFileSync(new URL("../node_modules/exceljs/dist/exceljs.min.js", import.meta.url), "utf8");
-const headers = [
-  "ชื่อของ", "จำนวน", "หน่วย", "หมวด", "ที่เก็บ", "วันที่ (ถ้ามี)", "ติดตามวันที่",
-];
+const browserExcel = readFileSync(
+  new URL("../node_modules/exceljs/dist/exceljs.min.js", import.meta.url),
+  "utf8",
+);
+const headers = ["ชื่อของ", "จำนวน", "หน่วย", "หมวด", "ที่เก็บ", "วันที่ (ถ้ามี)", "ติดตามวันที่"];
 
 function app(items = [], useBrowserExcel = false, initialStorage = {}) {
   const elements = new Map();
   const documentListeners = new Map();
   const storedValues = new Map(Object.entries(initialStorage));
   const element = (selector) => {
-    if (!elements.has(selector)) elements.set(selector, {
-      open: false, hidden: true, value: "", textContent: "", disabled: false,
-      classList: { add() {}, remove() {} },
-      style: { setProperty() {}, removeProperty() {} },
-      addEventListener() {}, removeEventListener() {}, append() {}, remove() {}, click() {},
-      querySelectorAll: () => [],
-      showModal() { this.open = true; },
-      close() { this.open = false; },
-    });
+    if (!elements.has(selector))
+      elements.set(selector, {
+        open: false,
+        hidden: true,
+        value: "",
+        textContent: "",
+        disabled: false,
+        classList: { add() {}, remove() {} },
+        style: { setProperty() {}, removeProperty() {} },
+        addEventListener() {},
+        removeEventListener() {},
+        append() {},
+        remove() {},
+        click() {},
+        querySelectorAll: () => [],
+        showModal() {
+          this.open = true;
+        },
+        close() {
+          this.open = false;
+        },
+      });
     return elements.get(selector);
   };
   let downloaded;
   const context = vm.createContext({
-    Intl, Date, Blob, structuredClone, crypto: { randomUUID },
+    Intl,
+    Date,
+    Blob,
+    structuredClone,
+    crypto: { randomUUID },
     localStorage: {
-      getItem(key) { return storedValues.get(key) ?? null; },
-      setItem(key, value) { storedValues.set(key, String(value)); },
+      getItem(key) {
+        return storedValues.get(key) ?? null;
+      },
+      setItem(key, value) {
+        storedValues.set(key, String(value));
+      },
     },
     setImmediate,
-    console, location: { hash: "#stock" },
+    console,
+    location: { hash: "#stock" },
     setTimeout(callback, delay) {
       const timer = setTimeout(callback, delay);
       if (delay >= 1000) timer.unref();
       return timer;
     },
-    clearTimeout, setInterval() {},
+    clearTimeout,
+    setInterval() {},
     fetch: () => new Promise(() => {}),
     URL: {
-      createObjectURL(blob) { downloaded = blob; return "blob:test"; },
+      createObjectURL(blob) {
+        downloaded = blob;
+        return "blob:test";
+      },
       revokeObjectURL() {},
     },
     document: {
-      querySelector: element, querySelectorAll: () => [],
+      querySelector: element,
+      querySelectorAll: () => [],
       addEventListener(type, callback) {
         const listeners = documentListeners.get(type) || [];
         listeners.push(callback);
@@ -95,7 +123,9 @@ test("tapping outside a search select closes and blurs synchronously", () => {
   let blurred = 0;
   const root = {
     contains: () => false,
-    closeSearchDropdown() { closed++; },
+    closeSearchDropdown() {
+      closed++;
+    },
   };
   const input = {
     closest: () => root,
@@ -136,23 +166,38 @@ test("datalist clears its value while open, restores unchanged values, and keeps
         listeners.set(type, callbacks);
       },
       dispatchEvent(event) {
-        for (const callback of listeners.get(event.type) || [])
-          callback(event);
+        for (const callback of listeners.get(event.type) || []) callback(event);
         return true;
       },
       fire(type, event = {}) {
         for (const callback of listeners.get(type) || [])
           callback({ type, preventDefault() {}, ...event });
       },
-      append(...children) { this.children.push(...children); },
-      closest() { return this.label; },
-      querySelectorAll() { return []; },
+      append(...children) {
+        this.children.push(...children);
+      },
+      closest() {
+        return this.label;
+      },
+      querySelectorAll() {
+        return [];
+      },
       remove() {},
-      removeAttribute(name) { delete this.attributes[name]; },
-      replaceWith(replacement) { this.replacement = replacement; },
-      setAttribute(name, value) { this.attributes[name] = value; },
-      set innerHTML(value) { this.html = value; },
-      get innerHTML() { return this.html; },
+      removeAttribute(name) {
+        delete this.attributes[name];
+      },
+      replaceWith(replacement) {
+        this.replacement = replacement;
+      },
+      setAttribute(name, value) {
+        this.attributes[name] = value;
+      },
+      set innerHTML(value) {
+        this.html = value;
+      },
+      get innerHTML() {
+        return this.html;
+      },
     };
   };
   context.document.createElement = node;
@@ -206,17 +251,11 @@ test("animation mode defaults to full and only restores supported saved values",
   const defaultApp = app();
   assert.equal(vm.runInContext("animationMode", defaultApp.context), "full");
   assert.equal(
-    vm.runInContext(
-      "animationMode",
-      app([], false, { "home-stock-animation": "minimal" }).context,
-    ),
+    vm.runInContext("animationMode", app([], false, { "home-stock-animation": "minimal" }).context),
     "minimal",
   );
   assert.equal(
-    vm.runInContext(
-      "animationMode",
-      app([], false, { "home-stock-animation": "unknown" }).context,
-    ),
+    vm.runInContext("animationMode", app([], false, { "home-stock-animation": "unknown" }).context),
     "full",
   );
 });
@@ -242,25 +281,25 @@ test("settings lists all animation modes and places logout on that screen", () =
 
 test("off animation mode skips the loading scene", () => {
   const { context, element } = app();
-  vm.runInContext(
-    'hidePantryLoading(); animationMode = "off"; showPantryLoading();',
-    context,
-  );
+  vm.runInContext('hidePantryLoading(); animationMode = "off"; showPantryLoading();', context);
   assert.equal(element("#pantry-loading").hidden, true);
 });
 
 test("template round-trips with named dropdowns through row 2001 and existing units/locations", async () => {
-  const { context, getDownload } = app([
-    { name: "ข้าว", unit: "กระสอบ", location: "ชั้นบน" },
-  ], true);
+  const { context, getDownload } = app([{ name: "ข้าว", unit: "กระสอบ", location: "ชั้นบน" }], true);
   await context.downloadStockTemplate();
   const book = new ExcelJS.Workbook();
   await book.xlsx.load(await getDownload().arrayBuffer());
   const sheet = book.getWorksheet("นำเข้าของ");
   assert.deepEqual(sheet.getRow(1).values.slice(1), headers);
   assert.equal(book.getWorksheet("Lists").state, "hidden");
-  const expected = { 1: "ItemNames", 3: "UnitOptions", 4: "CategoryOptions",
-    5: "LocationOptions", 7: "DateKindOptions" };
+  const expected = {
+    1: "ItemNames",
+    3: "UnitOptions",
+    4: "CategoryOptions",
+    5: "LocationOptions",
+    7: "DateKindOptions",
+  };
   for (const row of [2, 1000, 2001]) {
     for (const [column, name] of Object.entries(expected)) {
       const validation = sheet.getCell(row, Number(column)).dataValidation;
@@ -283,11 +322,13 @@ test("template round-trips with named dropdowns through row 2001 and existing un
 
 test("valid imports meet server validation, default optional fields and preserve separate rows", () => {
   const { context } = app();
-  const parsed = context.parseStockImport(workbook([
-    ["ข้าว", "0.001", "หน่วยใหม่", "", "", " ", ""],
-    ["ข้าว", 2, "หน่วยใหม่", "อาหารแห้ง", "ชั้นใหม่", "31/12/2026", "ตั้งใจใช้ภายใน"],
-    ["<script>", 1, "ชิ้น", "ผัก", "", new Date("2028-02-29T00:00:00Z"), "วันหมดอายุ"],
-  ]));
+  const parsed = context.parseStockImport(
+    workbook([
+      ["ข้าว", "0.001", "หน่วยใหม่", "", "", " ", ""],
+      ["ข้าว", 2, "หน่วยใหม่", "อาหารแห้ง", "ชั้นใหม่", "31/12/2026", "ตั้งใจใช้ภายใน"],
+      ["<script>", 1, "ชิ้น", "ผัก", "", new Date("2028-02-29T00:00:00Z"), "วันหมดอายุ"],
+    ]),
+  );
   assert.equal(parsed.errors.length, 0);
   assert.equal(parsed.items.length, 3);
   assert.equal(parsed.items[0].category, "อื่น ๆ");
@@ -303,10 +344,12 @@ test("valid imports meet server validation, default optional fields and preserve
 
 test("seasonings and snacks are valid categories for imports and server validation", () => {
   const { context } = app();
-  const parsed = context.parseStockImport(workbook([
-    ["น้ำปลา", 1, "ขวด", "เครื่องปรุง", "", "", ""],
-    ["ขนมปัง", 1, "ชิ้น", "ขนม", "", "", ""],
-  ]));
+  const parsed = context.parseStockImport(
+    workbook([
+      ["น้ำปลา", 1, "ขวด", "เครื่องปรุง", "", "", ""],
+      ["ขนมปัง", 1, "ชิ้น", "ขนม", "", "", ""],
+    ]),
+  );
   assert.equal(parsed.errors.length, 0);
   assert.equal(parsed.items[0].category, "เครื่องปรุง");
   assert.equal(parsed.items[1].category, "ขนม");
@@ -314,13 +357,20 @@ test("seasonings and snacks are valid categories for imports and server validati
 });
 
 for (const [label, column, invalid] of [
-  ["missing name", 0, ""], ["long name", 0, "x".repeat(81)],
-  ["zero quantity", 1, 0], ["negative quantity", 1, -1],
-  ["large quantity", 1, 1000000], ["too many decimals", 1, 1.0001],
-  ["tiny quantity", 1, 0.00001], ["nonfinite quantity", 1, "Infinity"],
-  ["missing unit", 2, ""], ["long unit", 2, "x".repeat(21)],
-  ["unknown category", 3, "ไม่มีหมวดนี้"], ["long location", 4, "x".repeat(61)],
-  ["impossible date", 5, "2026-02-30"], ["unknown date kind", 6, "อื่น"],
+  ["missing name", 0, ""],
+  ["long name", 0, "x".repeat(81)],
+  ["zero quantity", 1, 0],
+  ["negative quantity", 1, -1],
+  ["large quantity", 1, 1000000],
+  ["too many decimals", 1, 1.0001],
+  ["tiny quantity", 1, 0.00001],
+  ["nonfinite quantity", 1, "Infinity"],
+  ["missing unit", 2, ""],
+  ["long unit", 2, "x".repeat(21)],
+  ["unknown category", 3, "ไม่มีหมวดนี้"],
+  ["long location", 4, "x".repeat(61)],
+  ["impossible date", 5, "2026-02-30"],
+  ["unknown date kind", 6, "อื่น"],
   ["formula", 0, { formula: '"ข้าว"', result: "ข้าว" }],
   ["cell error", 1, { error: "#VALUE!" }],
 ]) {
@@ -373,8 +423,11 @@ test("preview blocks invalid rows and safely escapes user-controlled content", a
     ["ผิด", 0, "ถุง", "ของแห้ง", "", "", ""],
   ]);
   const bytes = await book.xlsx.writeBuffer();
-  await context.readStockImport({ name: "items.xlsx", size: bytes.length,
-    arrayBuffer: async () => bytes });
+  await context.readStockImport({
+    name: "items.xlsx",
+    size: bytes.length,
+    arrayBuffer: async () => bytes,
+  });
   assert.equal(element("#excel-import-dialog").open, true);
   assert.equal(element("#excel-import-confirm").disabled, true);
   assert.match(element("#excel-import-summary").innerHTML, /&lt;img/);
@@ -387,7 +440,10 @@ for (const status of [409, 0, 500]) {
     context.book = workbook([row]);
     vm.runInContext("pendingStockImport = parseStockImport(book);", context);
     element("#excel-import-dialog").open = true;
-    context.request = vm.runInContext(`async () => { throw new ApiError(${status}, "test"); }`, context);
+    context.request = vm.runInContext(
+      `async () => { throw new ApiError(${status}, "test"); }`,
+      context,
+    );
     context.refresh = async () => {};
     await context.mutation(async () => {}, context.initial.version);
     assert.equal(element("#excel-import-confirm").disabled, true);
@@ -409,8 +465,15 @@ test("authentication expiry closes import preview and clears the household", asy
 
 test("successful import appends items while preserving the rest of the household", async () => {
   const existing = {
-    id: randomUUID(), name: "ของเดิม", qty: 2, unit: "ชิ้น", category: "อื่น ๆ",
-    location: "ตู้เย็น", date: "", dateKind: "expiry", photo: randomUUID(),
+    id: randomUUID(),
+    name: "ของเดิม",
+    qty: 2,
+    unit: "ชิ้น",
+    category: "อื่น ๆ",
+    location: "ตู้เย็น",
+    date: "",
+    dateKind: "expiry",
+    photo: randomUUID(),
   };
   const { context, element } = app([existing]);
   context.initial.shopping.push({ id: randomUUID(), name: "ซื้อเดิม", qty: 1, unit: "ถุง" });
@@ -468,7 +531,8 @@ test("shopping actions and navigation share the cart icon instead of the saved-r
   const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
   const navigation = html.split('<a href="#shopping"')[1].split("</a>")[0];
   const paths = [...icon.matchAll(/<(?:path|circle)[^>]+>/g)].map(([value]) =>
-    value.replace(/\s*\/>$/, "").replace(/\s+/g, " "));
+    value.replace(/\s*\/>$/, "").replace(/\s+/g, " "),
+  );
   assert.equal(paths.length, 3);
   for (const path of paths) assert.ok(navigation.includes(path));
   assert.notEqual(icon, recipe);
@@ -476,9 +540,15 @@ test("shopping actions and navigation share the cart icon instead of the saved-r
 });
 
 const mediaItem = () => ({
-  id: randomUUID(), name: 'ข้าว <"ใหม่">', qty: 2.125, unit: "ถุง",
-  category: "ของแห้ง", location: "ชั้นวาง", date: "2026-12-31",
-  dateKind: "expiry", photo: null,
+  id: randomUUID(),
+  name: 'ข้าว <"ใหม่">',
+  qty: 2.125,
+  unit: "ถุง",
+  category: "ของแห้ง",
+  location: "ชั้นวาง",
+  date: "2026-12-31",
+  dateKind: "expiry",
+  photo: null,
 });
 
 test("generated icon catalog matches server validation and rejects arbitrary markup", () => {
@@ -492,14 +562,25 @@ test("generated icon catalog matches server validation and rejects arbitrary mar
     assert.match(context.itemIconSvg(icon), /<svg[^>]+aria-hidden="true"/);
   }
   for (const icon of ["<svg onload=alert(1)>", "__proto__", 1, {}, []]) {
-    assert.throws(() => validatedStock({
-      items: [{ ...mediaItem(), icon }], shopping: [], version: null,
-    }), /ไอคอน/);
+    assert.throws(
+      () =>
+        validatedStock({
+          items: [{ ...mediaItem(), icon }],
+          shopping: [],
+          version: null,
+        }),
+      /ไอคอน/,
+    );
   }
-  assert.throws(() => validatedStock({
-    items: [{ ...mediaItem(), icon: "egg", photo: randomUUID() }],
-    shopping: [], version: null,
-  }), /อย่างใดอย่างหนึ่ง/);
+  assert.throws(
+    () =>
+      validatedStock({
+        items: [{ ...mediaItem(), icon: "egg", photo: randomUUID() }],
+        shopping: [],
+        version: null,
+      }),
+    /อย่างใดอย่างหนึ่ง/,
+  );
   const old = validatedStock({ items: [mediaItem()], shopping: [], version: null }).items[0];
   assert.equal(Object.hasOwn(old, "icon"), false);
 });
@@ -529,9 +610,13 @@ test("media chooser deduplicates current photos and does not upload generated ic
   const { context, element } = app([first, { ...mediaItem(), photo }, target]);
   context.startItemMedia(target);
   assert.equal(element("#item-media-dialog").open, true);
-  assert.equal((element("#item-media-photos").innerHTML.match(/select-item-photo/g) || []).length, 1);
+  assert.equal(
+    (element("#item-media-photos").innerHTML.match(/select-item-photo/g) || []).length,
+    1,
+  );
   assert.match(element("#item-media-icons").innerHTML, /select-item-icon/);
-  let calls = 0, written;
+  let calls = 0,
+    written;
   context.request = async (path, options) => {
     calls++;
     assert.equal(path, "stock");
@@ -577,7 +662,8 @@ test("new media uploads use the existing JPEG endpoint before saving the stock",
   const blob = new Blob(["test"], { type: "image/jpeg" });
   context.blob = blob;
   vm.runInContext("mediaDraft.blob = blob;", context);
-  const photo = randomUUID(), paths = [];
+  const photo = randomUUID(),
+    paths = [];
   context.request = async (path, options) => {
     paths.push(path);
     if (path === "photo") {
@@ -599,7 +685,10 @@ for (const status of [409, 0, 500, 401]) {
     const { context, element } = app([target]);
     context.startItemMedia(target);
     context.selectItemMedia(null, "fruit");
-    context.request = vm.runInContext(`async () => { throw new ApiError(${status}, "test"); }`, context);
+    context.request = vm.runInContext(
+      `async () => { throw new ApiError(${status}, "test"); }`,
+      context,
+    );
     context.refresh = async () => {};
     await context.saveItemMedia();
     if (status === 401) {
@@ -617,11 +706,19 @@ test("editing ordinary item fields preserves an existing icon", () => {
   const target = { ...mediaItem(), icon: "grain" };
   const { context, element } = app([target]);
   context.target = target;
-  vm.runInContext('draft = { mode: "edit-item", sourceId: target.id, photo: null, icon: target.icon };', context);
+  vm.runInContext(
+    'draft = { mode: "edit-item", sourceId: target.id, photo: null, icon: target.icon };',
+    context,
+  );
   for (const [id, value] of [
-    ["f-name", target.name], ["f-unit", target.unit], ["f-qty", String(target.qty)],
-    ["f-category", target.category], ["f-location", target.location],
-    ["f-date", target.date], ["f-kind", target.dateKind],
-  ]) element("#" + id).value = value;
+    ["f-name", target.name],
+    ["f-unit", target.unit],
+    ["f-qty", String(target.qty)],
+    ["f-category", target.category],
+    ["f-location", target.location],
+    ["f-date", target.date],
+    ["f-kind", target.dateKind],
+  ])
+    element("#" + id).value = value;
   assert.deepEqual(JSON.parse(JSON.stringify(context.formItem())), target);
 });

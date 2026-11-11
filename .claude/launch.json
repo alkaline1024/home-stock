@@ -1,6 +1,11 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "home-stock", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 4177 }
+    {
+      "name": "home-stock",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 4177
+    }
   ]
 }

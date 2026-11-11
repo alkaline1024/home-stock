@@ -34,8 +34,7 @@ const jar = `
   <path d="M196 290l38 38 82-82" fill="none" stroke="#203f37" stroke-width="34"
     stroke-linecap="round" stroke-linejoin="round"/>`;
 
-const svg = (body) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">${body}</svg>`;
+const svg = (body) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">${body}</svg>`;
 const scaled = (scale, body) =>
   `<g transform="translate(256 268) scale(${scale}) translate(-256 -268)">${body}</g>`;
 
@@ -92,6 +91,8 @@ images.forEach(([size, data], index) => {
   header.writeUInt32LE(offset, entry + 12);
   offset += data.length;
 });
-writeFileSync(resolve(out, "../favicon.ico"),
-  Buffer.concat([header, ...images.map(([, data]) => data)]));
+writeFileSync(
+  resolve(out, "../favicon.ico"),
+  Buffer.concat([header, ...images.map(([, data]) => data)]),
+);
 console.log("Generated icons in public/icons");
