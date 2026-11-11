@@ -1070,6 +1070,12 @@ function valueBadge(value, type) {
     "</span></span>"
   );
 }
+function cardFilterBadge(value, type) {
+  const label = type === "category" ? "หมวด" : "ที่เก็บ";
+  return '<button type="button" class="item-card-filter" data-action="filter-card-badge" data-filter-type="' +
+    type + '" data-filter-value="' + esc(value) + '" aria-label="กรองของในบ้านตาม' +
+    label + ' ' + esc(value) + '">' + valueBadge(value, type) + '</button>';
+}
 function getItemView(page) {
   try {
     return localStorage.getItem("home-stock-item-view-" + page) === "grid"
@@ -1144,9 +1150,9 @@ function row(item, shopping = false) {
   const media = gridMode
     ? '<div class="item-card-media">' + thumb(item) +
       '<div class="item-card-tags"><span class="item-card-tag-left">' +
-      (item.location ? valueBadge(item.location, "location") : "") +
+      (item.location ? cardFilterBadge(item.location, "location") : "") +
       '</span><span class="item-card-tag-right">' +
-      (item.category ? valueBadge(item.category, "category") : "") +
+      (item.category ? cardFilterBadge(item.category, "category") : "") +
       "</span></div></div>"
     : thumb(item, !shopping && tab() === "stock");
   const nameAndQty = gridMode
@@ -2563,15 +2569,6 @@ function editorFields(data, isShopping) {
   return (
     '<div class="form-grid">' +
     base +
-    '<div class="span barcode-field"><label for="f-barcode">บาร์โค้ดสินค้า (ถ้ามี)</label>' +
-    '<div class="barcode-input-row"><input id="f-barcode" inputmode="numeric" pattern="[0-9]{8,14}" maxlength="14" value="' +
-    esc(data.barcode || "") + '">' +
-    '<button type="button" class="secondary" data-action="scan-barcode">สแกน</button></div>' +
-    '<p id="barcode-hint" class="form-help" role="status"></p>' +
-    '<div id="barcode-scanner" class="barcode-scanner" hidden><video id="barcode-video" autoplay muted playsinline></video>' +
-    '<div class="barcode-camera-controls"><label for="barcode-zoom">ซูม</label><input id="barcode-zoom" type="range" min="1" max="1" step="0.1" value="1" disabled>' +
-    '<button type="button" id="barcode-torch" class="secondary" data-action="toggle-barcode-torch" hidden>เปิดไฟฉาย</button>' +
-    '<button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div></div>' +
     '<label>หมวด<select id="f-category">' +
     opts(categories, data.category) +
     "</select></label>" +
@@ -2597,9 +2594,18 @@ function editorFields(data, isShopping) {
     '</span><input id="f-date" type="date" value="' +
     esc(data.date) +
     '"></span></label>' +
-    '<label>แจ้งเตือนก่อนกำหนดภายใน (วัน)<input id="f-notify-before-days" type="number" inputmode="numeric" min="0" max="365" step="1" placeholder="ใช้ค่าเริ่มต้นจาก Settings" value="' +
+    '<label class="span">แจ้งเตือนก่อนกำหนดภายใน (วัน)<input id="f-notify-before-days" type="number" inputmode="numeric" min="0" max="365" step="1" placeholder="ใช้ค่าเริ่มต้นจาก Settings" value="' +
     esc(data.notifyBeforeDays ?? "") + '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใส่ 0 เพื่อเตือนในวันที่กำหนด · ใช้กับ EXP/BBE และต้องตั้งค่าการแจ้งเตือนใน Settings บนอุปกรณ์นี้</span></label>' +
-    '<div class="span photo-edit"><label>รูปภาพ (ถ้ามี)<input type="file" id="f-photo" accept="image/*"></label><div id="photo-preview"></div></div></div>'
+    '<div class="span photo-edit"><label>รูปภาพ (ถ้ามี)<input type="file" id="f-photo" accept="image/*"></label><div id="photo-preview"></div></div>' +
+    '<div class="span barcode-field"><label for="f-barcode">บาร์โค้ดสินค้า (ถ้ามี)</label>' +
+    '<div class="barcode-input-row"><input id="f-barcode" inputmode="numeric" pattern="[0-9]{8,14}" maxlength="14" value="' +
+    esc(data.barcode || "") + '">' +
+    '<button type="button" class="secondary" data-action="scan-barcode">สแกน</button></div>' +
+    '<p id="barcode-hint" class="form-help" role="status"></p>' +
+    '<div id="barcode-scanner" class="barcode-scanner" hidden><video id="barcode-video" autoplay muted playsinline></video>' +
+    '<div class="barcode-camera-controls"><label for="barcode-zoom">ซูม</label><input id="barcode-zoom" type="range" min="1" max="1" step="0.1" value="1" disabled>' +
+    '<button type="button" id="barcode-torch" class="secondary" data-action="toggle-barcode-torch" hidden>เปิดไฟฉาย</button>' +
+    '<button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div></div></div>'
   );
 }
 
@@ -2971,7 +2977,7 @@ function startEditor(mode, data = {}, sourceId = "") {
     qty: 1,
     unit: "ชิ้น",
     category: "อื่น ๆ",
-    location: "",
+    location: mode === "add" ? stock.items[stock.items.length - 1]?.location || "" : "",
     date: "",
     dateKind: "expiry",
     photo: null,
@@ -4084,6 +4090,24 @@ document.addEventListener("click", async (event) => {
     try { localStorage.setItem("home-stock-item-view-" + tab(), id); } catch {}
     return draw();
   }
+  if (action === "filter-card-badge") {
+    const type = target.dataset.filterType;
+    const value = target.dataset.filterValue;
+    if (type !== "category" && type !== "location") return;
+    closeItemMenus();
+    $("#query").value = "";
+    $("#category-filter").value = type === "category" ? value : "";
+    $("#location-filter").value = "";
+    if (tab() !== "stock") location.hash = "stock";
+    draw();
+    if (type === "location") {
+      $("#location-filter").value = value;
+      draw();
+    }
+    refreshSearchSelect($("#category-filter"));
+    refreshSearchSelect($("#location-filter"));
+    return;
+  }
   if (action === "save-alerts") return saveAlertSettings();
   if (action === "test-alert-now") return testAlert(false);
   if (action === "test-alert-later") return testAlert(true);
@@ -4373,7 +4397,8 @@ document.addEventListener("pointerdown", (event) => {
 });
 document.addEventListener("keydown", (event) => {
   const card = event.target.closest?.('.line-item.is-grid-card[data-action="toggle-card-menu"]');
-  if (card && (event.key === "Enter" || event.key === " ")) {
+  if (card && !event.target.closest("button, [role=menuitem]") &&
+      (event.key === "Enter" || event.key === " ")) {
     event.preventDefault();
     card.click();
     return;
