@@ -1008,14 +1008,50 @@ function valueBadge(value, type) {
     "</span></span>"
   );
 }
+function getItemView(page) {
+  try {
+    return localStorage.getItem("home-stock-item-view-" + page) === "grid"
+      ? "grid"
+      : "list";
+  } catch { return "list"; }
+}
+function itemViewToggle(page) {
+  const mode = getItemView(page);
+  const option = (value, label) => '<button type="button" class="item-view-option' +
+    (mode === value ? " is-active" : "") + '" data-action="set-item-view" data-id="' + value +
+    '" aria-pressed="' + (mode === value) + '">' + label + "</button>";
+  return '<div class="item-view-toggle" role="group" aria-label="รูปแบบการแสดงผล">' +
+    option("list", "รายการ") + option("grid", "รูปใหญ่") +
+    "</div>";
+}
+function itemMenu(item, shopping = false, gridMode = false) {
+  const editLabel = '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><span>แก้ไข</span>';
+  const choices = shopping
+    ? button("receive", "รับเข้าบ้าน", item.id, "item-menu-option") +
+      button("edit-shopping", editLabel, item.id, "item-menu-option")
+    : gridMode
+      ? button("use", item.qty < 1 ? "- ใช้หมด" : "- 1 " + esc(item.unit), item.id, "item-menu-option") +
+        button("custom-use", "- ระบุจำนวน", item.id, "item-menu-option") +
+        (tab() === "stock" ? button("choose-item-media", "เปลี่ยนรูปหรือไอคอน", item.id, "item-menu-option") : "") +
+        button("edit-item", editLabel, item.id, "item-menu-option") +
+        button("shopping-from-item", paperPlusLabel("เพิ่มไปในรายการซื้อ"), item.id, "item-menu-option") +
+        button("confirm-remove-item", "ลบรายการ", item.id, "item-menu-option danger")
+    : button("edit-item", editLabel, item.id, "item-menu-option") +
+      button("shopping-from-item", paperPlusLabel("เพิ่มไปในรายการซื้อ"), item.id, "item-menu-option") +
+      button("confirm-remove-item", "ลบรายการ", item.id, "item-menu-option danger");
+  return '<div class="item-menu-wrap"><button type="button" class="item-menu-trigger" data-action="toggle-item-menu" data-id="' +
+    esc(item.id) + '" aria-label="การทำงานเพิ่มเติมสำหรับ ' + esc(item.name) + '" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">⋮</span></button>' +
+    '<div class="item-menu" role="menu" hidden>' + choices + "</div></div>";
+}
 function row(item, shopping = false) {
   let meta, detail, actions;
+  const gridMode = !shopping && ["today", "stock"].includes(tab()) &&
+    getItemView(tab()) === "grid";
   if (shopping) {
     const total = totalFor(item);
     detail = "ซื้อ " + amount(item);
     meta = "ที่บ้านเหลือ " + amountFormat.format(total) + " " + item.unit;
-    actions =
-      button("receive", addActionLabel("stock", "ซื้อแล้ว"), item.id) +
+    actions = button("receive", addActionLabel("stock", "ซื้อแล้ว"), item.id) +
       button("edit-shopping", "แก้ไข", item.id, "action small");
   } else {
     detail = amount(item);
@@ -1025,41 +1061,16 @@ function row(item, shopping = false) {
     ]
       .filter(Boolean)
       .join("");
-    actions =
-      button(
-        "use",
-        item.qty < 1 ? "- ใช้หมด" : "- 1 " + esc(item.unit),
-        item.id,
-        "stock-action stock-action-use",
-      ) +
-      button(
-        "custom-use",
-        "- ระบุจำนวน",
-        item.id,
-        "stock-action stock-action-custom",
-      ) +
-      '<div class="item-menu-wrap"><button type="button" class="item-menu-trigger" data-action="toggle-item-menu" data-id="' +
-      esc(item.id) +
-      '" aria-label="ตัวเลือกเพิ่มเติม" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">⋮</span></button><div class="item-menu" role="menu" hidden>' +
-      button(
-        "edit-item",
-        '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><span>แก้ไข</span>',
-        item.id,
-        "item-menu-option",
-      ) +
-      button(
-        "shopping-from-item",
-        paperPlusLabel("เพิ่มไปในรายการซื้อ"),
-        item.id,
-        "item-menu-option",
-      ) +
-      button(
-        "confirm-remove-item",
-        '<svg class="item-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5m4-5v5"/></svg><span>ลบรายการ</span>',
-        item.id,
-        "item-menu-option danger",
-      ) +
-      "</div></div>";
+    actions = gridMode
+      ? itemMenu(item, false, true)
+      : button(
+          "use",
+          item.qty < 1 ? "- ใช้หมด" : "- 1 " + esc(item.unit),
+          item.id,
+          "stock-action stock-action-use",
+        ) +
+        button("custom-use", "- ระบุจำนวน", item.id, "stock-action stock-action-custom") +
+        itemMenu(item);
   }
   const date = shopping
     ? ""
@@ -1070,7 +1081,7 @@ function row(item, shopping = false) {
       "</div>";
   return (
     '<article class="line-item">' +
-    thumb(item, !shopping && tab() === "stock") +
+    thumb(item, !shopping && tab() === "stock" && !gridMode) +
     '<div class="item-info"><div class="item-name">' +
     esc(item.name) +
     ' <span class="qty">· ' +
@@ -1096,6 +1107,8 @@ function totalFor(item) {
   );
 }
 function section(title, items, options = {}) {
+  const mode = options.shopping || !["today", "stock"].includes(tab())
+    ? "list" : getItemView(tab());
   return (
     '<section class="section"><div class="section-head ' +
     (options.urgent ? "urgent" : "") +
@@ -1104,7 +1117,9 @@ function section(title, items, options = {}) {
     "</h2><span>" +
     items.length +
     " รายการ</span></div>" +
+    '<div class="item-collection view-' + mode + '">' +
     items.map((i) => row(i, options.shopping)).join("") +
+    "</div>" +
     "</section>"
   );
 }
@@ -1659,6 +1674,10 @@ function settingsContent() {
     '<p class="form-help">ส่งวันละครั้งประมาณ 09:00 น. เมื่อมีของใกล้หมดอายุ</p>' +
     '<label>เตือนล่วงหน้า<select id="alert-days"><option value="0">ปิด</option><option value="1">1 วัน</option><option value="3">3 วัน</option><option value="7">7 วัน</option></select></label>' +
     '<button type="button" class="secondary" data-action="save-alerts">บันทึกการแจ้งเตือน</button>' +
+    '<div class="alert-test-controls"><button type="button" class="secondary" data-action="test-alert-now">[ทดสอบ] ส่งการแจ้งเตือน</button>' +
+    '<div class="alert-test-delay"><label for="alert-test-seconds">[ทดสอบ] ส่งการแจ้งเตือนในอีก</label> ' +
+    '<input id="alert-test-seconds" type="number" inputmode="numeric" min="1" max="3600" step="1" value="5"> วินาที ' +
+    '<button type="button" class="secondary" data-action="test-alert-later">เริ่มจับเวลา</button></div></div>' +
     '<p id="alert-status" class="form-help" role="status"></p></section>' +
     '<button type="button" class="secondary settings-logout" data-action="logout">ออกจากระบบ</button></section>'
   );
@@ -1733,6 +1752,43 @@ async function saveAlertSettings() {
     status.textContent = days ? 'เปิดแจ้งเตือนแล้ว' : 'ปิดแจ้งเตือนแล้ว';
   } catch(error) { status.textContent = error.message || errorText(error); }
   finally { stopButtonLoading(button); button.disabled = false; }
+}
+
+async function testAlert(later = false) {
+  const button = document.querySelector('[data-action="test-alert-' + (later ? 'later' : 'now') + '"]');
+  const status = $('#alert-status');
+  const seconds = later ? Number($('#alert-test-seconds')?.value) : 0;
+  if (later && (!Number.isInteger(seconds) || seconds < 1 || seconds > 3600)) {
+    status.textContent = 'กรุณาระบุเวลาตั้งแต่ 1 ถึง 3600 วินาที';
+    return;
+  }
+  startButtonLoading(button);
+  button.disabled = true;
+  try {
+    if (!('serviceWorker' in navigator) || !('showNotification' in ServiceWorkerRegistration.prototype))
+      throw new Error('อุปกรณ์นี้ยังไม่รองรับการแจ้งเตือนจากเว็บ');
+    if (!('Notification' in window)) throw new Error('เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน');
+    let permission = Notification.permission;
+    if (permission === 'default') permission = await Notification.requestPermission();
+    if (permission !== 'granted') throw new Error('กรุณาอนุญาตการแจ้งเตือนในเบราว์เซอร์');
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    if (later) {
+      status.textContent = 'ตั้งเวลาแจ้งเตือนทดสอบในอีก ' + seconds + ' วินาทีแล้ว';
+      setTimeout(() => registration.showNotification('ทดสอบการแจ้งเตือน', {
+        body: 'ระบบแจ้งเตือนของใกล้หมดอายุทำงานแล้ว', tag: 'home-stock-alert-test', data: {url: '/'}
+      }).catch((error) => { if ($('#alert-status')) $('#alert-status').textContent = error.message || 'ส่งการแจ้งเตือนทดสอบไม่สำเร็จ'; }), seconds * 1000);
+    } else {
+      await registration.showNotification('ทดสอบการแจ้งเตือน', {
+        body: 'ระบบแจ้งเตือนของใกล้หมดอายุทำงานแล้ว', tag: 'home-stock-alert-test', data: {url: '/'}
+      });
+      status.textContent = 'ส่งการแจ้งเตือนทดสอบแล้ว';
+    }
+  } catch (error) {
+    status.textContent = error.message || errorText(error);
+  } finally {
+    stopButtonLoading(button);
+    button.disabled = false;
+  }
 }
 
 function draw() {
@@ -1909,6 +1965,8 @@ function draw() {
           "จดรายการแรก",
         );
   }
+  if (["today", "stock"].includes(page) && stock.items.length)
+    html = itemViewToggle(page) + html;
   $("#content").innerHTML = html;
 }
 
@@ -3894,7 +3952,13 @@ document.addEventListener("click", async (event) => {
   const wanted = stock?.shopping.find((i) => i.id === id);
   const mealPlan = stock?.mealPlans?.find((plan) => plan.id === id);
   const recipe = stock?.recipes?.find((item) => item.id === id);
+  if (action === "set-item-view") {
+    try { localStorage.setItem("home-stock-item-view-" + tab(), id); } catch {}
+    return draw();
+  }
   if (action === "save-alerts") return saveAlertSettings();
+  if (action === "test-alert-now") return testAlert(false);
+  if (action === "test-alert-later") return testAlert(true);
   if (action === "retry") {
     startButtonLoading(target);
     entry("checking");

@@ -1054,6 +1054,68 @@ footer {
 .section {
   margin: 0 0 26px;
 }
+.item-view-toggle {
+  display: flex;
+  justify-content: flex-end;
+  gap: 3px;
+  margin: 0 0 16px;
+}
+.item-view-option {
+  min-height: 40px;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: .88rem;
+}
+.item-view-option:first-child { border-radius: 9px 0 0 9px; }
+.item-view-option:last-child { border-radius: 0 9px 9px 0; }
+.item-view-option.is-active {
+  border-color: var(--green);
+  background: var(--mint);
+  color: var(--green);
+  font-weight: 650;
+}
+.item-collection.view-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 165px), 1fr));
+  gap: 12px;
+  padding-top: 8px;
+}
+.item-collection.view-grid .line-item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "photo photo" "info actions";
+  gap: 10px 6px;
+  align-content: start;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 3px 12px rgb(25 54 39 / 5%);
+}
+.item-collection.view-grid .line-item > .thumb {
+  grid-area: photo;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 10px;
+}
+.item-collection.view-grid .line-item > .thumb.placeholder .item-icon {
+  width: 58px;
+  height: 58px;
+}
+.item-collection.view-grid .item-info { grid-area: info; }
+.item-collection.view-grid .item-actions {
+  grid-area: actions;
+  justify-content: flex-end;
+  align-self: start;
+}
+.item-collection.view-grid .item-name { font-size: 1rem; }
+.item-collection.view-grid .item-badges { gap: 4px; }
+.item-collection.view-grid .stock-badge { font-size: .76rem; }
 .section-head {
   border-bottom: 1px solid var(--line);
   padding-bottom: 9px;
@@ -2455,6 +2517,10 @@ dialog::backdrop {
 .minimum-row input { width: 7rem; }
 .settings-stock label { max-width: 100%; }
 .settings-stock select { display: block; margin: .45rem 0 .7rem; }
+.alert-test-controls { display: grid; justify-items: start; gap: .75rem; margin-top: .8rem; }
+.alert-test-delay { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.alert-test-delay label { display: inline; }
+.alert-test-delay input { width: 5.5rem; }
 @media (max-width: 520px) { .low-stock-row { align-items: stretch; flex-direction: column; } }
 
 button.is-loading { display: inline-flex; align-items: center; justify-content: center; }
