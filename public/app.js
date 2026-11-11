@@ -101,10 +101,38 @@ const itemIcons = {
   meal: { label: "อาหารปรุงสุก" },
   snowflake: { label: "ของแช่แข็ง" },
 };
+const itemIconColors = {
+  green: { label: "เขียว", value: "#386641" },
+  blue: { label: "น้ำเงิน", value: "#25658a" },
+  teal: { label: "เขียวอมฟ้า", value: "#167d79" },
+  coral: { label: "ปะการัง", value: "#c4513d" },
+  orange: { label: "ส้ม", value: "#bd6d1e" },
+  berry: { label: "แดงเบอร์รี", value: "#a73e5a" },
+  purple: { label: "ม่วง", value: "#7451a6" },
+  slate: { label: "เทาเข้ม", value: "#48525b" },
+};
+const itemIconBackgrounds = {
+  mint: { label: "มิ้นต์", value: "#e2efe1" },
+  cream: { label: "ครีม", value: "#f2eadb" },
+  sky: { label: "ฟ้า", value: "#e0eef4" },
+  rose: { label: "ชมพู", value: "#f7e6e7" },
+  lilac: { label: "ลาเวนเดอร์", value: "#ede8f7" },
+  peach: { label: "พีช", value: "#f8e6d9" },
+  butter: { label: "เหลืองอ่อน", value: "#f4edcf" },
+  white: { label: "ขาว", value: "#ffffff" },
+};
 
-function itemIconSvg(id, className = "item-icon") {
+function itemIconStyle(item) {
+  const foreground = itemIconColors[item?.iconColor]?.value || itemIconColors.green.value;
+  const background = itemIconBackgrounds[item?.iconBackground]?.value || itemIconBackgrounds.mint.value;
+  return ' style="--item-icon-color:' + foreground + ';--item-icon-bg:' + background + '"';
+}
+
+function itemIconSvg(id, className = "item-icon", color = "green", background = "mint") {
   if (!Object.hasOwn(itemIcons, id)) return "";
-  return '<svg class="' + className + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/item-icons.svg#item-icon-' + id + '"></use></svg>';
+  const foreground = itemIconColors[color]?.value || itemIconColors.green.value;
+  const back = itemIconBackgrounds[background]?.value || itemIconBackgrounds.mint.value;
+  return '<svg class="' + className + '" style="color:' + foreground + ';--item-icon-bg:' + back + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/item-icons.svg#item-icon-' + id + '"></use></svg>';
 }
 const stockImportHeaders = [
   "ชื่อของ",
@@ -963,8 +991,8 @@ function thumb(item, editable = false) {
     ? '<img class="thumb" decoding="async" loading="lazy" alt="" src="/api/photo?id=' +
         encodeURIComponent(item.photo) +
         '">'
-    : '<span aria-hidden="true" class="thumb placeholder">' +
-        (itemIconSvg(item.icon) || esc([...item.name][0] || "·")) +
+    : '<span aria-hidden="true" class="thumb placeholder"' + itemIconStyle(item) + '>' +
+        (itemIconSvg(item.icon, "item-icon", item.iconColor) || esc([...item.name][0] || "·")) +
         "</span>";
   if (!editable) return content;
   return '<button type="button" class="item-media-trigger" data-action="choose-item-media" data-id="' +
@@ -2903,6 +2931,8 @@ function startEditor(mode, data = {}, sourceId = "") {
     version: stock.version,
     photo: base.photo,
     icon: base.icon,
+    iconColor: base.iconColor || "green",
+    iconBackground: base.iconBackground || "mint",
     blob: null,
     photoTask: 0,
     processing: false,
@@ -3084,9 +3114,19 @@ function renderPhoto() {
       '">' +
       button("remove-photo", "ลบรูป", "", "text-button")
     : draft.icon
-      ? '<span class="thumb placeholder">' + itemIconSvg(draft.icon) + "</span>" +
+      ? '<span class="thumb placeholder"' + itemIconStyle(draft) + '>' + itemIconSvg(draft.icon, "item-icon", draft.iconColor, draft.iconBackground) + "</span>" +
         button("remove-photo", "ลบไอคอน", "", "text-button")
       : "";
+}
+function renderItemMediaColorOptions() {
+  if (!mediaDraft) return;
+  const render = (options, selected, action) => Object.entries(options).map(([id, color]) =>
+    '<button type="button" class="item-media-color-swatch" data-action="' + action +
+    '" data-id="' + id + '" style="--swatch-color:' + color.value + '" aria-label="' +
+    color.label + '" title="' + color.label + '" aria-pressed="' + (selected === id) + '"></button>'
+  ).join("");
+  $("#item-media-icon-color-options").innerHTML = render(itemIconColors, mediaDraft.iconColor, "select-item-icon-color");
+  $("#item-media-icon-bg-options").innerHTML = render(itemIconBackgrounds, mediaDraft.iconBackground, "select-item-icon-background");
 }
 function renderItemMediaPreview() {
   if (!mediaDraft) return;
@@ -3094,13 +3134,20 @@ function renderItemMediaPreview() {
     (mediaDraft.photo ? "/api/photo?id=" + encodeURIComponent(mediaDraft.photo) : "");
   $("#item-media-preview").innerHTML = src
     ? '<img alt="รูปของที่เลือก" src="' + esc(src) + '">'
-    : '<span class="thumb placeholder">' +
-      (itemIconSvg(mediaDraft.icon) || esc([...mediaDraft.name][0] || "·")) + "</span>";
+    : '<span class="thumb placeholder"' + itemIconStyle(mediaDraft) + '>' +
+      (itemIconSvg(mediaDraft.icon, "item-icon", mediaDraft.iconColor, mediaDraft.iconBackground) || esc([...mediaDraft.name][0] || "·")) + "</span>";
+  $("#item-media-icon-colors").hidden = !mediaDraft.icon;
+  renderItemMediaColorOptions();
   document.querySelectorAll(".item-media-choice").forEach((choice) => {
     const selected = choice.dataset.action === "select-item-photo"
       ? !mediaDraft.blob && mediaDraft.photo === choice.dataset.id
-      : mediaDraft.icon === choice.dataset.id;
+      : choice.dataset.action === "select-item-icon" && mediaDraft.icon === choice.dataset.id;
     choice.setAttribute("aria-pressed", String(selected));
+    const icon = choice.querySelector(".item-icon");
+    if (icon) {
+      icon.style.color = itemIconColors[mediaDraft.iconColor]?.value || itemIconColors.green.value;
+      icon.style.setProperty("--item-icon-bg", itemIconBackgrounds[mediaDraft.iconBackground]?.value || itemIconBackgrounds.mint.value);
+    }
   });
   $("#item-media-save").disabled = Boolean(mediaDraft.processing || mediaDraft.stale);
 }
@@ -3111,6 +3158,7 @@ function startItemMedia(item) {
   mediaDraft = {
     id: item.id, name: item.name, version: stock.version,
     photo: item.photo || null, icon: item.icon || null,
+    iconColor: item.iconColor || "green", iconBackground: item.iconBackground || "mint",
     blob: null, preview: "", task: 0, processing: false, stale: false,
   };
   $("#item-media-name").textContent = item.name;
@@ -3124,7 +3172,7 @@ function startItemMedia(item) {
       "item-media-choice")).join("")
     : '<p class="form-help">ยังไม่มีรูปที่เคยอัปโหลด</p>';
   $("#item-media-icons").innerHTML = Object.entries(itemIcons).map(([id, icon]) =>
-    button("select-item-icon", itemIconSvg(id) + "<span>" + esc(icon.label) +
+    button("select-item-icon", itemIconSvg(id, "item-icon", mediaDraft.iconColor, mediaDraft.iconBackground) + "<span>" + esc(icon.label) +
       "</span>", id, "item-media-choice")).join("");
   renderItemMediaPreview();
   $("#item-media-dialog").showModal();
@@ -3135,7 +3183,11 @@ function selectItemMedia(photo, icon) {
   stopButtonLoading($("#item-media-save"));
   ++mediaDraft.task;
   if (mediaDraft.preview) URL.revokeObjectURL(mediaDraft.preview);
-  Object.assign(mediaDraft, { photo, icon, blob: null, preview: "", processing: false });
+  Object.assign(mediaDraft, {
+    photo, icon, blob: null, preview: "", processing: false,
+    iconColor: icon ? (mediaDraft.iconColor || "green") : "green",
+    iconBackground: icon ? (mediaDraft.iconBackground || "mint") : "mint",
+  });
   $("#item-media-file").value = "";
   $("#item-media-error").textContent = "";
   renderItemMediaPreview();
@@ -3195,6 +3247,13 @@ async function saveItemMedia() {
     }
     item.photo = editing.photo;
     item.icon = editing.icon;
+    if (editing.icon) {
+      item.iconColor = editing.iconColor;
+      item.iconBackground = editing.iconBackground;
+    } else {
+      delete item.iconColor;
+      delete item.iconBackground;
+    }
   }, editing.version, () => {
     $("#item-media-dialog").close();
     alertUser("บันทึกรูปหรือไอคอนแล้ว");
@@ -3469,6 +3528,10 @@ function formItem() {
     ...($("#f-barcode").value.trim() ? {barcode: $("#f-barcode").value.trim()} : {}),
     photo: draft.photo,
     ...(draft.icon !== undefined ? { icon: draft.icon } : {}),
+    ...(draft.icon ? {
+      iconColor: draft.iconColor || "green",
+      iconBackground: draft.iconBackground || "mint",
+    } : {}),
   };
 }
 
@@ -4022,6 +4085,16 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "select-item-icon" && mediaDraft && Object.hasOwn(itemIcons, id))
     return selectItemMedia(null, id);
+  if (action === "select-item-icon-color" && mediaDraft && Object.hasOwn(itemIconColors, id)) {
+    mediaDraft.iconColor = id;
+    renderItemMediaPreview();
+    return;
+  }
+  if (action === "select-item-icon-background" && mediaDraft && Object.hasOwn(itemIconBackgrounds, id)) {
+    mediaDraft.iconBackground = id;
+    renderItemMediaPreview();
+    return;
+  }
   if (action === "clear-item-media") return selectItemMedia(null, null);
   if (action === "save-item-media") return saveItemMedia();
   if (action === "close-excel-import") {
@@ -4197,6 +4270,8 @@ document.addEventListener("click", async (event) => {
     draft.blob = null;
     draft.photo = null;
     draft.icon = null;
+    draft.iconColor = "green";
+    draft.iconBackground = "mint";
     $("#f-photo").value = "";
     $("#form-error").textContent = "";
     if (previewUrl) URL.revokeObjectURL(previewUrl);
