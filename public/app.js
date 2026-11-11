@@ -147,7 +147,9 @@ const stockImportHeaders = [
   "ที่เก็บ",
   "วันที่ (ถ้ามี)",
   "ติดตามวันที่",
+  "แจ้งเตือนก่อนกำหนดภายใน (วัน)",
 ];
+const legacyStockImportHeaders = stockImportHeaders.slice(0, 7);
 let previewUrl = "";
 let noticeAction = null;
 let noticeTimer = 0;
@@ -590,10 +592,11 @@ async function downloadStockTemplate() {
     { width: 22 },
     { width: 18 },
     { width: 22 },
+    { width: 28 },
   ];
   sheet.getRow(1).values = stockImportHeaders;
   sheet.views = [{ state: "frozen", ySplit: 1 }];
-  sheet.autoFilter = { from: "A1", to: "G1" };
+  sheet.autoFilter = { from: "A1", to: "H1" };
   sheet.getRow(1).height = 24;
   sheet.getRow(1).eachCell((cell) => {
     cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -637,6 +640,11 @@ async function downloadStockTemplate() {
       error: "กรอกจำนวนมากกว่า 0 และไม่เกิน 999,999",
     };
     sheet.getCell(row, 6).numFmt = "dd/mm/yyyy";
+    sheet.getCell(row, 8).dataValidation = {
+      type: "whole", operator: "between", allowBlank: true,
+      formulae: [0, 365], showErrorMessage: true, errorStyle: "stop",
+      errorTitle: "จำนวนวันไม่ถูกต้อง", error: "ใส่จำนวนเต็ม 0 ถึง 365 วัน หรือเว้นว่าง",
+    };
   }
 
   const help = workbook.addWorksheet("วิธีกรอก");
@@ -647,6 +655,7 @@ async function downloadStockTemplate() {
     "จำนวนมากกว่า 0 ถึง 999999 ทศนิยมไม่เกิน 3 ตำแหน่ง",
     "หน่วยและที่เก็บเลือกจาก dropdown หรือพิมพ์ค่าใหม่ได้",
     "หมวดและติดตามวันที่เลือกจาก dropdown; เว้นว่างใช้ อื่น ๆ และ (EXP : วันหมดอายุ)",
+    "แจ้งเตือนก่อนกำหนดใส่จำนวนเต็ม 0 ถึง 365 วัน; เว้นว่างใช้ค่าเริ่มต้นใน Settings",
     "วันที่เว้นว่างได้ หรือกรอกวัน/เดือน/ปี ค.ศ. เช่น 31/12/2026 หรือ 2026-12-31",
     "ไม่รองรับสูตรในเซลล์ กรุณาวางเป็นค่าแทน",
     "นำเข้าเป็นรายการใหม่ ไม่มีรูป และไม่แก้ไขหรือลบรายการเดิม",
@@ -713,15 +722,19 @@ function stockImportDate(value, date1904 = false) {
 function parseStockImport(workbook) {
   const sheet = workbook.getWorksheet("นำเข้าของ");
   if (!sheet) throw new Error("ไม่พบชีต นำเข้าของ กรุณาใช้ไฟล์เทมเพลต");
-  if (stockImportHeaders.some((header, index) =>
-    stockImportValue(sheet.getCell(1, index + 1)) !== header))
+  const actualHeaders = stockImportHeaders.map((_, index) =>
+    stockImportValue(sheet.getCell(1, index + 1)));
+  const legacyTemplate = legacyStockImportHeaders.every((header, index) => actualHeaders[index] === header) &&
+    !actualHeaders[7];
+  if (!legacyTemplate && stockImportHeaders.some((header, index) => actualHeaders[index] !== header))
     throw new Error("หัวตารางไม่ตรงกับเทมเพลต กรุณาดาวน์โหลดเทมเพลตใหม่");
   if (sheet.rowCount > 10001)
     throw new Error("ชีตมีแถวมากเกินไป กรุณาใช้เทมเพลตไม่เกิน 2,000 รายการ");
   const items = [], errors = [];
   let count = 0;
   for (let row = 2; row <= sheet.rowCount; row++) {
-    const cells = stockImportHeaders.map((_, index) => sheet.getCell(row, index + 1));
+    const cells = (legacyTemplate ? legacyStockImportHeaders : stockImportHeaders)
+      .map((_, index) => sheet.getCell(row, index + 1));
     if (cells.every((cell) => cell.value === null || cell.value === undefined ||
       (typeof cell.value === "string" && !cell.value.trim()))) continue;
     count++;
@@ -752,10 +765,17 @@ function parseStockImport(workbook) {
       const kind = text(6, 40, false, "ติดตามวันที่") || "(EXP : วันหมดอายุ)";
       if (!["วันหมดอายุ", "(EXP : วันหมดอายุ)", "(BBE : ควรบริโภคก่อน)", "ตั้งใจใช้ภายใน"].includes(kind))
         throw new Error("ติดตามวันที่ไม่อยู่ในรายการ dropdown");
+      let notifyBeforeDays;
+      if (values[7] !== undefined && String(values[7]).trim() !== "") {
+        notifyBeforeDays = Number(values[7]);
+        if (!Number.isInteger(notifyBeforeDays) || notifyBeforeDays < 0 || notifyBeforeDays > 365)
+          throw new Error("แจ้งเตือนก่อนกำหนดต้องเป็นจำนวนเต็ม 0 ถึง 365 วัน");
+      }
       items.push({
         id: crypto.randomUUID(), name, qty: round(qty), unit, category, location,
         date, dateKind: kind === "ตั้งใจใช้ภายใน" ? "plan" :
           kind === "(BBE : ควรบริโภคก่อน)" ? "best-before" : "expiry", photo: null,
+        ...(notifyBeforeDays === undefined ? {} : { notifyBeforeDays }),
       });
     } catch (error) {
       errors.push("แถว " + row + ": " + error.message);
@@ -793,7 +813,7 @@ async function readStockImport(file) {
         stockImportHeaders.map((header) => "<th>" + esc(header) + "</th>").join("") +
         "</tr></thead><tbody>" + items.slice(0, 20).map((item) => "<tr>" +
           [item.name, item.qty, item.unit, item.category, item.location, item.date,
-            item.dateKind === "plan" ? "ตั้งใจใช้ภายใน" : item.dateKind === "best-before" ? "(BBE : ควรบริโภคก่อน)" : "(EXP : วันหมดอายุ)"]
+            item.dateKind === "plan" ? "ตั้งใจใช้ภายใน" : item.dateKind === "best-before" ? "(BBE : ควรบริโภคก่อน)" : "(EXP : วันหมดอายุ)", item.notifyBeforeDays ?? ""]
             .map((value) => "<td>" + esc(value) + "</td>").join("") + "</tr>").join("") +
         "</tbody></table></div>" +
         (items.length > 20 ? "<p>แสดงตัวอย่าง 20 รายการแรก</p>" : "") : "");
@@ -1721,7 +1741,7 @@ function settingsContent() {
     '<section class="settings-stock"><h2>จำนวนขั้นต่ำ</h2><p class="form-help">เมื่อของเหลือน้อยกว่าที่ตั้งไว้ แอปจะแสดงในรายการซื้อ</p>' +
     minimumSettings() + '</section>' +
     '<section class="settings-stock"><h2>แจ้งเตือนของใกล้หมดอายุ</h2>' +
-    '<p class="form-help">ส่งวันละครั้งประมาณ 09:00 น. เมื่อมีของใกล้หมดอายุ</p>' +
+    '<p class="form-help">ส่งวันละครั้งประมาณ 09:00 น. ค่าใน Settings เป็นค่าเริ่มต้น; รายการที่กำหนดวันเตือนเองจะใช้ค่านั้นแทน</p>' +
     '<label>เตือนล่วงหน้า<select id="alert-days"><option value="0">ปิด</option><option value="1">1 วัน</option><option value="3">3 วัน</option><option value="7">7 วัน</option></select></label>' +
     '<button type="button" class="secondary" data-action="save-alerts">บันทึกการแจ้งเตือน</button>' +
     '<div class="alert-test-controls"><button type="button" class="secondary" data-action="test-alert-now">[ทดสอบ] ส่งการแจ้งเตือน</button>' +
@@ -1780,7 +1800,9 @@ async function saveAlertSettings() {
   button.disabled = true;
   try {
     const days = Number($('#alert-days').value);
-    if (days) {
+    const hasItemAlerts = (stock?.items || []).some((item) => item.date &&
+      ["expiry", "best-before"].includes(item.dateKind) && Number.isInteger(item.notifyBeforeDays));
+    if (days || hasItemAlerts) {
       if (!('serviceWorker' in navigator) || !('PushManager' in window))
         throw new Error('อุปกรณ์นี้ยังไม่รองรับการแจ้งเตือนจากเว็บ');
       const settings = await request('alerts');
@@ -1793,13 +1815,14 @@ async function saveAlertSettings() {
       const subscription = await registration.pushManager.getSubscription() ||
         await registration.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:bytes});
       await post('alerts', {days, subscription:subscription.toJSON()});
+      status.textContent = days ? 'เปิดแจ้งเตือนแล้ว' : 'ปิดค่าเริ่มต้นแล้ว · รายการที่กำหนดวันเตือนเองยังแจ้งเตือนได้';
     } else {
       const registration = 'serviceWorker' in navigator && await navigator.serviceWorker.getRegistration('/');
       const subscription = registration && await registration.pushManager.getSubscription();
       await post('alerts', {days:0, ...(subscription && {subscription:subscription.toJSON()})});
       await subscription?.unsubscribe();
+      status.textContent = 'ปิดแจ้งเตือนแล้ว';
     }
-    status.textContent = days ? 'เปิดแจ้งเตือนแล้ว' : 'ปิดแจ้งเตือนแล้ว';
   } catch(error) { status.textContent = error.message || errorText(error); }
   finally { stopButtonLoading(button); button.disabled = false; }
 }
@@ -1898,18 +1921,24 @@ function draw() {
   const sorted = [...stock.items].sort(byDate);
   let html = "";
   if (page === "today") {
+    const expiring = sorted.filter((item) => ["expiry", "best-before"].includes(item.dateKind));
     const late = sorted.filter(
-      (i) => i.dateKind !== "plan" && daysLeft(i.date) < 0,
+      (i) => ["expiry", "best-before"].includes(i.dateKind) && daysLeft(i.date) < 0,
     );
+    const nearSoon = expiring.filter((item) => Number.isInteger(item.notifyBeforeDays) &&
+      daysLeft(item.date) >= 0 && daysLeft(item.date) <= item.notifyBeforeDays);
+    const nearSoonIds = new Set(nearSoon.map((item) => item.id));
     const due = sorted.filter(
       (i) =>
-        i.dateKind !== "plan" && daysLeft(i.date) >= 0 && daysLeft(i.date) <= 7,
+        ["expiry", "best-before"].includes(i.dateKind) && daysLeft(i.date) >= 0 &&
+        daysLeft(i.date) <= 7 && !nearSoonIds.has(i.id),
     );
     const planned = sorted.filter(
       (i) => i.dateKind === "plan" && daysLeft(i.date) <= 7,
     );
     if (late.length)
       html += section("เลยกำหนด EXP / BBE แล้ว", late, { urgent: true });
+    if (nearSoon.length) html += section("ใกล้หมดอายุเร็ว ๆ นี้", nearSoon);
     if (due.length) html += section("ถึงกำหนด EXP / BBE ภายใน 7 วัน", due);
     if (planned.length) html += section("ตั้งใจใช้ภายในสัปดาห์นี้", planned);
     if (!html)
@@ -2568,6 +2597,8 @@ function editorFields(data, isShopping) {
     '</span><input id="f-date" type="date" value="' +
     esc(data.date) +
     '"></span></label>' +
+    '<label>แจ้งเตือนก่อนกำหนดภายใน (วัน)<input id="f-notify-before-days" type="number" inputmode="numeric" min="0" max="365" step="1" placeholder="ใช้ค่าเริ่มต้นจาก Settings" value="' +
+    esc(data.notifyBeforeDays ?? "") + '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใส่ 0 เพื่อเตือนในวันที่กำหนด · ใช้กับ EXP/BBE และต้องตั้งค่าการแจ้งเตือนใน Settings บนอุปกรณ์นี้</span></label>' +
     '<div class="span photo-edit"><label>รูปภาพ (ถ้ามี)<input type="file" id="f-photo" accept="image/*"></label><div id="photo-preview"></div></div></div>'
   );
 }
@@ -3544,6 +3575,13 @@ function formItem() {
     qty: Number($("#f-qty").value),
   };
   if (draft.mode.includes("shopping")) return item;
+  const notificationDaysInput = $("#f-notify-before-days")?.value?.trim() || "";
+  let notifyBeforeDays;
+  if (notificationDaysInput) {
+    notifyBeforeDays = Number(notificationDaysInput);
+    if (!Number.isInteger(notifyBeforeDays) || notifyBeforeDays < 0 || notifyBeforeDays > 365)
+      throw new Error("จำนวนวันแจ้งเตือนต้องเป็นจำนวนเต็ม 0 ถึง 365 วัน");
+  }
   return {
     ...item,
     id: draft.mode === "receive" ? crypto.randomUUID() : item.id,
@@ -3551,6 +3589,7 @@ function formItem() {
     location: $("#f-location").value.trim(),
     date: $("#f-date").value,
     dateKind: $("#f-kind").value,
+    ...(notifyBeforeDays === undefined ? {} : { notifyBeforeDays }),
     ...($("#f-barcode").value.trim() ? {barcode: $("#f-barcode").value.trim()} : {}),
     photo: draft.photo,
     ...(draft.icon !== undefined ? { icon: draft.icon } : {}),
