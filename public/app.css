@@ -1158,7 +1158,6 @@ footer {
   white-space: nowrap;
 }
 .item-card-tags .stock-badge-icon { flex: none; }
-.item-collection.view-grid .item-card-tags .stock-badge-icon { display: none; }
 .item-collection.view-grid .line-item > .thumb.placeholder .item-icon {
   width: 58px;
   height: 58px;
