@@ -2192,6 +2192,12 @@ function enhanceDatalist(input) {
   input.setAttribute("aria-controls", listId);
   input.setAttribute("aria-label", "ค้นหา" + labelName);
 
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "search-select-edit";
+  edit.setAttribute("aria-label", "แก้ไข" + labelName);
+  edit.innerHTML =
+    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
   const toggle = document.createElement("button");
   toggle.type = "button";
   toggle.className = "search-select-toggle";
@@ -2209,7 +2215,7 @@ function enhanceDatalist(input) {
   panel.append(list);
 
   input.replaceWith(root);
-  root.append(input, toggle, panel);
+  root.append(input, edit, toggle, panel);
   datalist.remove();
   let open = false;
   let activeIndex = -1;
@@ -2322,6 +2328,13 @@ function enhanceDatalist(input) {
     if (!root.contains(document.activeElement))
       root.classList.remove("search-select-focused");
   });
+  edit.addEventListener("focus", () =>
+    root.classList.add("search-select-focused"),
+  );
+  edit.addEventListener("blur", () => {
+    if (!root.contains(document.activeElement))
+      root.classList.remove("search-select-focused");
+  });
   input.addEventListener("input", () => {
     if (focusSession) focusValueChanged = true;
     if (!open) show();
@@ -2363,6 +2376,16 @@ function enhanceDatalist(input) {
       show();
     }
     toggleShouldClose = false;
+  });
+  edit.addEventListener("pointerdown", (event) => event.preventDefault());
+  edit.addEventListener("click", () => {
+    focusSession = true;
+    focusValue = input.value;
+    focusValueChanged = false;
+    input.focus();
+    show();
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
   });
   list.addEventListener("pointerdown", (event) => {
     if (event.target.closest('[role="option"]')) event.preventDefault();
@@ -2474,10 +2497,16 @@ function mealIngredientRow(item = {}) {
     esc(qty) +
     '"></label><label>หน่วย<span class="meal-ingredient-unit-field">' +
     ingredientUnitFieldHtml(rowId, unit, locked) +
-    '</span></label><button type="button" class="meal-remove-ingredient text-button danger" data-action="remove-meal-ingredient" aria-label="ลบวัตถุดิบ">×</button>' +
-    '<p class="meal-ingredient-hint">' +
+    '</span></label>' +
+    '<div class="meal-ingredient-actions">' +
+    '<p class="meal-ingredient-hint">'+
     ingredientHintHtml(locked, stockQty, qty, unit) +
-    "</p></div>"
+    "</p>" +
+    '<button type="button" class="meal-remove-ingredient text-button danger" data-action="remove-meal-ingredient" aria-label="ลบวัตถุดิบ">' +
+    '<svg class="trash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>' +
+    '<span>ลบ</span>' +
+    '</button>' +
+    "</div></div>"
   );
 }
 

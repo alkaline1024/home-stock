@@ -191,6 +191,24 @@ label > select {
 .search-select-toggle[aria-expanded="true"] .search-select-chevron {
   transform: translateY(2px) rotate(225deg);
 }
+.search-autocomplete {
+  grid-template-columns: minmax(0, 1fr) 44px 44px;
+}
+.search-select-edit {
+  position: static;
+  width: 44px;
+  min-height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #a8b6a7;
+  border-left-color: var(--line);
+  border-right: none;
+  background: #f1f3ec;
+  color: var(--muted);
+}
+.search-select-edit:focus-visible {
+  outline: none;
+}
 .search-select-panel {
   position: absolute;
   z-index: 30;
@@ -1827,7 +1845,7 @@ footer a {
   text-underline-offset: 3px;
 }
 dialog {
-  width: min(500px, calc(100% - 24px));
+  width: min(720px, calc(100% - 24px));
   max-height: 89svh;
   overflow: auto;
   border: 1px solid var(--line);
@@ -1867,6 +1885,10 @@ dialog::backdrop {
   min-width: 0;
   max-width: 100%;
 }
+.trash-icon {
+  width: 16px;
+  height: 16px;
+}
 .meal-ingredient-list {
   display: grid;
   gap: 8px;
@@ -1875,12 +1897,18 @@ dialog::backdrop {
 .meal-ingredient-row {
   display: grid;
   grid-template-columns:
-    minmax(0, 1.6fr) minmax(82px, 0.65fr) minmax(90px, 0.8fr)
-    44px;
+    minmax(0, 1.6fr) minmax(82px, 0.65fr) minmax(90px, 0.8fr);
   align-items: end;
   gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid var(--line);
+}
+.meal-ingredient-actions {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
 }
 .meal-ingredient-row label {
   font-size: 0.8rem;
@@ -1893,6 +1921,12 @@ dialog::backdrop {
   color: var(--muted);
 }
 .meal-remove-ingredient {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.8rem;
+  gap: 4px;
   width: 44px;
   height: 44px;
   padding: 0;
@@ -2255,7 +2289,7 @@ dialog::backdrop {
     overflow-wrap: anywhere;
   }
   .meal-ingredient-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
   .meal-ingredient-row label:first-child {
     grid-column: 1 / span 2;
@@ -2265,10 +2299,6 @@ dialog::backdrop {
   }
   .meal-ingredient-row label:nth-child(3) {
     grid-column: 2;
-  }
-  .meal-ingredient-row .meal-remove-ingredient {
-    grid-column: 3;
-    grid-row: 1 / span 2;
   }
   .calendar-head {
     display: grid;
