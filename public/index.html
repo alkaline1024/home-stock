@@ -24,6 +24,10 @@
     />
     <link rel="stylesheet" href="/app.css" />
     <script src="/app.js" defer></script>
+    <script type="module">
+      import { inject } from '/analytics.mjs';
+      inject();
+    </script>
   </head>
   <body>
     <main id="entry" class="entry">
@@ -482,5 +486,9 @@
       hidden
     ></div>
     <noscript>กรุณาเปิด JavaScript เพื่อใช้งาน home-stock</noscript>
+    <script>
+      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
   </body>
 </html>
