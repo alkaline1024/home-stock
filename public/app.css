@@ -1558,11 +1558,21 @@ footer {
   font-size: 0.75rem;
   overflow-wrap: anywhere;
 }
+.item-media-choice .item-icon {
+  box-sizing: content-box;
+  width: 30px;
+  height: 30px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #edf1e5;
+  color: var(--green);
+}
 .item-media-choice[aria-pressed="true"] {
   background: var(--mint);
   border-color: var(--green);
   box-shadow: inset 0 0 0 1px var(--green);
 }
+.item-media-choice[aria-pressed="true"] .item-icon { background: #fff; }
 .item-name {
   font-size: 1.09rem;
   font-weight: 650;

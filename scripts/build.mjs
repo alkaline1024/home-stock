@@ -1,9 +1,22 @@
-import { copyFileSync, mkdirSync, readdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { build } from "esbuild";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+const itemIconSources = {
+  box: "package-open", vegetables: "carrot", fruit: "apple", meat: "beef",
+  fish: "fish", egg: "egg", milk: "milk", bottle: "bottle-wine",
+  grain: "wheat", meal: "soup", snowflake: "snowflake",
+};
+const itemIconSymbols = Object.entries(itemIconSources).map(([id, source]) => {
+  const svg = readFileSync(resolve(root, "node_modules/lucide-static/icons", source + ".svg"), "utf8");
+  const viewBox = svg.match(/viewBox="([^"]+)"/)?.[1] || "0 0 24 24";
+  const body = svg.match(/<svg\b[^>]*>([\s\S]*?)<\/svg>/)?.[1] || "";
+  return `<symbol id="item-icon-${id}" viewBox="${viewBox}">${body}</symbol>`;
+}).join("");
+writeFileSync(resolve(root, "public/item-icons.svg"),
+  `<!-- Lucide icons, ISC license. -->\n<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${itemIconSymbols}</svg>\n`);
 copyFileSync(
   resolve(root, "node_modules/exceljs/dist/exceljs.min.js"),
   resolve(root, "public/exceljs.min.js"),

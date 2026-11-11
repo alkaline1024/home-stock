@@ -89,25 +89,22 @@ let pendingReceipt = null;
 let mediaDraft = null;
 let pendingShortageAction = null;
 const itemIcons = {
-  box: { label: "กล่อง", paths: '<path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/>' },
-  vegetables: { label: "ผัก", paths: '<path d="M12 21V11m-5 6 5-3 5 3"/><path d="M7 14a4 4 0 0 1-3-7 4 4 0 0 1 5-4 4 4 0 0 1 7 0 4 4 0 0 1 4 6 4 4 0 0 1-3 5Z"/>' },
-  fruit: { label: "ผลไม้", paths: '<path d="M12 7c-8-5-12 4-7 12 2 3 4 2 7 1 3 1 5 2 7-1 5-8 1-17-7-12ZM12 7V4m0 0c1-3 5-3 6-2-1 3-4 4-6 2Z"/>' },
-  meat: { label: "เนื้อสัตว์", paths: '<path d="M8 5c6-5 16 4 12 10-3 5-9 3-12 0L5 18l-3-3 4-4c-2-2-1-4 2-6Z"/><ellipse cx="14" cy="9" rx="3" ry="2" transform="rotate(35 14 9)"/>' },
-  fish: { label: "ปลา", paths: '<path d="M6 12c4-7 11-7 15 0-4 7-11 7-15 0ZM6 12l-4-5v10l4-5Z"/><circle cx="17" cy="11" r="1"/><path d="m12 8-2-4m2 12-2 4"/>' },
-  egg: { label: "ไข่", paths: '<path d="M20 14a8 8 0 0 1-16 0C4 9 9 2 12 2s8 7 8 12Z"/><path d="M8 14a4 4 0 0 0 4 4"/>' },
-  milk: { label: "นม", paths: '<path d="M7 2h10l3 5v14H4V7l3-5ZM4 7h16M7 2l3 5v14"/><path d="M14 11h3m-3 4h3"/>' },
-  bottle: { label: "ขวด", paths: '<path d="M9 2h6v4l3 4v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V10l3-4V2ZM9 6h6M6 12h12M6 18h12"/>' },
-  grain: { label: "ข้าวและธัญพืช", paths: '<path d="M12 22V3m0 4C6 7 6 3 6 3s6 0 6 4Zm0 5c-6 0-6-4-6-4s6 0 6 4Zm0 5c-6 0-6-4-6-4s6 0 6 4Zm0-10c6 0 6-4 6-4s-6 0-6 4Zm0 5c6 0 6-4 6-4s-6 0-6 4Zm0 5c6 0 6-4 6-4s-6 0-6 4Z"/>' },
-  meal: { label: "อาหารปรุงสุก", paths: '<path d="M3 12h18M5 12a7 7 0 0 0 14 0M12 3v4M7 4l1 3m9-3-1 3"/>' },
-  snowflake: { label: "ของแช่แข็ง", paths: '<path d="M12 2v20M3 7l18 10M3 17 21 7M9 4l3 3 3-3M9 20l3-3 3 3M3 10l4-1-1-4m15 9-4 1 1 4M3 14l4 1-1 4m15-9-4-1 1-4"/>' },
-  cleaning: { label: "ของใช้ทำความสะอาด", paths: '<path d="M8 3h9v4H8V3Zm2 4v3l-4 4v7h13V10l-4-3M17 3h4v4M6 16h13"/><path d="M3 4v4M1 6h4"/>' },
+  box: { label: "กล่อง" },
+  vegetables: { label: "ผัก" },
+  fruit: { label: "ผลไม้" },
+  meat: { label: "เนื้อสัตว์" },
+  fish: { label: "ปลา" },
+  egg: { label: "ไข่" },
+  milk: { label: "นม" },
+  bottle: { label: "ขวด" },
+  grain: { label: "ข้าวและธัญพืช" },
+  meal: { label: "อาหารปรุงสุก" },
+  snowflake: { label: "ของแช่แข็ง" },
 };
 
 function itemIconSvg(id, className = "item-icon") {
   if (!Object.hasOwn(itemIcons, id)) return "";
-  const icon = itemIcons[id];
-  return '<svg class="' + className + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    icon.paths + "</svg>";
+  return '<svg class="' + className + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/item-icons.svg#item-icon-' + id + '"></use></svg>';
 }
 const stockImportHeaders = [
   "ชื่อของ",

@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "esbuild": "^0.25.12"
+    "esbuild": "^0.25.12",
+    "lucide-static": "^1.72.0"
   }
 }
