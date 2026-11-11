@@ -2435,7 +2435,9 @@ function editorFields(data, isShopping) {
     '<button type="button" class="secondary" data-action="scan-barcode">สแกน</button></div>' +
     '<p id="barcode-hint" class="form-help" role="status"></p>' +
     '<div id="barcode-scanner" class="barcode-scanner" hidden><video id="barcode-video" autoplay muted playsinline></video>' +
-    '<button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div>' +
+    '<div class="barcode-camera-controls"><label for="barcode-zoom">ซูม</label><input id="barcode-zoom" type="range" min="1" max="1" step="0.1" value="1" disabled>' +
+    '<button type="button" id="barcode-torch" class="secondary" data-action="toggle-barcode-torch" hidden>เปิดไฟฉาย</button>' +
+    '<button type="button" class="secondary" data-action="stop-barcode">ปิดกล้อง</button></div></div></div>' +
     '<label>หมวด<select id="f-category">' +
     opts(categories, data.category) +
     "</select></label>" +
@@ -3155,22 +3157,22 @@ async function jpeg(file) {
       throw new Error("อ่านไฟล์รูปนี้ไม่ได้ กรุณาลองใช้ JPEG, PNG หรือ WebP");
     });
     const canvas = document.createElement("canvas");
-    const scale = Math.min(
-      1,
-      1200 / Math.max(img.naturalWidth, img.naturalHeight),
-    );
-    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    // Camera/file inputs cannot reliably request a square capture across devices.
+    // Crop the decoded image to a centered 1:1 square before resizing it.
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    const size = Math.min(1200, side);
+    canvas.width = size;
+    canvas.height = size;
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    for (const quality of [0.84, 0.68, 0.51, 0.35, 0.22]) {
-      const blob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", quality),
-      );
-      if (blob && blob.size <= 450000) return blob;
-    }
+    const sx = Math.floor((img.naturalWidth - side) / 2);
+    const sy = Math.floor((img.naturalHeight - side) / 2);
+    ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.5),
+    );
+    if (blob && blob.size <= 450000) return blob;
     throw new Error("ย่อรูปไม่ได้ กรุณาเลือกรูปขนาดเล็กลง");
   } finally {
     URL.revokeObjectURL(url);
@@ -3179,11 +3181,22 @@ async function jpeg(file) {
 
 let barcodeScanToken = 0;
 let barcodeScanControls = null;
+let barcodeTrack = null;
+let barcodeTorchOn = false;
+let nativeBarcodeTimer = 0;
 
 function stopBarcodeScan() {
   barcodeScanToken++;
   barcodeScanControls?.stop();
   barcodeScanControls = null;
+  barcodeTrack = null;
+  barcodeTorchOn = false;
+  clearTimeout(nativeBarcodeTimer);
+  nativeBarcodeTimer = 0;
+  const zoom = $("#barcode-zoom");
+  if (zoom) { zoom.disabled = true; zoom.value = "1"; zoom.min = "1"; zoom.max = "1"; }
+  const torch = $("#barcode-torch");
+  if (torch) { torch.hidden = true; torch.textContent = "เปิดไฟฉาย"; }
   const video = $("#barcode-video");
   video?.srcObject?.getTracks().forEach((track) => track.stop());
   if (video) video.srcObject = null;
@@ -3210,6 +3223,63 @@ function applyBarcode(code) {
   }
 }
 
+function configureBarcodeCamera(track) {
+  if (!track) return;
+  const capabilities = track.getCapabilities?.() || {};
+  const zoom = $("#barcode-zoom");
+  if (zoom && capabilities.zoom) {
+    zoom.min = String(capabilities.zoom.min ?? 1);
+    zoom.max = String(capabilities.zoom.max ?? 1);
+    zoom.step = String(capabilities.zoom.step ?? 0.1);
+    zoom.value = String(Math.min(Number(zoom.max), Math.max(Number(zoom.min), 1)));
+    zoom.disabled = Number(zoom.max) <= Number(zoom.min);
+  }
+  const torch = $("#barcode-torch");
+  if (torch && capabilities.torch) torch.hidden = false;
+}
+
+async function startNativeBarcodeFallback(video, token, hint) {
+  if (!("BarcodeDetector" in window)) return;
+  let detector;
+  try {
+    const supported = await window.BarcodeDetector.getSupportedFormats();
+    const formats = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "itf"]
+      .filter((format) => supported.includes(format));
+    if (!formats.length) return;
+    detector = new window.BarcodeDetector({formats});
+  } catch { return; }
+  const scan = async () => {
+    if (token !== barcodeScanToken || !video.srcObject) return;
+    try {
+      const results = await detector.detect(video);
+      const match = results.find((result) => /^[0-9]{8,14}$/.test(result.rawValue || ""));
+      if (match) {
+        stopBarcodeScan();
+        applyBarcode(match.rawValue);
+        return;
+      }
+    } catch { /* Keep ZXing running if native detection is unavailable for this frame. */ }
+    nativeBarcodeTimer = setTimeout(scan, 180);
+  };
+  scan();
+}
+
+$("#barcode-zoom")?.addEventListener("input", (event) => {
+  if (barcodeTrack) barcodeTrack.applyConstraints({advanced: [{zoom: Number(event.target.value)}]}).catch(() => {});
+});
+
+async function toggleBarcodeTorch() {
+  if (!barcodeTrack) return;
+  barcodeTorchOn = !barcodeTorchOn;
+  try {
+    await barcodeTrack.applyConstraints({advanced: [{torch: barcodeTorchOn}]});
+    $("#barcode-torch").textContent = barcodeTorchOn ? "ปิดไฟฉาย" : "เปิดไฟฉาย";
+  } catch {
+    barcodeTorchOn = false;
+    $("#barcode-hint").textContent = "กล้องเครื่องนี้ไม่รองรับไฟฉาย";
+  }
+}
+
 async function startBarcodeScan() {
   if (!draft || !$("#barcode-scanner")) return;
   stopBarcodeScan();
@@ -3222,11 +3292,21 @@ async function startBarcodeScan() {
   $("#barcode-scanner").hidden = false;
   hint.textContent = "กำลังเปิดกล้อง…";
   try {
-    const {BrowserMultiFormatOneDReader} = await import('/barcode-scanner.js');
+    const {BrowserMultiFormatOneDReader, BarcodeFormat, DecodeHintType} = await import('/barcode-scanner.js');
     if (token !== barcodeScanToken || !$("#editor").open) return;
-    const reader = new BrowserMultiFormatOneDReader();
+    const hints = new Map([
+      [DecodeHintType.TRY_HARDER, true],
+      [DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
+        BarcodeFormat.ITF,
+      ]],
+    ]);
+    const reader = new BrowserMultiFormatOneDReader(hints, {
+      delayBetweenScanAttempts: 180, delayBetweenScanSuccess: 180,
+    });
     const controls = await reader.decodeFromConstraints(
-      {video: {facingMode: {ideal: 'environment'}}}, $("#barcode-video"),
+      {video: {facingMode: {ideal: 'environment'}, width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 30}}}, $("#barcode-video"),
       (result) => {
         if (token !== barcodeScanToken || !result) return;
         const code = result.getText();
@@ -3240,7 +3320,10 @@ async function startBarcodeScan() {
     if (token !== barcodeScanToken || !$("#editor").open) controls.stop();
     else {
       barcodeScanControls = controls;
-      hint.textContent = "เล็งกล้องไปที่บาร์โค้ดสินค้า";
+      barcodeTrack = $("#barcode-video").srcObject?.getVideoTracks?.()[0] || null;
+      configureBarcodeCamera(barcodeTrack);
+      startNativeBarcodeFallback($("#barcode-video"), token, hint);
+      hint.textContent = "เล็งกล้องไปที่บาร์โค้ดสินค้า · ขยับเข้าใกล้หรือปรับซูมได้";
     }
   } catch (error) {
     stopBarcodeScan();
@@ -3841,6 +3924,7 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "scan-barcode") return startBarcodeScan();
   if (action === "stop-barcode") return stopBarcodeScan();
+  if (action === "toggle-barcode-torch") return toggleBarcodeTorch();
   if (action === "close") return closeEditor();
   if (action === "close-meal-editor") {
     if (!busy && $("#meal-editor").open) $("#meal-editor").close();
