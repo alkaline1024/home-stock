@@ -19,3 +19,38 @@
 @utility form-help {
   @apply mt-1 text-[0.88rem] text-muted;
 }
+
+@utility primary {
+  @apply min-h-[44px] rounded-[9px] border-0 bg-green px-[15px] py-2 font-semibold text-[#fffef7];
+  &:hover {
+    @apply bg-[#193f32];
+  }
+}
+
+@utility secondary {
+  @apply min-h-[44px] rounded-[9px] border border-line bg-surface px-[15px] py-2 font-semibold;
+  &:hover {
+    @apply border-[#7c9580];
+  }
+}
+
+@utility action {
+  @apply min-h-[44px] rounded-[9px] border border-line bg-surface px-[15px] py-2 font-semibold;
+  &:hover {
+    @apply border-[#7c9580];
+  }
+}
+
+@utility text-button {
+  @apply min-h-[44px] rounded-[9px] border-0 bg-transparent px-[15px] py-2 font-semibold;
+  &:hover {
+    @apply underline;
+  }
+}
+
+@utility close {
+  @apply min-h-[44px] rounded-[9px] border-0 bg-transparent px-[15px] py-2 font-semibold;
+  &:hover {
+    @apply underline;
+  }
+}

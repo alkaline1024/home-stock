@@ -346,41 +346,6 @@ label > select {
   color: var(--muted);
   font-size: 0.9rem;
 }
-.primary,
-.secondary,
-.text-button,
-.close,
-.action {
-  border: 0;
-  border-radius: 9px;
-  min-height: 44px;
-  padding: 8px 15px;
-  font-weight: 600;
-}
-.primary {
-  background: var(--green);
-  color: #fffef7;
-}
-.primary:hover {
-  background: #193f32;
-}
-.secondary,
-.action {
-  background: var(--surface);
-  border: 1px solid var(--line);
-}
-.secondary:hover,
-.action:hover {
-  border-color: #7c9580;
-}
-.text-button,
-.close {
-  background: transparent;
-}
-.text-button:hover,
-.close:hover {
-  text-decoration: underline;
-}
 .brand {
   display: inline-flex;
   align-items: center;
