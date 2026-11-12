@@ -1,6 +1,13 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./base.css";
+@import "./entry-and-loading.css";
+@import "./navigation-and-stock.css";
+@import "./calendar-and-meals.css";
+@import "./items-and-forms.css";
+@import "./responsive.css";
+@import "./barcode-and-receipts.css";
 
 @source "../../public/index.html";
 @source "../app";

@@ -7,7 +7,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "pretest": "node scripts/build-app.mjs && node scripts/build-styles.mjs",
+    "pretest": "node scripts/build-app.mjs",
     "dev": "node scripts/local.mjs",
     "host": "node scripts/local.mjs --host",
     "test": "node --test tests/*.test.mjs",

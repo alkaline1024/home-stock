@@ -41,7 +41,7 @@
 
 โค้ดหน้าจอหลักอยู่ใน `src/app/` แยกตามส่วนงาน `public/app.js` สร้างจากไฟล์เหล่านี้ตามลำดับโดย `scripts/build-app.mjs` จึงไม่ควรแก้ `public/app.js` โดยตรง `npm run dev` ประกอบไฟล์ใหม่เมื่อแก้ไฟล์ใน `src/app/`; `npm test` และ `npm run build` ประกอบไฟล์ก่อนใช้งานด้วย
 
-สไตล์อยู่ใน `src/styles/` และประกอบเป็น `public/app.css` ด้วย `scripts/build-styles.mjs` ให้แก้ไฟล์ต้นฉบับใน `src/styles/` ตามส่วนของหน้าจอ
+สไตล์อยู่ใน `src/styles/` และ Tailwind CLI รวมทุกส่วนเป็น `public/tailwind.css` ให้แก้ไฟล์ต้นฉบับใน `src/styles/` ตามส่วนของหน้าจอ
 
 การย้ายสไตล์ไป Tailwind CSS กำลังทำแบบทยอยเปลี่ยน โดย `src/styles/tailwind.css` กำหนด theme และ source ที่ต้องสแกน `npm run build` สร้าง `public/tailwind.css` สำหรับ utility classes ที่ย้ายแล้ว ระหว่างนี้ CSS เดิมยังอยู่ใน `src/styles/` จนย้ายครบ
 

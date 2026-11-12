@@ -15,7 +15,6 @@ import { createReceiptAiHandlers } from "../lib/receipt-ai.js";
 import { createReceiptOcrHandlers } from "../lib/receipt-ocr.js";
 import { build as viteBuild } from "vite";
 import { buildApp } from "./build-app.mjs";
-import { buildStyles } from "./build-styles.mjs";
 import { buildTailwind } from "./build-tailwind.mjs";
 
 // Production uses api/ and private Vercel Blob.
@@ -23,7 +22,6 @@ const hostMode = process.argv.includes("--host");
 const bindHost = hostMode ? "0.0.0.0" : "127.0.0.1";
 const root = fileURLToPath(new URL("../", import.meta.url));
 buildApp();
-buildStyles();
 buildTailwind();
 await viteBuild();
 watch(resolve(root, "src/app"), (_event, filename) => {
@@ -38,10 +36,9 @@ watch(resolve(root, "src/app"), (_event, filename) => {
 watch(resolve(root, "src/styles"), (_event, filename) => {
   if (!filename?.endsWith(".css")) return;
   try {
-    buildStyles();
     buildTailwind();
   } catch (error) {
-    console.error("Could not rebuild app.css:", error);
+    console.error("Could not rebuild tailwind.css:", error);
   }
 });
 watch(resolve(root, "src/vue"), (_event, filename) => {
@@ -113,7 +110,6 @@ const assets = new Map([
   ["/barcode-scanner.js", ["barcode-scanner.js", "text/javascript; charset=utf-8"]],
   ["/sw.js", ["sw.js", "text/javascript; charset=utf-8"]],
   ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json"]],
-  ["/app.css", ["app.css", "text/css; charset=utf-8"]],
   ["/tailwind.css", ["tailwind.css", "text/css; charset=utf-8"]],
   ["/shopping-badge.js", ["shopping-badge.js", "text/javascript; charset=utf-8"]],
   ["/item-icons.svg", ["item-icons.svg", "image/svg+xml"]],

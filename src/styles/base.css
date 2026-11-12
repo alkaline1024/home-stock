@@ -45,11 +45,13 @@ select:focus-visible {
   outline: 3px solid #be722e;
   outline-offset: 3px;
 }
-button,
-input,
-select {
-  font: inherit;
-  color: inherit;
+@layer base {
+  button,
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
 }
 button {
   cursor: pointer;
