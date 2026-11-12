@@ -1262,9 +1262,18 @@ footer {
   overflow: auto;
 }
 .item-collection.view-grid .is-grid-card.menu-open {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 18px rgb(36 91 70 / 10%);
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   z-index: 21;
+}
+.item-collection.view-grid .is-grid-card.menu-open .item-info,
+.item-collection.view-grid .is-grid-card.menu-open .qty,
+.item-collection.view-grid .is-grid-card.menu-open .item-grid-badges,
+.item-collection.view-grid .is-grid-card.menu-open .item-grid-badges .badge {
+  color: #fff;
 }
 .item-collection.view-grid .item-menu.item-menu-viewport {
   position: fixed;
