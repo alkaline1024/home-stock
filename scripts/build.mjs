@@ -2,8 +2,10 @@ import { copyFileSync, mkdirSync, readFileSync, readdirSync, writeFileSync } fro
 import { build } from "esbuild";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { buildApp } from "./build-app.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+buildApp();
 const itemIconSources = {
   box: "package-open",
   vegetables: "carrot",

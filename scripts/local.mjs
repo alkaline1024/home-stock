@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { DatabaseSync } from "node:sqlite";
 import { randomBytes, randomUUID } from "node:crypto";
 import { networkInterfaces } from "node:os";
-import { mkdirSync, readFileSync, writeFileSync, chmodSync, readdirSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, chmodSync, readdirSync, watch } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { Readable } from "node:stream";
@@ -13,11 +13,21 @@ import { login } from "../lib/session.js";
 import { createAlertHandlers, createCronHandler } from "../lib/alerts.js";
 import { createReceiptAiHandlers } from "../lib/receipt-ai.js";
 import { createReceiptOcrHandlers } from "../lib/receipt-ocr.js";
+import { buildApp } from "./build-app.mjs";
 
 // Production uses api/ and private Vercel Blob.
 const hostMode = process.argv.includes("--host");
 const bindHost = hostMode ? "0.0.0.0" : "127.0.0.1";
 const root = fileURLToPath(new URL("../", import.meta.url));
+buildApp();
+watch(resolve(root, "src/app"), (_event, filename) => {
+  if (!filename?.endsWith(".js")) return;
+  try {
+    buildApp();
+  } catch (error) {
+    console.error("Could not rebuild app.js:", error);
+  }
+});
 const dataDir = process.env.HOME_STOCK_DIR || resolve(root, ".local-stock");
 mkdirSync(dataDir, { recursive: true, mode: 0o700 });
 const keyPath = resolve(dataDir, "access-key.txt");
