@@ -3,6 +3,7 @@
   --paper: #f8f7f1;
   --ink: #203e35;
   --green: #235242;
+  --primary: var(--green);
   --teal: #285d4d;
   --mint: #e0ebda;
   --muted: #596b60;
@@ -1274,7 +1275,7 @@ footer {
   background: var(--primary);
   color: #fff;
 }
-.item-collection.view-grid .item-menu.item-menu-viewport {
+.item-menu.item-menu-viewport {
   position: fixed;
   inset: auto;
   z-index: 100;

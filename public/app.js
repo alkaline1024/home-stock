@@ -4862,7 +4862,11 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (action === "toggle-card-menu") {
-    const menu = target.querySelector(".item-menu");
+    const menu =
+      target.querySelector(".item-menu") ||
+      [...document.querySelectorAll(".item-menu-viewport")].find(
+        (entry) => entry._gridCard === target,
+      );
     if (!menu) return;
     const shouldOpen = menu.hidden;
     closeItemMenus();
@@ -5123,7 +5127,8 @@ document.addEventListener("click", async (event) => {
 
 function closeItemMenus(restoreFocus = false) {
   document.querySelectorAll(".item-menu:not([hidden])").forEach((menu) => {
-    const trigger = menu._gridCard?.querySelector(".item-menu-trigger") ||
+    const trigger =
+      menu._gridCard?.querySelector(".item-menu-trigger") ||
       menu.parentElement.querySelector(".item-menu-trigger");
     menu.hidden = true;
     trigger?.setAttribute("aria-expanded", "false");
@@ -5145,6 +5150,7 @@ function closeItemMenus(restoreFocus = false) {
 
 function positionHorizontalCardMenu(menu, card) {
   if (!card.classList.contains("is-grid-card")) return;
+  menu.classList.add("item-menu-viewport");
   const cardRect = card.getBoundingClientRect();
   const menuRect = menu.getBoundingClientRect();
   const margin = 8;
@@ -5154,7 +5160,6 @@ function positionHorizontalCardMenu(menu, card) {
   let top = cardRect.bottom + margin;
   if (top > maxTop) top = cardRect.top - menuRect.height - margin;
   top = Math.max(margin, Math.min(top, maxTop));
-  menu.classList.add("item-menu-viewport");
   menu.style.left = left + "px";
   menu.style.top = top + "px";
 }
