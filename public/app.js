@@ -4867,6 +4867,10 @@ document.addEventListener("click", async (event) => {
     const shouldOpen = menu.hidden;
     closeItemMenus();
     if (shouldOpen) {
+      menu._gridCard = target;
+      menu._gridParent = menu.parentNode;
+      menu._gridNext = menu.nextSibling;
+      document.body.append(menu);
       menu.hidden = false;
       target.setAttribute("aria-expanded", "true");
       target.classList.add("menu-open");
@@ -5119,12 +5123,22 @@ document.addEventListener("click", async (event) => {
 
 function closeItemMenus(restoreFocus = false) {
   document.querySelectorAll(".item-menu:not([hidden])").forEach((menu) => {
-    const trigger = menu.parentElement.querySelector(".item-menu-trigger");
+    const trigger = menu._gridCard?.querySelector(".item-menu-trigger") ||
+      menu.parentElement.querySelector(".item-menu-trigger");
     menu.hidden = true;
     trigger?.setAttribute("aria-expanded", "false");
-    const card = menu.closest(".is-grid-card");
+    const card = menu._gridCard || menu.closest(".is-grid-card");
     card?.setAttribute("aria-expanded", "false");
     card?.classList.remove("menu-open");
+    if (menu._gridParent) {
+      menu._gridParent.insertBefore(menu, menu._gridNext);
+      menu.classList.remove("item-menu-viewport");
+      menu.style.left = "";
+      menu.style.top = "";
+      delete menu._gridCard;
+      delete menu._gridParent;
+      delete menu._gridNext;
+    }
     if (restoreFocus) (menu.closest(".is-grid-card") || trigger)?.focus();
   });
 }

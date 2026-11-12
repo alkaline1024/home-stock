@@ -1270,9 +1270,8 @@ footer {
   z-index: 21;
 }
 .item-collection.view-grid .is-grid-card.menu-open .item-info,
-.item-collection.view-grid .is-grid-card.menu-open .qty,
-.item-collection.view-grid .is-grid-card.menu-open .item-grid-badges,
-.item-collection.view-grid .is-grid-card.menu-open .item-grid-badges .badge {
+.item-collection.view-grid .is-grid-card.menu-open .qty {
+  background: var(--primary);
   color: #fff;
 }
 .item-collection.view-grid .item-menu.item-menu-viewport {
