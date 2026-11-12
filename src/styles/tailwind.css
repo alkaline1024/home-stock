@@ -14,3 +14,7 @@
   --color-line: #d6dbcf;
   --color-surface: #fffef8;
 }
+
+@utility form-help {
+  @apply mt-1 text-[0.88rem] text-muted;
+}

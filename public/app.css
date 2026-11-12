@@ -2233,11 +2233,6 @@ dialog::backdrop {
 .dialog-actions .primary {
   min-width: 96px;
 }
-.form-help {
-  font-size: 0.88rem;
-  color: var(--muted);
-  margin-top: 4px;
-}
 #shortage-summary-list {
   display: grid;
   gap: 8px;
@@ -2278,13 +2273,6 @@ dialog::backdrop {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-.sync-error {
-  margin-top: 16px;
-  padding: 12px;
-  color: #772712;
-  background: #f5e1ce;
-  border-radius: 8px;
 }
 .notice {
   position: fixed;
