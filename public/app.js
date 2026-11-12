@@ -1528,6 +1528,7 @@ function cardFilterBadge(value, type) {
   );
 }
 function getItemView(page) {
+  if (page === "today") return "grid";
   try {
     return localStorage.getItem("home-stock-item-view-" + page) === "grid" ? "grid" : "list";
   } catch {
@@ -2617,7 +2618,7 @@ function draw() {
           "จดรายการแรก",
         );
   }
-  if (["today", "stock"].includes(page) && stock.items.length) html = itemViewToggle(page) + html;
+  if (page === "stock" && stock.items.length) html = itemViewToggle(page) + html;
   $("#content").innerHTML = html;
   prepareVisiblePhotos();
 }
