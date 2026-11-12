@@ -5313,4 +5313,26 @@ document.addEventListener("click", (event) => {
 setInterval(() => {
   if (stock && !document.hidden && Date.now() - lastActive < idleAfter) refresh();
 }, 60000);
-refresh(true);
+async function startApplication() {
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    try {
+      await navigator.serviceWorker.register("/sw.js");
+      if (!navigator.serviceWorker.controller) {
+        await new Promise((resolve) => {
+          const finish = () => {
+            navigator.serviceWorker.removeEventListener("controllerchange", finish);
+            clearTimeout(timer);
+            resolve();
+          };
+          const timer = setTimeout(finish, 2000);
+          navigator.serviceWorker.addEventListener("controllerchange", finish);
+          if (navigator.serviceWorker.controller) finish();
+        });
+      }
+    } catch {
+      // Browsers without service workers can still load photos normally.
+    }
+  }
+  refresh(true);
+}
+startApplication();
