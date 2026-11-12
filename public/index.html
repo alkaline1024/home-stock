@@ -22,10 +22,7 @@
     <link rel="stylesheet" href="/app.css" />
     <script src="/shelf-life-data.js" defer></script>
     <script src="/app.js" defer></script>
-    <script type="module">
-      import { inject } from "/analytics.mjs";
-      inject();
-    </script>
+    <script type="module" src="/analytics-init.mjs"></script>
   </head>
   <body>
     <main id="entry" class="entry">
@@ -481,7 +478,7 @@
         </div>
         <p class="form-help">
           ให้ AI อ่านรูปใบเสร็จอีกครั้งเพื่อแยกชื่อสินค้า จำนวน หน่วย และหมวดให้แม่นขึ้น รูปและข้อความที่สแกนได้จะถูกส่งไปยัง
-          Google Gemini · ผลจาก AI จะแทนที่ชื่อและจำนวนที่อ่านได้ (ที่เก็บ วันที่ การแจ้งเตือน
+          Google Gemini · ผลจาก AI จะแทนที่ชื่อ จำนวน หน่วย และหมวดที่อ่านได้ (ที่เก็บ วันที่ การแจ้งเตือน
           และรูปหรือไอคอนที่เลือกไว้จะคงอยู่) กรุณาตรวจอีกครั้งก่อนรับเข้าบ้าน
         </p>
       </div>
@@ -510,13 +507,7 @@
     </dialog>
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <noscript>กรุณาเปิด JavaScript เพื่อใช้งาน home-stock</noscript>
-    <script>
-      window.si =
-        window.si ||
-        function () {
-          (window.siq = window.siq || []).push(arguments);
-        };
-    </script>
+    <script defer src="/speed-insights-init.js"></script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
   </body>
 </html>

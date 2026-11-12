@@ -1320,7 +1320,28 @@ function updateReceiptRow(event) {
   if (!card) return;
   const field = event.target.dataset.field;
   if (field === "location") card.freezerLocationManual = true;
-  if (field === "name") selectReceiptFreezer(card);
+  if (field === "name") {
+    if (event.type === "change") {
+      const known = [...stock.items, ...(stock.recentItems || [])]
+        .reverse()
+        .find((item) => key(item.name) === key(receiptField(card, "name").value));
+      if (known) {
+        if (receiptField(card, "unit").value === "ชิ้น")
+          receiptField(card, "unit").value = known.unit;
+        if (!receiptField(card, "location").value)
+          receiptField(card, "location").value = known.location || "";
+        if (receiptField(card, "category").value === "อื่น ๆ") {
+          receiptField(card, "category").value = known.category;
+          refreshSearchSelect(receiptField(card, "category"));
+        }
+        if (!receiptField(card, "barcode").value)
+          receiptField(card, "barcode").value = known.barcode || "";
+      }
+    }
+    selectReceiptFreezer(card);
+  }
+  if (field === "barcode" && event.type === "change")
+    applyBarcode(event.target.value.trim(), barcodeContext(card));
   if (["name", "location", "category", "receivedDate"].includes(field))
     refreshReceiptShelfLife(card);
 }
