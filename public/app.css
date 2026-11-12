@@ -30,11 +30,13 @@ body {
     color: inherit;
   }
 }
-h1,
-h2,
-h3,
-p {
-  margin: 0;
+@layer base {
+  h1,
+  h2,
+  h3,
+  p {
+    margin: 0;
+  }
 }
 a:focus-visible,
 button:focus-visible,
@@ -417,38 +419,6 @@ label > select {
   background: currentColor;
   box-shadow: 0 12px currentColor;
 }
-.entry {
-  display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  min-height: 100svh;
-}
-.cover {
-  background: #203f37;
-  color: #fbf8e9;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: clamp(30px, 6vw, 90px);
-  position: relative;
-  overflow: hidden;
-}
-.cover-copy {
-  margin: 55px 0 30px;
-}
-.cover h1 {
-  font-size: clamp(48px, 5.4vw, 86px);
-  line-height: 1.27;
-  letter-spacing: -0.065em;
-  font-weight: 600;
-}
-.cover p {
-  color: #dce8d9;
-  font-size: clamp(16px, 1.5vw, 21px);
-  margin-top: 22px;
-}
-.dot {
-  color: #efa867;
-}
 .still-life {
   position: relative;
   display: flex;
@@ -514,22 +484,6 @@ label > select {
   border-radius: 2px;
   transform: rotate(4deg);
   transform-origin: center bottom;
-}
-.entry-panel {
-  display: grid;
-  place-items: center;
-  padding: clamp(26px, 7vw, 112px);
-}
-.entry-form {
-  width: min(100%, 360px);
-}
-.entry-form h2 {
-  font-size: clamp(30px, 3.5vw, 44px);
-  letter-spacing: -0.045em;
-  margin: 0 0 22px;
-}
-.entry-form label {
-  margin-bottom: 6px;
 }
 body.pantry-loading-active {
   overflow: hidden;
@@ -2515,24 +2469,6 @@ dialog::backdrop {
   dialog .dialog-head {
     touch-action: none;
   }
-  .entry {
-    grid-template-columns: 1fr;
-    align-content: start;
-  }
-  .cover {
-    padding: 24px 25px 28px;
-    min-height: 220px;
-  }
-  .cover h1 {
-    font-size: 39px;
-  }
-  .cover-copy {
-    margin: 22px 0 0;
-  }
-  .cover p {
-    font-size: 14px;
-    margin-top: 10px;
-  }
   .still-life {
     position: absolute;
     bottom: 0;
@@ -2553,16 +2489,6 @@ dialog::backdrop {
   }
   .box {
     height: 70px;
-  }
-  .entry-panel {
-    padding: 28px 22px 38px;
-  }
-  .entry-form {
-    width: min(100%, 420px);
-  }
-  .entry-form h2 {
-    font-size: 30px;
-    margin-bottom: 14px;
   }
   .wrap {
     width: calc(100% - 30px);

@@ -26,22 +26,43 @@
     <script type="module" src="/analytics-init.mjs"></script>
   </head>
   <body>
-    <main id="entry" class="entry">
-      <section class="cover" aria-label="home-stock">
+    <main
+      id="entry"
+      class="entry grid min-h-svh grid-cols-[1.05fr_1fr] max-[650px]:grid-cols-1 max-[650px]:content-start"
+    >
+      <section
+        class="cover relative flex flex-col justify-between overflow-hidden bg-[#203f37] p-[clamp(30px,6vw,90px)] text-[#fbf8e9] max-[650px]:min-h-[220px] max-[650px]:p-[24px_25px_28px]"
+        aria-label="home-stock"
+      >
         <div class="brand"><span class="mark" aria-hidden="true"></span>home-stock</div>
-        <div class="cover-copy">
-          <h1>วันนี้ในบ้าน<br />มีอะไรบ้าง<span class="dot">.</span></h1>
-          <p>จดของที่มีอยู่ รู้วันหมดอายุ<br />และเตรียมรายการซื้อครั้งถัดไป</p>
+        <div class="cover-copy m-[55px_0_30px] max-[650px]:m-[22px_0_0]">
+          <h1
+            class="text-[clamp(48px,5.4vw,86px)] leading-[1.27] font-semibold tracking-[-0.065em] max-[650px]:text-[39px]"
+          >
+            วันนี้ในบ้าน<br />มีอะไรบ้าง<span class="dot text-[#efa867]">.</span>
+          </h1>
+          <p
+            class="mt-[22px] text-[clamp(16px,1.5vw,21px)] text-[#dce8d9] max-[650px]:mt-[10px] max-[650px]:text-[14px]"
+          >
+            จดของที่มีอยู่ รู้วันหมดอายุ<br />และเตรียมรายการซื้อครั้งถัดไป
+          </p>
         </div>
         <div class="still-life" aria-hidden="true">
           <i class="tin"></i><i class="jar"></i><i class="box"></i><i class="shelf"></i>
         </div>
       </section>
-      <section class="entry-panel">
-        <div class="entry-form">
-          <h2 id="entry-title">เปิดตู้กับข้าว</h2>
+      <section
+        class="entry-panel grid place-items-center p-[clamp(26px,7vw,112px)] max-[650px]:p-[28px_22px_38px]"
+      >
+        <div class="entry-form w-[min(100%,360px)] max-[650px]:w-[min(100%,420px)]">
+          <h2
+            id="entry-title"
+            class="mb-[22px] text-[clamp(30px,3.5vw,44px)] tracking-[-0.045em] max-[650px]:mb-[14px] max-[650px]:text-[30px]"
+          >
+            เปิดตู้กับข้าว
+          </h2>
           <form id="login" hidden>
-            <label for="password">รหัสผ่านของบ้าน</label>
+            <label class="mb-[6px]" for="password">รหัสผ่านของบ้าน</label>
             <input id="password" type="password" autocomplete="current-password" required />
             <p id="login-error" class="error" role="alert"></p>
             <button class="primary w-full" type="submit">

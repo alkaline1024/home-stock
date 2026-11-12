@@ -93,24 +93,6 @@
   dialog .dialog-head {
     touch-action: none;
   }
-  .entry {
-    grid-template-columns: 1fr;
-    align-content: start;
-  }
-  .cover {
-    padding: 24px 25px 28px;
-    min-height: 220px;
-  }
-  .cover h1 {
-    font-size: 39px;
-  }
-  .cover-copy {
-    margin: 22px 0 0;
-  }
-  .cover p {
-    font-size: 14px;
-    margin-top: 10px;
-  }
   .still-life {
     position: absolute;
     bottom: 0;
@@ -131,16 +113,6 @@
   }
   .box {
     height: 70px;
-  }
-  .entry-panel {
-    padding: 28px 22px 38px;
-  }
-  .entry-form {
-    width: min(100%, 420px);
-  }
-  .entry-form h2 {
-    font-size: 30px;
-    margin-bottom: 14px;
   }
   .wrap {
     width: calc(100% - 30px);

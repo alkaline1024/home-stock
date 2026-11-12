@@ -30,11 +30,13 @@ body {
     color: inherit;
   }
 }
-h1,
-h2,
-h3,
-p {
-  margin: 0;
+@layer base {
+  h1,
+  h2,
+  h3,
+  p {
+    margin: 0;
+  }
 }
 a:focus-visible,
 button:focus-visible,
