@@ -1,4 +1,5 @@
 import { createApp, h, ref, onMounted, onUnmounted } from "vue";
+import ShoppingView from "./ShoppingView.vue";
 
 const host = document.querySelector("#shopping-count");
 if (host) {
@@ -21,3 +22,6 @@ if (host) {
     },
   }).mount(host);
 }
+
+const shoppingView = document.querySelector("#shopping-vue");
+if (shoppingView) createApp(ShoppingView).mount(shoppingView);

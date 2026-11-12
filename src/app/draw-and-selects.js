@@ -24,6 +24,8 @@ function draw() {
   if (!stock) return;
   photoObserver?.disconnect();
   const page = tab();
+  $("#content").hidden = false;
+  $("#shopping-vue").hidden = true;
   $(".tabs")
     .querySelectorAll("[data-tab]")
     .forEach((link) => {
@@ -201,6 +203,16 @@ function draw() {
       mealRecipeCard,
     );
   } else {
+    const shoppingView = $("#shopping-vue");
+    shoppingView.stockSnapshot = { items: stock.items, shopping: stock.shopping };
+    shoppingView.dispatchEvent(
+      new CustomEvent("home-stock:shopping", { detail: shoppingView.stockSnapshot }),
+    );
+    if (shoppingView.dataset.vueMounted === "true") {
+      $("#content").hidden = true;
+      shoppingView.hidden = false;
+      return;
+    }
     html = stock.shopping.length
       ? section("ของที่จะซื้อ", stock.shopping, { shopping: true })
       : empty(
