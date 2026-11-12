@@ -44,68 +44,6 @@
   width: 23px;
   height: 23px;
 }
-.settings-panel {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: clamp(18px, 4vw, 30px);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-}
-.settings-panel h2 {
-  font-size: 1.2rem;
-}
-.settings-panel > .form-help {
-  margin-top: 5px;
-}
-.animation-options {
-  display: grid;
-  gap: 10px;
-  margin: 22px 0 0;
-  padding: 0;
-  border: 0;
-}
-.animation-options legend {
-  margin-bottom: 10px;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-.animation-choice {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin: 0;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  cursor: pointer;
-}
-.animation-choice:has(input:checked) {
-  border-color: var(--green);
-  background: #f0f5ed;
-}
-.animation-choice input[type="radio"] {
-  flex: none;
-  width: 18px;
-  min-height: 18px;
-  height: 18px;
-  margin: 2px 0 0;
-  accent-color: var(--green);
-}
-.animation-choice span,
-.animation-choice small {
-  display: block;
-}
-.animation-choice small {
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 400;
-}
-.settings-logout {
-  margin-top: 22px;
-}
 .tabs {
   display: flex;
   gap: 28px;

@@ -27,6 +27,7 @@ function draw() {
   $("#content").hidden = false;
   $("#shopping-vue").hidden = true;
   $("#recipes-vue").hidden = true;
+  $("#settings-vue").hidden = true;
   $(".tabs")
     .querySelectorAll("[data-tab]")
     .forEach((link) => {
@@ -73,8 +74,18 @@ function draw() {
   else shoppingCount.textContent = stock.shopping.length;
   $("#tools").hidden = page !== "stock";
   if (page === "settings") {
-    $("#content").innerHTML = settingsContent();
-    loadAlertSettings();
+    const settingsView = $("#settings-vue");
+    settingsView.settingsSnapshot = {
+      items: stock.items,
+      recentItems: stock.recentItems || [],
+      minLevels: stock.minLevels || [],
+      animationMode,
+    };
+    settingsView.dispatchEvent(
+      new CustomEvent("home-stock:settings", { detail: settingsView.settingsSnapshot }),
+    );
+    $("#content").hidden = true;
+    settingsView.hidden = false;
     return;
   }
   const sorted = [...stock.items].sort(byDate);

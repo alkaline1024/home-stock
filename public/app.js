@@ -2153,76 +2153,6 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
   );
 }
 
-function settingsContent() {
-  const choices = [
-    ["full", "เต็ม", "เปิดประตู ซูมเข้า และขยายเนื้อหาแบบ parallax"],
-    ["minimal", "แบบย่อ", "แสดงประตูกับลูกบิดหมุนระหว่างโหลด แล้วค่อย ๆ จางหาย"],
-    ["off", "ปิด", "ไม่แสดงฉากแอนิเมชันตอนโหลด"],
-  ];
-  return (
-    '<section class="settings-panel"><h2>แอนิเมชันตอนเปิดแอป</h2>' +
-    '<p class="form-help">เลือกรูปแบบฉากระหว่างรอโหลด และระบบจะจดจำการตั้งค่านี้ไว้ในอุปกรณ์</p>' +
-    '<fieldset class="animation-options"><legend>รูปแบบแอนิเมชัน</legend>' +
-    choices
-      .map(
-        ([value, title, description]) =>
-          '<label class="animation-choice"><input type="radio" name="animation-mode" value="' +
-          value +
-          '"' +
-          (animationMode === value ? " checked" : "") +
-          "><span><strong>" +
-          title +
-          "</strong><small>" +
-          description +
-          "</small></span></label>",
-      )
-      .join("") +
-    '</fieldset><p id="settings-error" class="error" role="alert"></p>' +
-    '<section class="settings-stock"><h2>จำนวนขั้นต่ำ</h2><p class="form-help">เมื่อของเหลือน้อยกว่าที่ตั้งไว้ แอปจะแสดงในรายการซื้อ</p>' +
-    minimumSettings() +
-    "</section>" +
-    '<section class="settings-stock"><h2>แจ้งเตือนของใกล้หมดอายุ</h2>' +
-    '<p class="form-help">ส่งวันละครั้งประมาณ 09:00 น. ค่าใน Settings เป็นค่าเริ่มต้น; รายการที่กำหนดวันเตือนเองจะใช้ค่านั้นแทน</p>' +
-    '<label>เตือนล่วงหน้า<select id="alert-days"><option value="0">ปิด</option><option value="1">1 วัน</option><option value="3">3 วัน</option><option value="7">7 วัน</option></select></label>' +
-    '<button type="button" class="secondary" data-action="save-alerts">บันทึกการแจ้งเตือน</button>' +
-    '<div class="alert-test-controls"><button type="button" class="secondary" data-action="test-alert-now">[ทดสอบ] ส่งการแจ้งเตือน</button>' +
-    '<div class="alert-test-delay"><label for="alert-test-seconds">[ทดสอบ] ส่งการแจ้งเตือนในอีก</label> ' +
-    '<input id="alert-test-seconds" type="number" inputmode="numeric" min="1" max="3600" step="1" value="5"> วินาที ' +
-    '<button type="button" class="secondary" data-action="test-alert-later">เริ่มจับเวลา</button></div></div>' +
-    '<p id="alert-status" class="form-help" role="status"></p></section>' +
-    '<button type="button" class="secondary settings-logout" data-action="logout">ออกจากระบบ</button></section>'
-  );
-}
-
-function minimumSettings() {
-  const names = new Map();
-  for (const item of [...(stock.recentItems || []), ...stock.items])
-    names.set(key(item.name) + "\u0000" + key(item.unit), item);
-  return (
-    [...names.values()]
-      .sort((a, b) => a.name.localeCompare(b.name, "th"))
-      .map((item) => {
-        const level = (stock.minLevels || []).find(
-          (entry) => key(entry.name) === key(item.name) && key(entry.unit) === key(item.unit),
-        );
-        return (
-          '<label class="minimum-row"><span>' +
-          esc(item.name) +
-          " · " +
-          esc(item.unit) +
-          '</span><input type="number" inputmode="decimal" min="0" max="999999" step=".001" placeholder="ไม่ตั้ง" value="' +
-          esc(level?.qty ?? "") +
-          '" data-min-name="' +
-          esc(item.name) +
-          '" data-min-unit="' +
-          esc(item.unit) +
-          '"></label>'
-        );
-      })
-      .join("") || '<p class="form-help">เพิ่มของชิ้นแรกก่อนตั้งจำนวนขั้นต่ำ</p>'
-  );
-}
-
 function lowStockSection() {
   const needs = (stock.minLevels || [])
     .map((level) => {
@@ -2414,6 +2344,7 @@ function draw() {
   $("#content").hidden = false;
   $("#shopping-vue").hidden = true;
   $("#recipes-vue").hidden = true;
+  $("#settings-vue").hidden = true;
   $(".tabs")
     .querySelectorAll("[data-tab]")
     .forEach((link) => {
@@ -2460,8 +2391,18 @@ function draw() {
   else shoppingCount.textContent = stock.shopping.length;
   $("#tools").hidden = page !== "stock";
   if (page === "settings") {
-    $("#content").innerHTML = settingsContent();
-    loadAlertSettings();
+    const settingsView = $("#settings-vue");
+    settingsView.settingsSnapshot = {
+      items: stock.items,
+      recentItems: stock.recentItems || [],
+      minLevels: stock.minLevels || [],
+      animationMode,
+    };
+    settingsView.dispatchEvent(
+      new CustomEvent("home-stock:settings", { detail: settingsView.settingsSnapshot }),
+    );
+    $("#content").hidden = true;
+    settingsView.hidden = false;
     return;
   }
   const sorted = [...stock.items].sort(byDate);
