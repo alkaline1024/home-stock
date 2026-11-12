@@ -4,6 +4,7 @@
 // Sources: https://www.foodsafety.gov/food-safety-charts/cold-food-storage-charts
 // https://agrilifeextension.tamu.edu/wp-content/uploads/2025/04/Storing-Vegetables.pdf
 // https://aggie-horticulture.tamu.edu/food-technology/nutrition/parsley-and-cilantro/
+// Amaranth greens: https://aggie-horticulture.tamu.edu/vegetable/guides/specialty-vegetables/amaranths-chinese-spinach/
 // https://extension.illinois.edu/gardening/cabbage
 // More produce: https://extension.oregonstate.edu/sites/extd8/files/2023-08/pnw612.pdf (Table 3)
 globalThis.shelfLifeRules = [
@@ -57,13 +58,13 @@ globalThis.shelfLifeRules = [
   },
   {
     name: "ไก่ดิบ",
-    keywords: ["เนื้อไก่", "อกไก่", "น่องไก่", "ไก่สด", "ไก่ดิบ", "chicken"],
+    keywords: ["เนื้อไก่", "อกไก่", "น่องไก่", "ปีกไก่", "สันในไก่", "ไก่สด", "ไก่ดิบ", "chicken"],
     categories: ["เนื้อสัตว์", "ของสด", "ของแช่แข็ง"],
     days: { fridge: 2, freezer: 120 },
   },
   {
     name: "หมูดิบ",
-    keywords: ["เนื้อหมู", "หมูสัน", "หมูสด", "หมูดิบ", "pork"],
+    keywords: ["เนื้อหมู", "หมูสัน", "สันคอหมู", "สันคอหมูบั้ง", "สันในหมู", "หมูสามชั้น", "หมูสด", "หมูดิบ", "pork"],
     categories: ["เนื้อสัตว์", "ของสด", "ของแช่แข็ง"],
     days: { fridge: 3, freezer: 120 },
   },
@@ -148,7 +149,7 @@ addFood("ถั่วลันเตา", ["ถั่วลันเตา", "pe
 addFood("มะเขือยาว", ["มะเขือยาว", "มะเขือม่วง", "eggplant"], vegetables, { fridge: 3 });
 addFood("แตงกวา", ["แตงกวา", "cucumber"], vegetables, { fridge: 4 });
 addFood("มะเขือเทศสุก", ["มะเขือเทศ", "tomato"], vegetables, { fridge: 5 });
-addFood("กระเทียม", ["กระเทียม", "garlic"], vegetables, { pantry: 30, fridge: 7 });
+addFood("กระเทียม", ["กระเทียม", "garlic"], [...vegetables, "เครื่องปรุง"], { pantry: 30, fridge: 7 });
 addFood("ขิง", ["ขิง", "ginger"], vegetables, { pantry: 2, fridge: 7 });
 addFood("หอมใหญ่", ["หอมใหญ่", "หอมหัวใหญ่", "onion"], vegetables, { pantry: 30 });
 addFood("มันฝรั่ง", ["มันฝรั่ง", "potato"], vegetables, { pantry: 30, fridge: 7 });
@@ -162,6 +163,27 @@ addFood("ต้นกระเทียม", ["ต้นกระเทียม
 addFood("ฟักทอง", ["ฟักทอง", "winter squash"], vegetables, { pantry: 7, fridge: 14 });
 addFood("บวบ", ["บวบ", "ซูกินี", "zucchini", "summer squash"], vegetables, { fridge: 4 });
 addFood("หัวบีต", ["หัวบีต", "beetroot"], vegetables, { fridge: 7 });
+addFood("ผักขมไทย", ["ผักขมไทย", "ผักโขมไทย", "ผักขม", "ผักโขม", "amaranth greens"], vegetables, {
+  fridge: 2,
+});
+addFood("ผักกาดแก้ว", ["ผักกาดแก้ว", "iceberg lettuce"], vegetables, { fridge: 7 });
+addFood("ผักชีฝรั่ง", ["ผักชีฝรั่ง", "culantro", "sawtooth coriander"], vegetables, { fridge: 5 });
+addFood("สะระแหน่", ["สะระแหน่", "mint leaves", "fresh mint"], vegetables, { fridge: 5 });
+addFood("โหระพา", ["โหระพา", "thai basil"], vegetables, { fridge: 5 });
+addFood("กะเพรา", ["กะเพรา", "holy basil"], vegetables, { fridge: 3 });
+addFood("ใบแมงลัก", ["แมงลัก", "ใบแมงลัก", "lemon basil"], vegetables, { fridge: 3 });
+addFood("ใบชะพลู", ["ใบชะพลู", "wild betel leaf"], vegetables, { fridge: 3 });
+addFood("ใบมะกรูด", ["ใบมะกรูด", "kaffir lime leaves"], vegetables, { fridge: 7, freezer: 60 });
+addFood("ผักแพว", ["ผักแพว", "ผักไผ่", "vietnamese coriander"], vegetables, { fridge: 3 });
+addFood("ถั่วงอก", ["ถั่วงอก", "bean sprouts", "mung bean sprouts"], vegetables, { fridge: 2 });
+addFood("มะระ", ["มะระ", "bitter melon"], vegetables, { fridge: 4 });
+addFood("มะเขือเปราะ", ["มะเขือเปราะ", "thai eggplant"], vegetables, { fridge: 4 });
+addFood("ฟักเขียว", ["ฟักเขียว", "winter melon", "wax gourd"], vegetables, { fridge: 7 });
+addFood("ตะไคร้", ["ตะไคร้", "lemongrass"], vegetables, { fridge: 7, freezer: 60 });
+addFood("ข่า", ["ข่า", "galangal"], vegetables, { fridge: 7, freezer: 60 });
+addFood("หอมแดง", ["หอมแดง", "shallot"], vegetables, { pantry: 14, fridge: 7 });
+addFood("มันเทศ", ["มันเทศ", "sweet potato"], vegetables, { pantry: 14, fridge: 7 });
+addFood("หน่อไม้สด", ["หน่อไม้สด", "bamboo shoot"], vegetables, { fridge: 3 });
 
 // Fresh fruit: OSU Extension, Table 3. Ripe fruit assumptions are named explicitly.
 addFood("แอปเปิล", ["แอปเปิล", "แอปเปิ้ล", "apple"], fruit, { pantry: 1, fridge: 14 });
@@ -187,6 +209,15 @@ addFood("มะละกอสุก", ["มะละกอ", "papaya"], fruit, 
 addFood("ลูกพีชสุก", ["ลูกพีช", "peach", "nectarine"], fruit, { fridge: 3 });
 addFood("ลูกแพร์สุก", ["ลูกแพร์", "pear"], fruit, { pantry: 3, fridge: 3 });
 addFood("ลูกพลัมสุก", ["ลูกพลัม", "plum"], fruit, { pantry: 3, fridge: 3 });
+addFood("ฝรั่ง", ["ฝรั่ง", "guava"], fruit, { fridge: 5 });
+addFood("สับปะรดหั่น", ["สับปะรดหั่น", "pineapple chunks", "cut pineapple"], fruit, { fridge: 3 });
+addFood("ลำไย", ["ลำไย", "longan"], fruit, { fridge: 5 });
+addFood("ลิ้นจี่", ["ลิ้นจี่", "lychee"], fruit, { fridge: 5 });
+addFood("เงาะ", ["เงาะ", "rambutan"], fruit, { fridge: 5 });
+addFood("ชมพู่", ["ชมพู่", "rose apple"], fruit, { fridge: 3 });
+addFood("ส้มโอ", ["ส้มโอ", "pomelo"], fruit, { pantry: 7, fridge: 7 });
+addFood("มะพร้าวอ่อน", ["มะพร้าวอ่อน", "young coconut"], fruit, { fridge: 5 });
+addFood("ทุเรียนแกะ", ["ทุเรียนแกะ", "เนื้อทุเรียน", "durian flesh"], fruit, { fridge: 3, freezer: 60 });
 
 // Meat and seafood: FoodSafety.gov cold storage chart, at 4 °C or colder.
 addFood("ไก่งวงดิบ", ["ไก่งวง", "turkey"], rawMeat, { fridge: 2, freezer: 120 });
@@ -199,6 +230,16 @@ addFood("หอยแกะเปลือก", ["เนื้อหอย", "�
   fridge: 3,
   freezer: 90,
 });
+addFood("สันคอหมูบั้ง", ["สันคอหมูบั้ง", "สันคอหมู", "pork neck"], rawMeat, { fridge: 3, freezer: 120 });
+addFood("สันในไก่", ["สันในไก่", "chicken tenderloin"], rawMeat, { fridge: 2, freezer: 120 });
+addFood("ตับไก่ดิบ", ["ตับไก่", "chicken liver"], rawMeat, { fridge: 1, freezer: 90 });
+addFood("ปีกไก่ดิบ", ["ปีกไก่", "chicken wing"], rawMeat, { fridge: 2, freezer: 120 });
+addFood("ซี่โครงหมูดิบ", ["ซี่โครงหมู", "pork ribs"], rawMeat, { fridge: 3, freezer: 120 });
+addFood("หมูสามชั้นดิบ", ["หมูสามชั้น", "pork belly"], rawMeat, { fridge: 3, freezer: 120 });
+addFood("ปลาแซลมอน", ["ปลาแซลมอน", "แซลมอน", "salmon"], rawMeat, { fridge: 2, freezer: 60 });
+addFood("ปลาทูน่า", ["ปลาทูน่า", "ทูน่าสด", "fresh tuna"], rawMeat, { fridge: 2, freezer: 60 });
+addFood("หอยเชลล์", ["หอยเชลล์", "scallop"], rawMeat, { fridge: 2, freezer: 90 });
+addFood("ล็อบสเตอร์สด", ["ล็อบสเตอร์", "lobster"], rawMeat, { fridge: 2, freezer: 60 });
 
 // Eggs and prepared foods: FoodSafety.gov cold storage chart.
 addFood("ไข่ขาวหรือไข่แดงดิบ", ["ไข่ขาวดิบ", "ไข่แดงดิบ", "raw egg white", "raw egg yolk"], fruit, {
@@ -224,3 +265,20 @@ addFood(
   { fridge: 3 },
 );
 addFood("อาหารเหลือ", ["อาหารเหลือ", "กับข้าวเหลือ", "leftover"], cooked, { fridge: 3, freezer: 60 });
+addFood("ไส้กรอกสุก", ["ไส้กรอกสุก", "ไส้กรอกปรุงสุก", "cooked sausage"], cooked, {
+  fridge: 7,
+  freezer: 30,
+});
+addFood("แฮมสุก", ["แฮมสุก", "แฮมหั่น", "cooked ham"], cooked, { fridge: 3, freezer: 30 });
+addFood("แกงปรุงสุก", ["แกง", "แกงเขียวหวาน", "แกงแดง", "แกงส้ม", "curry"], cooked, {
+  fridge: 3,
+  freezer: 60,
+});
+addFood("ผัดผักปรุงสุก", ["ผัดผัก", "ผัดกะเพรา", "ผัดพริก", "stir-fried"], cooked, {
+  fridge: 3,
+  freezer: 60,
+});
+addFood("อาหารทะเลปรุงสุก", ["กุ้งสุก", "ปลาหมึกสุก", "อาหารทะเลสุก", "cooked seafood"], cooked, {
+  fridge: 3,
+  freezer: 60,
+});

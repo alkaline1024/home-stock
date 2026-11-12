@@ -37,7 +37,7 @@ test("does not invent a date for unsupported combinations", () => {
 test("expanded dictionary covers common foods without confusing similar names", () => {
   const context = vm.createContext({});
   vm.runInContext(dictionary, context);
-  assert.ok(context.shelfLifeRules.length >= 75);
+  assert.ok(context.shelfLifeRules.length >= 100);
   for (const rule of context.shelfLifeRules) {
     assert.ok(rule.name && rule.keywords.length && rule.categories.length);
     assert.ok(Object.values(rule.days).every((days) => Number.isInteger(days) && days > 0));
@@ -51,6 +51,10 @@ test("expanded dictionary covers common foods without confusing similar names", 
   assert.equal(suggestion("ปลานิล", "2026-11-11", "เนื้อสัตว์", "ตู้เย็น")?.days, 2);
   assert.equal(suggestion("สลัดทูน่า", "2026-11-11", "อาหารปรุงสุก", "ตู้เย็น")?.days, 3);
   assert.equal(suggestion("เนื้อไก่", "2026-11-11", "เนื้อสัตว์", "ชั้นวาง"), null);
+  assert.equal(suggestion("กระเทียม", "2026-11-11", "เครื่องปรุง", "ชั้นวาง")?.days, 30);
+  assert.equal(suggestion("ผักขมไทย", "2026-11-11", "ผัก", "ตู้เย็น")?.days, 2);
+  assert.equal(suggestion("สันคอหมูบั้ง", "2026-11-11", "เนื้อสัตว์", "ตู้เย็น")?.days, 3);
+  assert.equal(suggestion("สันในไก่", "2026-11-11", "เนื้อสัตว์", "ตู้เย็น")?.days, 2);
 });
 
 test("received date survives stock validation", () => {
