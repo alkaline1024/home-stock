@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 
-const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
+const source = readFileSync(new URL("../src/app/dialogs-and-media.js", import.meta.url), "utf8");
+const appSource = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
 const dialogIds = [...html.matchAll(/<dialog id="([^"]+)"/g)].map((match) => match[1]);
 const sheetSource = source.slice(
@@ -91,7 +92,7 @@ function sheets() {
 }
 
 test("all modal opening paths use dialogs covered by the shared sheet initializer", () => {
-  const openedIds = [...source.matchAll(/\$\("#([^"]+)"\)\.showModal\(\)/g)].map(
+  const openedIds = [...appSource.matchAll(/\$\("#([^"]+)"\)\.showModal\(\)/g)].map(
     (match) => match[1],
   );
   assert.deepEqual([...new Set(openedIds)].sort(), [...dialogIds].sort());

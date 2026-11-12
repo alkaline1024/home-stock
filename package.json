@@ -7,7 +7,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "pretest": "node scripts/build-app.mjs",
+    "pretest": "node scripts/build-app.mjs && node scripts/build-styles.mjs",
     "dev": "node --watch scripts/local.mjs",
     "host": "node --watch scripts/local.mjs --host",
     "test": "node --test tests/*.test.mjs",
@@ -31,8 +31,10 @@
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
+    "@tailwindcss/cli": "^4.3.5",
     "esbuild": "^0.25.12",
     "lucide-static": "^1.72.0",
-    "prettier": "^3.10.0"
+    "prettier": "^3.10.0",
+    "tailwindcss": "^4.3.5"
   }
 }

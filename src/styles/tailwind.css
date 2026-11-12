@@ -1,0 +1,16 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+@source "../../public/index.html";
+@source "../app";
+
+@theme {
+  --color-paper: #f8f7f1;
+  --color-ink: #203e35;
+  --color-green: #235242;
+  --color-mint: #e0ebda;
+  --color-muted: #596b60;
+  --color-line: #d6dbcf;
+  --color-surface: #fffef8;
+}

@@ -25,8 +25,10 @@ body {
 [hidden] {
   display: none !important;
 }
-a {
-  color: inherit;
+@layer base {
+  a {
+    color: inherit;
+  }
 }
 h1,
 h2,
@@ -377,9 +379,6 @@ label > select {
 .close:hover {
   text-decoration: underline;
 }
-.full {
-  width: 100%;
-}
 .brand {
   display: inline-flex;
   align-items: center;
@@ -531,13 +530,6 @@ label > select {
 }
 .entry-form label {
   margin-bottom: 6px;
-}
-.entry-form .sample {
-  display: inline-block;
-  font-size: 0.9rem;
-  margin-top: 32px;
-  color: var(--muted);
-  text-underline-offset: 4px;
 }
 body.pantry-loading-active {
   overflow: hidden;

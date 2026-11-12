@@ -6,7 +6,7 @@ import vm from "node:vm";
 import { validatedStock } from "../lib/inventory.js";
 
 const dictionary = readFileSync(new URL("../public/shelf-life-data.js", import.meta.url), "utf8");
-const calculator = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
+const calculator = readFileSync(new URL("../src/app/core.js", import.meta.url), "utf8");
 
 function suggestion(name, receivedDate, category, location) {
   const context = vm.createContext({});

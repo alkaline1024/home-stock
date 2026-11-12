@@ -1,0 +1,470 @@
+@media (max-width: 650px) {
+  .pantry-loading {
+    --pantry-door-width: clamp(190px, 51vw, 260px);
+    --pantry-door-height: clamp(250px, 43vh, 340px);
+    --pantry-zoom-scale: 3.2;
+  }
+  body:has(dialog[open]) .tabs {
+    display: none;
+  }
+  body:has(dialog[open]) {
+    overflow: hidden;
+  }
+  dialog {
+    --sheet-padding: 22px;
+    position: fixed;
+    inset: auto 0 0;
+    width: 100%;
+    max-width: none;
+    max-height: calc(100dvh - max(24px, env(safe-area-inset-top)));
+    margin: 0;
+    padding: var(--sheet-padding);
+    padding-bottom: calc(var(--sheet-padding) + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 16px 16px 0 0;
+    overscroll-behavior: contain;
+    transform: translateY(100%);
+    transition:
+      transform 240ms cubic-bezier(0.4, 0, 1, 1),
+      display 240ms allow-discrete,
+      overlay 240ms allow-discrete;
+  }
+  dialog[open] {
+    transform: translateY(var(--sheet-offset, 0px));
+    transition:
+      transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      display 320ms allow-discrete,
+      overlay 320ms allow-discrete;
+  }
+  dialog::backdrop {
+    opacity: 0;
+    transition:
+      opacity 240ms ease,
+      display 240ms allow-discrete,
+      overlay 240ms allow-discrete;
+  }
+  dialog[open]::backdrop {
+    opacity: 1;
+    transition-duration: 320ms;
+  }
+  @starting-style {
+    dialog[open] {
+      transform: translateY(100%);
+    }
+    dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
+  dialog.sheet-dragging {
+    transition: none;
+    user-select: none;
+  }
+  .sheet-handle {
+    position: sticky;
+    top: calc(-1 * var(--sheet-padding));
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(100% + 2 * var(--sheet-padding));
+    min-height: 32px;
+    margin: calc(-1 * var(--sheet-padding)) calc(-1 * var(--sheet-padding)) 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 16px 16px 0 0;
+    background: var(--paper);
+    cursor: grab;
+    touch-action: none;
+  }
+  .sheet-handle::before {
+    content: "";
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--line);
+  }
+  .sheet-handle:focus-visible {
+    outline: none;
+  }
+  .sheet-handle:focus-visible::before {
+    outline: 2px solid var(--green);
+    outline-offset: 4px;
+  }
+  dialog .dialog-head {
+    touch-action: none;
+  }
+  .entry {
+    grid-template-columns: 1fr;
+    align-content: start;
+  }
+  .cover {
+    padding: 24px 25px 28px;
+    min-height: 220px;
+  }
+  .cover h1 {
+    font-size: 39px;
+  }
+  .cover-copy {
+    margin: 22px 0 0;
+  }
+  .cover p {
+    font-size: 14px;
+    margin-top: 10px;
+  }
+  .still-life {
+    position: absolute;
+    bottom: 0;
+    right: 4%;
+    width: 25%;
+    height: 90px;
+    gap: 4px;
+    opacity: 0.85;
+  }
+  .tin {
+    height: 42px;
+  }
+  .jar {
+    height: 53px;
+  }
+  .jar:after {
+    inset: 12px -1px 8px;
+  }
+  .box {
+    height: 70px;
+  }
+  .entry-panel {
+    padding: 28px 22px 38px;
+  }
+  .entry-form {
+    width: min(100%, 420px);
+  }
+  .entry-form h2 {
+    font-size: 30px;
+    margin-bottom: 14px;
+  }
+  .wrap {
+    width: calc(100% - 30px);
+  }
+  .top {
+    min-height: 60px;
+  }
+  .tabs {
+    position: fixed;
+    z-index: 40;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    overflow: visible;
+    padding: 5px 5px calc(5px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
+    background: #fff;
+    box-shadow: 0 -4px 18px rgb(25 54 39 / 8%);
+  }
+  .tabs a {
+    min-width: 0;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px 2px 2px;
+    border-top: 2px solid transparent;
+    border-bottom: 0;
+    white-space: normal;
+  }
+  .tabs a[aria-current="page"] {
+    border-top-color: var(--green);
+  }
+  .tabs .tab-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .tabs .tab-label {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    color: inherit;
+    font-size: 0.62rem;
+    line-height: 1.15;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tabs .tab-count {
+    display: none;
+  }
+  .workspace {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  .page-title {
+    margin: 22px 0;
+  }
+  .page-title:has([data-action="add-meal-plan"]) {
+    flex-wrap: wrap;
+  }
+  .page-title:has([data-action="add-meal-plan"]) > div {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .page-title [data-action="add-meal-plan"] {
+    max-width: 100%;
+    margin-left: auto;
+  }
+  .meal-plan-list-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .meal-plan-list-actions {
+    min-width: 0;
+    justify-content: flex-start;
+  }
+  .meal-plan-list-actions > button,
+  .meal-plan-actions > button {
+    max-width: 100%;
+  }
+  .meal-plan-list-title h3,
+  .meal-plan-card h4,
+  .meal-plan-summary,
+  .meal-plan-ingredients,
+  .meal-plan-shortage {
+    overflow-wrap: anywhere;
+  }
+  .meal-ingredient-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .meal-ingredient-row label:first-child {
+    grid-column: 1 / span 2;
+  }
+  .meal-ingredient-row label:nth-child(2) {
+    grid-column: 1;
+  }
+  .meal-ingredient-row label:nth-child(3) {
+    grid-column: 2;
+  }
+  .calendar-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+    gap: 8px;
+  }
+  .calendar-head h2 {
+    grid-column: 1;
+  }
+  .calendar-month {
+    justify-self: end;
+    gap: 4px;
+  }
+  .calendar-month h3 {
+    min-width: 130px;
+  }
+  .calendar-add-plan {
+    justify-self: end;
+    min-height: 40px;
+    padding: 7px 10px;
+    font-size: 0.86rem;
+  }
+  .calendar-grid {
+    gap: 3px;
+  }
+  .calendar-day {
+    min-height: 54px;
+    padding: 5px 1px;
+  }
+  .calendar-day-number {
+    font-size: 0.8rem;
+  }
+  .calendar-day-count {
+    min-width: 17px;
+    padding-inline: 3px;
+    font-size: 0.64rem;
+  }
+  .calendar-day-counts {
+    gap: 2px;
+  }
+  .filters {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .filters > .search,
+  .filters > .category-filter-field {
+    grid-column: 1/-1;
+  }
+  .stock-arrange-tools {
+    gap: 8px;
+  }
+  .line-item {
+    grid-template-columns: 43px minmax(0, 1fr);
+    gap: 9px;
+    padding: 12px 0;
+  }
+  .thumb {
+    width: 43px;
+    height: 48px;
+  }
+  .item-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+  .item-actions button {
+    min-height: 44px;
+  }
+  footer {
+    margin-top: 32px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @media (max-width: 650px) {
+    dialog,
+    dialog::backdrop {
+      transition-duration: 140ms;
+      transition-timing-function: ease-out;
+    }
+    dialog[open],
+    dialog[open]::backdrop {
+      transition-duration: 180ms;
+      transition-timing-function: ease-out;
+    }
+    dialog.sheet-dragging {
+      transition: none;
+    }
+  }
+  .pantry-loading:not(.is-opening) .pantry-knob-wrap {
+    animation-duration: 1100ms;
+  }
+  .pantry-loading.is-opening .pantry-knob-wrap {
+    animation-duration: 420ms;
+  }
+}
+@media (max-width: 360px) {
+  .tabs {
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+  .wrap {
+    width: calc(100% - 22px);
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .recipe-card-header {
+    align-items: flex-start;
+  }
+  .recipe-card-actions {
+    align-items: stretch;
+  }
+  .recipe-card-actions button {
+    flex: 1 1 auto;
+  }
+  .page-title {
+    gap: 6px;
+  }
+  .page-title button {
+    padding: 8px 10px;
+  }
+  .still-life {
+    width: 22%;
+  }
+  dialog {
+    --sheet-padding: 15px;
+  }
+  .brand {
+    font-size: 26px;
+  }
+  .calendar-head {
+    align-items: start;
+  }
+  .calendar-month {
+    align-self: auto;
+  }
+}
+
+.low-stock,
+.settings-stock {
+  margin: 1.3rem 0;
+}
+.low-stock h2,
+.settings-stock h2 {
+  margin: 0 0 0.7rem;
+  font-size: 1.1rem;
+}
+.low-stock-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border, #d6ded4);
+}
+.low-stock-row span {
+  min-width: 0;
+}
+.minimum-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+}
+.minimum-row input {
+  width: 7rem;
+}
+.settings-stock label {
+  max-width: 100%;
+}
+.settings-stock select {
+  display: block;
+  margin: 0.45rem 0 0.7rem;
+}
+.alert-test-controls {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+}
+.alert-test-delay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.alert-test-delay label {
+  display: inline;
+}
+.alert-test-delay input {
+  width: 5.5rem;
+}
+@media (max-width: 520px) {
+  .low-stock-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+button.is-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.button-spinner {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: button-spin 0.75s linear infinite;
+}
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .button-spinner {
+    animation-duration: 2s;
+  }
+}

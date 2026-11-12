@@ -19,6 +19,7 @@
       href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="/tailwind.css" />
     <link rel="stylesheet" href="/app.css" />
     <script src="/shelf-life-data.js" defer></script>
     <script src="/app.js" defer></script>
@@ -43,7 +44,7 @@
             <label for="password">รหัสผ่านของบ้าน</label>
             <input id="password" type="password" autocomplete="current-password" required />
             <p id="login-error" class="error" role="alert"></p>
-            <button class="primary full" type="submit">
+            <button class="primary w-full" type="submit">
               เข้าสู่ระบบ <span aria-hidden="true">→</span>
             </button>
           </form>
@@ -52,7 +53,9 @@
             <p id="unavailable-text"></p>
             <button type="button" class="secondary" data-action="retry">ลองอีกครั้ง</button>
           </div>
-          <a class="sample" href="/home-stock.html"
+          <a
+            class="sample mt-8 inline-block text-[0.9rem] text-muted underline-offset-4"
+            href="/home-stock.html"
             >ลองดูตัวอย่างการใช้งาน <span aria-hidden="true">↗</span></a
           >
         </div>

@@ -5,7 +5,7 @@ import { test } from "node:test";
 import vm from "node:vm";
 import { validatedStock } from "../lib/inventory.js";
 
-const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
+const source = readFileSync(new URL("../src/app/receipt-review.js", import.meta.url), "utf8");
 const rowStart = source.indexOf("let receiptRowId = 0;");
 const rowEnd = source.indexOf("function receiptField(", rowStart);
 const start = source.indexOf("function receiptItem(");

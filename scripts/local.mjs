@@ -14,18 +14,40 @@ import { createAlertHandlers, createCronHandler } from "../lib/alerts.js";
 import { createReceiptAiHandlers } from "../lib/receipt-ai.js";
 import { createReceiptOcrHandlers } from "../lib/receipt-ocr.js";
 import { buildApp } from "./build-app.mjs";
+import { buildStyles } from "./build-styles.mjs";
+import { buildTailwind } from "./build-tailwind.mjs";
 
 // Production uses api/ and private Vercel Blob.
 const hostMode = process.argv.includes("--host");
 const bindHost = hostMode ? "0.0.0.0" : "127.0.0.1";
 const root = fileURLToPath(new URL("../", import.meta.url));
 buildApp();
+buildStyles();
+buildTailwind();
 watch(resolve(root, "src/app"), (_event, filename) => {
   if (!filename?.endsWith(".js")) return;
   try {
     buildApp();
+    buildTailwind();
   } catch (error) {
     console.error("Could not rebuild app.js:", error);
+  }
+});
+watch(resolve(root, "src/styles"), (_event, filename) => {
+  if (!filename?.endsWith(".css")) return;
+  try {
+    buildStyles();
+    buildTailwind();
+  } catch (error) {
+    console.error("Could not rebuild app.css:", error);
+  }
+});
+watch(resolve(root, "public"), (_event, filename) => {
+  if (filename !== "index.html") return;
+  try {
+    buildTailwind();
+  } catch (error) {
+    console.error("Could not rebuild tailwind.css:", error);
   }
 });
 const dataDir = process.env.HOME_STOCK_DIR || resolve(root, ".local-stock");
@@ -86,6 +108,7 @@ const assets = new Map([
   ["/sw.js", ["sw.js", "text/javascript; charset=utf-8"]],
   ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json"]],
   ["/app.css", ["app.css", "text/css; charset=utf-8"]],
+  ["/tailwind.css", ["tailwind.css", "text/css; charset=utf-8"]],
   ["/item-icons.svg", ["item-icons.svg", "image/svg+xml"]],
   ["/favicon.ico", ["favicon.ico", "image/x-icon"]],
   [

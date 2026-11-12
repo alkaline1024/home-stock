@@ -3,9 +3,13 @@ import { build } from "esbuild";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { buildApp } from "./build-app.mjs";
+import { buildStyles } from "./build-styles.mjs";
+import { buildTailwind } from "./build-tailwind.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 buildApp();
+buildStyles();
+buildTailwind();
 const itemIconSources = {
   box: "package-open",
   vegetables: "carrot",
