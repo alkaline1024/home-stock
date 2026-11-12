@@ -93,27 +93,6 @@
   dialog .dialog-head {
     touch-action: none;
   }
-  .still-life {
-    position: absolute;
-    bottom: 0;
-    right: 4%;
-    width: 25%;
-    height: 90px;
-    gap: 4px;
-    opacity: 0.85;
-  }
-  .tin {
-    height: 42px;
-  }
-  .jar {
-    height: 53px;
-  }
-  .jar:after {
-    inset: 12px -1px 8px;
-  }
-  .box {
-    height: 70px;
-  }
   .wrap {
     width: calc(100% - 30px);
   }
@@ -336,9 +315,6 @@
   }
   .page-title button {
     padding: 8px 10px;
-  }
-  .still-life {
-    width: 22%;
   }
   dialog {
     --sheet-padding: 15px;
