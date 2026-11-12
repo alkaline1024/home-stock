@@ -74,25 +74,34 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section v-if="shopping.length" class="section">
-    <div class="section-head">
-      <h2>ของที่จะซื้อ</h2>
-      <span>{{ shopping.length }} รายการ</span>
+  <section v-if="shopping.length" class="mb-[26px]">
+    <div class="mb-[3px] flex items-center justify-between gap-3 border-b border-line pb-[9px]">
+      <h2 class="text-[1.18rem] tracking-[-0.025em]">ของที่จะซื้อ</h2>
+      <span class="text-[0.87rem] text-muted">{{ shopping.length }} รายการ</span>
     </div>
-    <div class="item-collection view-list">
-      <article v-for="item in shopping" :key="item.id" class="line-item">
+    <div>
+      <article
+        v-for="item in shopping"
+        :key="item.id"
+        class="grid grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-[14px] border-b border-line py-[14px] max-[650px]:grid-cols-[43px_minmax(0,1fr)] max-[650px]:gap-[9px] max-[650px]:py-3"
+      >
         <img
           v-if="item.photo"
-          class="thumb"
+          class="h-[52px] w-12 shrink-0 rounded-[7px] object-cover max-[650px]:h-12 max-[650px]:w-[43px]"
           decoding="async"
           loading="lazy"
           alt=""
           :src="`/api/photo?id=${encodeURIComponent(item.photo)}`"
         />
-        <span v-else class="thumb placeholder" aria-hidden="true" :style="mediaStyle(item)">
+        <span
+          v-else
+          class="grid h-[52px] w-12 shrink-0 place-items-center rounded-[7px] bg-[var(--item-icon-bg,#e7eadb)] font-[var(--serif)] text-[1.18rem] text-[var(--item-icon-color,#567353)] max-[650px]:h-12 max-[650px]:w-[43px]"
+          aria-hidden="true"
+          :style="mediaStyle(item)"
+        >
           <svg
             v-if="iconIds.has(item.icon)"
-            class="item-icon"
+            class="h-7 w-7"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -105,18 +114,28 @@ onUnmounted(() => {
           </svg>
           <template v-else>{{ [...item.name][0] || "·" }}</template>
         </span>
-        <div class="item-info">
-          <div class="item-name">
-            {{ item.name }} <span class="qty">· ซื้อ {{ formatAmount(item) }}</span>
+        <div class="min-w-0 [overflow-wrap:anywhere]">
+          <div class="text-[1.09rem] font-[650] [overflow-wrap:anywhere]">
+            {{ item.name }}
+            <span class="text-[0.94rem] font-medium">· ซื้อ {{ formatAmount(item) }}</span>
           </div>
-          <div class="meta">ที่บ้านเหลือ {{ amountFormat.format(totalFor(item)) }} {{ item.unit }}</div>
+          <div class="text-[0.87rem] text-muted">
+            ที่บ้านเหลือ {{ amountFormat.format(totalFor(item)) }} {{ item.unit }}
+          </div>
         </div>
-        <div class="item-actions">
-          <button type="button" class="action" data-action="receive" :data-id="item.id">
-            <span class="add-action-label"
-              ><span class="add-action-icon-wrap"
+        <div
+          class="flex flex-wrap items-center justify-end gap-[7px] max-[650px]:col-start-2 max-[650px]:justify-start"
+        >
+          <button
+            type="button"
+            class="min-h-[44px] rounded-[9px] border border-line bg-surface px-3 py-[5px] text-[0.91rem] font-semibold hover:border-[#7c9580]"
+            data-action="receive"
+            :data-id="item.id"
+          >
+            <span class="inline-flex max-w-full min-w-0 items-center gap-[7px] align-middle"
+              ><span class="relative inline-grid h-6 w-7 flex-none items-center justify-items-start"
                 ><svg
-                  class="add-action-icon"
+                  class="h-5 w-5 flex-none"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -129,7 +148,7 @@ onUnmounted(() => {
                   <path d="M3 7v10l9 4 9-4V7" />
                   <path d="M12 11v10" /></svg
                 ><svg
-                  class="add-action-plus"
+                  class="absolute top-0 right-0 h-3 w-3"
                   viewBox="0 0 16 16"
                   fill="currentColor"
                   aria-hidden="true"
@@ -138,19 +157,24 @@ onUnmounted(() => {
                     fill-rule="evenodd"
                     d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM7 4h2v3h3v2H9v3H7V9H4V7h3Z"
                   /></svg></span
-              ><span class="add-action-text">ซื้อแล้ว</span></span
+              ><span class="min-w-0">ซื้อแล้ว</span></span
             >
           </button>
-          <button type="button" class="action small" data-action="edit-shopping" :data-id="item.id">
+          <button
+            type="button"
+            class="min-h-[44px] rounded-[9px] border border-line bg-transparent px-3 py-[5px] text-[0.91rem] font-semibold hover:border-[#7c9580]"
+            data-action="edit-shopping"
+            :data-id="item.id"
+          >
             แก้ไข
           </button>
         </div>
       </article>
     </div>
   </section>
-  <section v-else class="empty">
-    <h2>รายการซื้อยังว่างอยู่</h2>
-    <p>จดสิ่งที่ต้องการซื้อ แล้วกด “ซื้อแล้ว” เพื่อนำเข้าของในบ้าน</p>
-    <button type="button" class="secondary" data-action="new-shopping">จดรายการแรก</button>
+  <section v-else class="mt-2 mb-[22px] rounded-[14px] bg-mint p-[clamp(20px,4vw,36px)]">
+    <h2 class="text-[clamp(21px,3vw,29px)] tracking-[-0.04em]">รายการซื้อยังว่างอยู่</h2>
+    <p class="mt-[6px] text-[#3f5e4e]">จดสิ่งที่ต้องการซื้อ แล้วกด “ซื้อแล้ว” เพื่อนำเข้าของในบ้าน</p>
+    <button type="button" class="secondary mt-4" data-action="new-shopping">จดรายการแรก</button>
   </section>
 </template>
