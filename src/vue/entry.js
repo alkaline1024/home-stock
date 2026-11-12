@@ -1,5 +1,6 @@
 import { createApp, h, ref, onMounted, onUnmounted } from "vue";
 import ShoppingView from "./ShoppingView.vue";
+import RecipesView from "./RecipesView.vue";
 
 const host = document.querySelector("#shopping-count");
 if (host) {
@@ -25,3 +26,6 @@ if (host) {
 
 const shoppingView = document.querySelector("#shopping-vue");
 if (shoppingView) createApp(ShoppingView).mount(shoppingView);
+
+const recipesView = document.querySelector("#recipes-vue");
+if (recipesView) createApp(RecipesView).mount(recipesView);

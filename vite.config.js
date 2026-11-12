@@ -9,9 +9,9 @@ export default defineConfig({
     outDir: "public",
     emptyOutDir: false,
     lib: {
-      entry: "src/vue/shopping-badge.js",
+      entry: "src/vue/entry.js",
       formats: ["es"],
-      fileName: "shopping-badge",
+      fileName: "vue-pages",
     },
   },
 });

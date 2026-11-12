@@ -9,7 +9,7 @@ public/analytics.mjs
 
 public/barcode-scanner.js
 public/tailwind.css
-public/shopping-badge.js
+public/vue-pages.js
 
 public/ocr/
 services/openthai/.venv/

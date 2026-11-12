@@ -2439,6 +2439,7 @@ function draw() {
   const page = tab();
   $("#content").hidden = false;
   $("#shopping-vue").hidden = true;
+  $("#recipes-vue").hidden = true;
   $(".tabs")
     .querySelectorAll("[data-tab]")
     .forEach((link) => {
@@ -2609,6 +2610,14 @@ function draw() {
     const recipes = [...(stock.recipes || [])].sort(
       (a, b) => (b.createdAt || 0) - (a.createdAt || 0),
     );
+    const recipesView = $("#recipes-vue");
+    recipesView.recipesSnapshot = recipes;
+    recipesView.dispatchEvent(new CustomEvent("home-stock:recipes", { detail: recipes }));
+    if (recipesView.dataset.vueMounted === "true") {
+      $("#content").hidden = true;
+      recipesView.hidden = false;
+      return;
+    }
     html += mealCollectionSection(
       "เมนูที่บันทึกไว้",
       recipes,

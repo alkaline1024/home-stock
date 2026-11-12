@@ -111,7 +111,7 @@ const assets = new Map([
   ["/sw.js", ["sw.js", "text/javascript; charset=utf-8"]],
   ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json"]],
   ["/tailwind.css", ["tailwind.css", "text/css; charset=utf-8"]],
-  ["/shopping-badge.js", ["shopping-badge.js", "text/javascript; charset=utf-8"]],
+  ["/vue-pages.js", ["vue-pages.js", "text/javascript; charset=utf-8"]],
   ["/item-icons.svg", ["item-icons.svg", "image/svg+xml"]],
   ["/favicon.ico", ["favicon.ico", "image/x-icon"]],
   [
