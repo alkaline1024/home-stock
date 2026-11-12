@@ -1607,9 +1607,10 @@ function itemMenu(item, shopping = false, gridMode = false) {
     "</div></div>"
   );
 }
-function row(item, shopping = false) {
+function row(item, shopping = false, view = null) {
   let meta, detail, actions;
-  const gridMode = !shopping && ["today", "stock"].includes(tab()) && getItemView(tab()) === "grid";
+  const gridMode =
+    !shopping && ["today", "stock"].includes(tab()) && (view || getItemView(tab())) === "grid";
   if (shopping) {
     const total = totalFor(item);
     detail = "ซื้อ " + amount(item);
@@ -2144,7 +2145,7 @@ function expiryCalendar(items, plans = stock?.mealPlans || []) {
       selectedItems.length +
       " รายการ</h3>" +
       (selectedItems.length
-        ? selectedItems.map((item) => row(item)).join("")
+        ? selectedItems.map((item) => row(item, false, "list")).join("")
         : '<p class="calendar-no-expiry">ไม่มีของถึงกำหนดวันนี้</p>') +
       '</section><section class="calendar-detail-group"><h3>แผนทำอาหาร · ' +
       selectedPlans.length +
