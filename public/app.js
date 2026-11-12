@@ -4869,6 +4869,7 @@ document.addEventListener("click", async (event) => {
     if (shouldOpen) {
       menu.hidden = false;
       target.setAttribute("aria-expanded", "true");
+      target.classList.add("menu-open");
       positionHorizontalCardMenu(menu, target);
       if (event.detail === 0) menu.querySelector('[role="menuitem"]')?.focus();
     }
@@ -5121,20 +5122,27 @@ function closeItemMenus(restoreFocus = false) {
     const trigger = menu.parentElement.querySelector(".item-menu-trigger");
     menu.hidden = true;
     trigger?.setAttribute("aria-expanded", "false");
-    menu.closest(".is-grid-card")?.setAttribute("aria-expanded", "false");
+    const card = menu.closest(".is-grid-card");
+    card?.setAttribute("aria-expanded", "false");
+    card?.classList.remove("menu-open");
     if (restoreFocus) (menu.closest(".is-grid-card") || trigger)?.focus();
   });
 }
 
 function positionHorizontalCardMenu(menu, card) {
-  if (!card.closest(".dashboard-due")) return;
+  if (!card.classList.contains("is-grid-card")) return;
   const cardRect = card.getBoundingClientRect();
   const menuRect = menu.getBoundingClientRect();
-  const left = Math.max(8, Math.min(cardRect.left, window.innerWidth - menuRect.width - 8));
-  let top = cardRect.top - menuRect.height - 8;
-  if (top < 8) top = Math.min(cardRect.bottom + 8, window.innerHeight - menuRect.height - 8);
+  const margin = 8;
+  const maxLeft = Math.max(margin, window.innerWidth - menuRect.width - margin);
+  const left = Math.max(margin, Math.min(cardRect.left, maxLeft));
+  const maxTop = Math.max(margin, window.innerHeight - menuRect.height - margin);
+  let top = cardRect.bottom + margin;
+  if (top > maxTop) top = cardRect.top - menuRect.height - margin;
+  top = Math.max(margin, Math.min(top, maxTop));
+  menu.classList.add("item-menu-viewport");
   menu.style.left = left + "px";
-  menu.style.top = Math.max(8, top) + "px";
+  menu.style.top = top + "px";
 }
 
 document.addEventListener(

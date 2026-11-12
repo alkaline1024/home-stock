@@ -1261,6 +1261,19 @@ footer {
   max-height: min(65vh, 420px);
   overflow: auto;
 }
+.item-collection.view-grid .is-grid-card.menu-open {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  z-index: 21;
+}
+.item-collection.view-grid .item-menu.item-menu-viewport {
+  position: fixed;
+  inset: auto;
+  z-index: 100;
+  width: min(230px, calc(100vw - 16px));
+  max-height: min(65vh, 420px);
+  overflow: auto;
+}
 .item-collection.view-grid .item-name {
   display: block;
   overflow: hidden;
