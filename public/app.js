@@ -1052,8 +1052,8 @@ function receiptRow(row = {}) {
     '">' +
     opts(names) +
     "</datalist></label>" +
-    '<label>จำนวน<input data-field="qty" type="number" min="0.001" max="999999" step="0.001" value="' +
-    esc(row.qty || 1) +
+    '<label>จำนวน<input data-field="qty" type="number" inputmode="decimal" min="0.001" max="999999" step="0.001" value="' +
+    esc(row.qty ?? 1) +
     '"></label>' +
     '<label>หน่วย<input data-field="unit" maxlength="20" list="receipt-units-' +
     id +
@@ -1109,7 +1109,7 @@ function receiptRow(row = {}) {
     '"></span></label>' +
     '<label class="receipt-wide">แจ้งเตือนก่อนกำหนดภายใน (วัน)<input data-field="notifyBeforeDays" type="number" inputmode="numeric" min="0" max="365" step="1" placeholder="ใช้ค่าเริ่มต้นจาก Settings" value="' +
     esc(row.notifyBeforeDays ?? "") +
-    '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใช้กับ EXP/BBE</span></label></div>';
+    '"><span class="form-help">เว้นว่างเพื่อใช้ค่าเริ่มต้นจาก Settings · ใส่ 0 เพื่อเตือนในวันที่กำหนด · ใช้กับ EXP/BBE และต้องตั้งค่าการแจ้งเตือนใน Settings บนอุปกรณ์นี้</span></label></div>';
   return card;
 }
 
@@ -1372,6 +1372,7 @@ $("#receipt-ai-button").addEventListener("click", async () => {
         old.find((item) => item.barcode && item.barcode === row.barcode) || old[index];
       return {
         ...row,
+        barcode: row.barcode || previous?.barcode || "",
         date: previous?.date || "",
         location: previous?.freezerLocationManual
           ? previous.location

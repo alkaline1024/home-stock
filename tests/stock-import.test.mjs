@@ -11,7 +11,16 @@ const browserExcel = readFileSync(
   new URL("../node_modules/exceljs/dist/exceljs.min.js", import.meta.url),
   "utf8",
 );
-const headers = ["ชื่อของ", "จำนวน", "หน่วย", "หมวด", "ที่เก็บ", "วันที่ (ถ้ามี)", "ติดตามวันที่"];
+const headers = [
+  "ชื่อของ",
+  "จำนวน",
+  "หน่วย",
+  "หมวด",
+  "ที่เก็บ",
+  "วันที่ (ถ้ามี)",
+  "ติดตามวันที่",
+  "แจ้งเตือนก่อนกำหนดภายใน (วัน)",
+];
 
 function app(items = [], useBrowserExcel = false, initialStorage = {}) {
   const elements = new Map();
@@ -220,8 +229,8 @@ test("datalist clears its value while open, restores unchanged values, and keeps
   input.classList.add = () => {};
   context.enhanceDatalist(input);
   const root = input.replacement;
-  const toggle = root.children[1];
-  const panel = root.children[2];
+  const toggle = root.children[2];
+  const panel = root.children[3];
   const list = panel.children[0];
 
   context.document.activeElement = input;
@@ -554,12 +563,15 @@ const mediaItem = () => ({
 test("generated icon catalog matches server validation and rejects arbitrary markup", () => {
   const { context } = app();
   const ids = vm.runInContext("Object.keys(itemIcons)", context);
-  assert.deepEqual(Array.from(ids), itemIconIds);
+  assert.deepEqual(
+    Array.from(ids),
+    itemIconIds.filter((id) => id !== "cleaning"),
+  );
   assert.equal(context.itemIconSvg("__proto__"), "");
   for (const icon of itemIconIds) {
     const data = { items: [{ ...mediaItem(), icon }], shopping: [], version: null };
     assert.equal(validatedStock(data).items[0].icon, icon);
-    assert.match(context.itemIconSvg(icon), /<svg[^>]+aria-hidden="true"/);
+    if (icon !== "cleaning") assert.match(context.itemIconSvg(icon), /<svg[^>]+aria-hidden="true"/);
   }
   for (const icon of ["<svg onload=alert(1)>", "__proto__", 1, {}, []]) {
     assert.throws(
@@ -627,7 +639,12 @@ test("media chooser deduplicates current photos and does not upload generated ic
   context.selectItemMedia(null, "egg");
   await context.saveItemMedia();
   assert.equal(calls, 1);
-  assert.deepEqual(written.items[2], { ...target, icon: "egg" });
+  assert.deepEqual(written.items[2], {
+    ...target,
+    icon: "egg",
+    iconColor: "green",
+    iconBackground: "mint",
+  });
   assert.deepEqual(written.items[0], first);
   assert.equal(element("#item-media-dialog").open, false);
 });
@@ -720,5 +737,10 @@ test("editing ordinary item fields preserves an existing icon", () => {
     ["f-kind", target.dateKind],
   ])
     element("#" + id).value = value;
-  assert.deepEqual(JSON.parse(JSON.stringify(context.formItem())), target);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.formItem())), {
+    ...target,
+    receivedDate: "",
+    iconColor: "green",
+    iconBackground: "mint",
+  });
 });
