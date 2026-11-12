@@ -1279,8 +1279,8 @@ async function readReceipt(file) {
     const { text, rows } = await scanReceipt(
       file,
       [...stock.items, ...(stock.recentItems || [])],
-      (percent) => {
-        progress.textContent = "กำลังอ่านใบเสร็จ " + percent + "%";
+      (percent, message) => {
+        progress.textContent = message || "กำลังอ่านใบเสร็จ " + percent + "%";
       },
     );
     pendingReceipt = { text, rows, version, file, stale: false };

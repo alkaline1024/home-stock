@@ -12,6 +12,8 @@
     "test": "node --test tests/*.test.mjs",
     "build": "node scripts/build.mjs",
     "icons": "node scripts/icons.mjs",
+    "ocr:setup": "python3 -m venv services/openthai/.venv && services/openthai/.venv/bin/pip install -r services/openthai/requirements.txt && services/openthai/.venv/bin/python services/openthai/setup.py",
+    "ocr:serve": "services/openthai/.venv/bin/python services/openthai/server.py",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

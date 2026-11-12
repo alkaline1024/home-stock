@@ -90,6 +90,27 @@ export async function prepareAiImage(file) {
 
 export async function scanReceipt(file, knownItems, progress) {
   const image = await prepareImage(file);
+  try {
+    const availability = await fetch("/api/receipt-ocr", { signal: AbortSignal.timeout(3000) });
+    const config = availability.ok ? await availability.json() : {};
+    if (config.available) {
+      progress?.(0, "กำลังอ่านใบเสร็จด้วย OpenThai OCR…");
+      const response = await fetch("/api/receipt-ocr", {
+        method: "POST",
+        headers: { "Content-Type": "image/png" },
+        body: image,
+        signal: AbortSignal.timeout(65000),
+      });
+      if (!response.ok) throw new Error("OpenThai unavailable");
+      const result = await response.json();
+      if (!result.text?.trim()) throw new Error("Empty OCR result");
+      progress?.(100);
+      return { text: result.text, rows: parseReceipt(result.text, knownItems), engine: "openthai" };
+    }
+  } catch {
+    // Continue on-device when the optional OpenThai service is unavailable.
+  }
+  progress?.(0, "กำลังอ่านใบเสร็จด้วยระบบบนอุปกรณ์…");
   const tesseract = await loadLibrary();
   const worker = await tesseract.createWorker(["tha", "eng"], 1, {
     workerPath: "/ocr/worker.min.js",
@@ -100,7 +121,11 @@ export async function scanReceipt(file, knownItems, progress) {
   });
   try {
     const { data } = await worker.recognize(image);
-    return { text: data.text || "", rows: parseReceipt(data.text || "", knownItems) };
+    return {
+      text: data.text || "",
+      rows: parseReceipt(data.text || "", knownItems),
+      engine: "tesseract",
+    };
   } finally {
     await worker.terminate();
   }

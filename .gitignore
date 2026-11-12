@@ -10,3 +10,6 @@ public/analytics.mjs
 public/barcode-scanner.js
 
 public/ocr/
+services/openthai/.venv/
+services/openthai/model/
+services/openthai/__pycache__/

@@ -72,3 +72,23 @@
 ### ให้ AI ช่วยตรวจ (เลือกใช้)
 
 เมื่อกำหนด `GEMINI_API_KEY` ใน Vercel Production Environment Variables แล้ว redeploy หน้าตรวจใบเสร็จจะมีปุ่ม **ตรวจรายการด้วย AI** และช่องโมเดลที่แสดง Gemini 3.1 Flash-Lite เพียงตัวเดียว (ยังเปลี่ยนไม่ได้) ปุ่มนี้จะส่งรูปที่ย่อเป็น JPEG และข้อความ OCR ไปยัง Google เฉพาะเมื่อกด เพื่อเสนอรายการใหม่แทนผล OCR เดิม ผู้ใช้ยังต้องตรวจและกดรับเข้าสต็อกเอง หาก AI ล้มเหลว ผล OCR เดิมยังอยู่ และระบบไม่บันทึกรูปใบเสร็จไว้ คีย์ต้องอยู่ฝั่งเซิร์ฟเวอร์เท่านั้น ห้ามใส่ในโค้ดหรือเบราว์เซอร์ ใช้ free tier ได้ตามโควตาของ Google; ข้อมูลที่ส่งผ่าน free tier อาจถูกใช้เพื่อปรับปรุงบริการของ Google
+
+### OpenThai 2.0 OCR (CPU, เลือกใช้)
+
+แอปจะตรวจ `/api/receipt-ocr` ก่อนอ่านใบเสร็จ หากบริการ OpenThai พร้อม จะส่งรูป PNG ที่ปรับขนาดแล้วไปอ่าน และนำข้อความเข้า parser และหน้าตรวจรายการเดิม หากไม่ได้ติดตั้งบริการหรืออ่านล้มเหลวจะใช้ Tesseract บนอุปกรณ์อัตโนมัติ รูปที่ส่งไปบริการนี้ใช้ประมวลผลในหน่วยความจำ ไม่บันทึกลงดิสก์ ปุ่ม Gemini ยังคงเป็นการตรวจเพิ่มเติมเมื่อผู้ใช้กด
+
+รันบน Mac/Linux ด้วย Python 3.11 ขึ้นไป:
+
+```sh
+npm run ocr:setup
+npm run ocr:serve
+```
+
+เปิดอีก terminal แล้วรัน `npm run dev` หรือ `npm run host` ตามเดิม Node API จะเชื่อม `http://127.0.0.1:8788` อัตโนมัติ มือถือที่เข้าผ่าน local host ใช้ OCR บนเครื่อง Mac นี้ได้ด้วย หน้าเว็บแสดงข้อความ “กำลังอ่านใบเสร็จด้วย OpenThai OCR” เมื่อเลือก engine นี้ การติดตั้งครั้งแรกดาวน์โหลดโมเดลและ runtime จาก [iapp/OpenThai2.0-OCR-Text](https://huggingface.co/iapp/OpenThai2.0-OCR-Text) ที่ revision `39fa41bdd49f067ba41b1d9de79c06ab506d67d4` (Apache-2.0) ลง `services/openthai/model/` ซึ่งไม่เข้า Git โมเดลทำงานด้วย ONNX Runtime บน CPU ไม่ต้องมี Hugging Face API key
+
+สำหรับ production ให้รัน `services/openthai/server.py` บนเครื่องหรือบริการ Python ที่เข้าถึงผ่าน HTTPS ได้ แล้วตั้ง environment variables:
+
+- ฝั่ง OCR: `OPENTHAI_OCR_HOST=0.0.0.0`, `OPENTHAI_OCR_PORT=8788` (หรือพอร์ตที่โฮสต์กำหนด) และ `OPENTHAI_OCR_TOKEN` เป็น secret สุ่ม
+- ฝั่ง Vercel: `OPENTHAI_OCR_URL=https://your-ocr-service.example/` และ `OPENTHAI_OCR_TOKEN` ค่าเดียวกัน จากนั้น redeploy
+
+Vercel จะ proxy ผ่าน API ที่ตรวจ session ของผู้ใช้แล้ว จึงไม่ต้องเปิด CORS หรือส่ง token ให้เบราว์เซอร์ ตัว Python service ต้องอยู่หลัง HTTPS reverse proxy เมื่อต่อออกอินเทอร์เน็ต การใช้งานโมเดลไม่มีค่า API แต่ค่าโฮสต์ขึ้นกับบริการที่เลือก หากยังไม่ตั้ง URL บน Vercel เว็บยังใช้ Tesseract ต่อได้ บริการนี้รับทีละรูปเพื่อจำกัดการใช้หน่วยความจำ เหมาะกับการใช้ส่วนตัวในบ้าน
