@@ -45,6 +45,8 @@
 
 การย้ายสไตล์ไป Tailwind CSS กำลังทำแบบทยอยเปลี่ยน โดย `src/styles/tailwind.css` กำหนด theme และ source ที่ต้องสแกน `npm run build` สร้าง `public/tailwind.css` สำหรับ utility classes ที่ย้ายแล้ว ระหว่างนี้ CSS เดิมยังอยู่ใน `src/styles/` จนย้ายครบ
 
+Vue 3 + Vite เริ่มใช้กับตัวเลขรายการซื้อในเมนูแล้ว โดย source อยู่ที่ `src/vue/` และ `vite.config.js` สร้างไฟล์ `public/shopping-badge.js` ผ่าน `npm run build` หรือ `npm run dev` ขณะย้ายหน้าจออื่นยังใช้ JavaScript เดิม
+
 `npm run build` คัดลอก ExcelJS จาก dependency ไปยังไฟล์ static สำหรับเทมเพลตและการนำเข้า โดยโหลดจากเว็บนี้เอง ไม่ใช้ CDN; Vercel เรียก build นี้ก่อน deploy
 
 กฎเสนอวันที่อยู่ใน `public/shelf-life-data.js` เพิ่มอาหารได้โดยเพิ่มรายการ `name`, `keywords`, `categories` และ `days` ตามชนิดที่เก็บ (`fridge`, `freezer`, `pantry`) พร้อมอ้างอิงแหล่งข้อมูล กฎที่ไม่ตรงชื่อ หมวด หรือที่เก็บจะไม่เสนอวันที่ การเปลี่ยนกฎไม่เปลี่ยนวันที่ของรายการที่บันทึกไปแล้ว

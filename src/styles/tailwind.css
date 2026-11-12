@@ -4,6 +4,7 @@
 
 @source "../../public/index.html";
 @source "../app";
+@source "../vue";
 
 @theme {
   --color-paper: #f8f7f1;

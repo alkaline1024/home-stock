@@ -13,6 +13,7 @@ import { login } from "../lib/session.js";
 import { createAlertHandlers, createCronHandler } from "../lib/alerts.js";
 import { createReceiptAiHandlers } from "../lib/receipt-ai.js";
 import { createReceiptOcrHandlers } from "../lib/receipt-ocr.js";
+import { build as viteBuild } from "vite";
 import { buildApp } from "./build-app.mjs";
 import { buildStyles } from "./build-styles.mjs";
 import { buildTailwind } from "./build-tailwind.mjs";
@@ -24,6 +25,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 buildApp();
 buildStyles();
 buildTailwind();
+await viteBuild();
 watch(resolve(root, "src/app"), (_event, filename) => {
   if (!filename?.endsWith(".js")) return;
   try {
@@ -41,6 +43,10 @@ watch(resolve(root, "src/styles"), (_event, filename) => {
   } catch (error) {
     console.error("Could not rebuild app.css:", error);
   }
+});
+watch(resolve(root, "src/vue"), (_event, filename) => {
+  if (!filename?.endsWith(".js") && !filename?.endsWith(".vue")) return;
+  viteBuild().catch((error) => console.error("Could not rebuild Vue:", error));
 });
 watch(resolve(root, "public"), (_event, filename) => {
   if (filename !== "index.html") return;
@@ -109,6 +115,7 @@ const assets = new Map([
   ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json"]],
   ["/app.css", ["app.css", "text/css; charset=utf-8"]],
   ["/tailwind.css", ["tailwind.css", "text/css; charset=utf-8"]],
+  ["/shopping-badge.js", ["shopping-badge.js", "text/javascript; charset=utf-8"]],
   ["/item-icons.svg", ["item-icons.svg", "image/svg+xml"]],
   ["/favicon.ico", ["favicon.ico", "image/x-icon"]],
   [

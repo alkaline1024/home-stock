@@ -1,5 +1,6 @@
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { build } from "esbuild";
+import { build as viteBuild } from "vite";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { buildApp } from "./build-app.mjs";
@@ -10,6 +11,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 buildApp();
 buildStyles();
 buildTailwind();
+await viteBuild();
 const itemIconSources = {
   box: "package-open",
   vegetables: "carrot",

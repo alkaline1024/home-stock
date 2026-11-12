@@ -2475,7 +2475,12 @@ function draw() {
           : "add";
   if (page === "meals") $("#page-add").dataset.id = selectedCalendarDate || todayKey;
   else delete $("#page-add").dataset.id;
-  $("#shopping-count").textContent = stock.shopping.length;
+  const shoppingCount = $("#shopping-count");
+  if (shoppingCount.dataset.vueMounted === "true")
+    shoppingCount.dispatchEvent(
+      new CustomEvent("home-stock:shopping-count", { detail: stock.shopping.length }),
+    );
+  else shoppingCount.textContent = stock.shopping.length;
   $("#tools").hidden = page !== "stock";
   if (page === "settings") {
     $("#content").innerHTML = settingsContent();
