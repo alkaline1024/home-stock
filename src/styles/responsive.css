@@ -301,15 +301,6 @@
   .form-grid {
     grid-template-columns: 1fr;
   }
-  .recipe-card-header {
-    align-items: flex-start;
-  }
-  .recipe-card-actions {
-    align-items: stretch;
-  }
-  .recipe-card-actions button {
-    flex: 1 1 auto;
-  }
   .page-title {
     gap: 6px;
   }

@@ -2005,32 +2005,6 @@ function mealPlanListRow(plan) {
   );
 }
 
-function mealRecipeCard(recipe) {
-  const ingredients = recipe.ingredients
-    .map(
-      (item) =>
-        '<span class="recipe-ingredient"><span>' +
-        esc(item.name) +
-        "</span><strong>" +
-        esc(amount(item)) +
-        "</strong></span>",
-    )
-    .join("");
-  return (
-    '<article class="meal-plan-card meal-recipe-card"><div class="recipe-card-header"><div class="recipe-card-title"><span class="recipe-card-icon" aria-hidden="true">📖</span><div><h3>' +
-    esc(recipe.name) +
-    '</h3><span class="meal-plan-status">เมนูที่บันทึกไว้</span></div></div><span class="recipe-servings">' +
-    recipe.servings +
-    ' ที่</span></div><div class="recipe-ingredients">' +
-    ingredients +
-    '</div><div class="recipe-card-actions">' +
-    button("plan-recipe", addActionLabel("meal", "วางแผนเมนูนี้"), recipe.id, "primary") +
-    button("edit-recipe", "แก้ไขเมนู", recipe.id, "secondary") +
-    button("remove-recipe", "ลบเมนู", recipe.id, "text-button danger") +
-    "</div></article>"
-  );
-}
-
 function mealCollectionSection(
   title,
   items,
@@ -2613,17 +2587,9 @@ function draw() {
     const recipesView = $("#recipes-vue");
     recipesView.recipesSnapshot = recipes;
     recipesView.dispatchEvent(new CustomEvent("home-stock:recipes", { detail: recipes }));
-    if (recipesView.dataset.vueMounted === "true") {
-      $("#content").hidden = true;
-      recipesView.hidden = false;
-      return;
-    }
-    html += mealCollectionSection(
-      "เมนูที่บันทึกไว้",
-      recipes,
-      "ยังไม่มีเมนูที่บันทึกไว้ วางแผนเมนูแล้วเลือกบันทึกเป็นสูตรต้นแบบได้",
-      mealRecipeCard,
-    );
+    $("#content").hidden = true;
+    recipesView.hidden = false;
+    return;
   } else {
     const shoppingView = $("#shopping-vue");
     shoppingView.stockSnapshot = { items: stock.items, shopping: stock.shopping };

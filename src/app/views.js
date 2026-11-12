@@ -547,32 +547,6 @@ function mealPlanListRow(plan) {
   );
 }
 
-function mealRecipeCard(recipe) {
-  const ingredients = recipe.ingredients
-    .map(
-      (item) =>
-        '<span class="recipe-ingredient"><span>' +
-        esc(item.name) +
-        "</span><strong>" +
-        esc(amount(item)) +
-        "</strong></span>",
-    )
-    .join("");
-  return (
-    '<article class="meal-plan-card meal-recipe-card"><div class="recipe-card-header"><div class="recipe-card-title"><span class="recipe-card-icon" aria-hidden="true">📖</span><div><h3>' +
-    esc(recipe.name) +
-    '</h3><span class="meal-plan-status">เมนูที่บันทึกไว้</span></div></div><span class="recipe-servings">' +
-    recipe.servings +
-    ' ที่</span></div><div class="recipe-ingredients">' +
-    ingredients +
-    '</div><div class="recipe-card-actions">' +
-    button("plan-recipe", addActionLabel("meal", "วางแผนเมนูนี้"), recipe.id, "primary") +
-    button("edit-recipe", "แก้ไขเมนู", recipe.id, "secondary") +
-    button("remove-recipe", "ลบเมนู", recipe.id, "text-button danger") +
-    "</div></article>"
-  );
-}
-
 function mealCollectionSection(
   title,
   items,

@@ -200,17 +200,9 @@ function draw() {
     const recipesView = $("#recipes-vue");
     recipesView.recipesSnapshot = recipes;
     recipesView.dispatchEvent(new CustomEvent("home-stock:recipes", { detail: recipes }));
-    if (recipesView.dataset.vueMounted === "true") {
-      $("#content").hidden = true;
-      recipesView.hidden = false;
-      return;
-    }
-    html += mealCollectionSection(
-      "เมนูที่บันทึกไว้",
-      recipes,
-      "ยังไม่มีเมนูที่บันทึกไว้ วางแผนเมนูแล้วเลือกบันทึกเป็นสูตรต้นแบบได้",
-      mealRecipeCard,
-    );
+    $("#content").hidden = true;
+    recipesView.hidden = false;
+    return;
   } else {
     const shoppingView = $("#shopping-vue");
     shoppingView.stockSnapshot = { items: stock.items, shopping: stock.shopping };
