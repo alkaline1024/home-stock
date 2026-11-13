@@ -1950,81 +1950,6 @@ function mealPlanCard(plan) {
   );
 }
 
-function mealPlanListRow(plan) {
-  const shortages = plan.status === "planned" ? mealShortages(plan) : [];
-  const ingredients = plan.ingredients
-    .map((item) => esc(item.name) + " " + esc(amount(item)))
-    .join(" · ");
-  const actions =
-    (plan.status === "planned"
-      ? button("edit-meal-plan", "แก้ไขแผน", plan.id, "secondary") +
-        (shortages.length
-          ? shortageDropdown(plan.id)
-          : button("mark-meal-cooked", "ทำอาหารแล้ว", plan.id, "primary"))
-      : plan.status === "cooked"
-        ? (!plan.cookedItemCreated
-            ? button(
-                "create-cooked-stock",
-                addActionLabel("cooked", "เพิ่มเข้ารายการปรุงสุก"),
-                plan.id,
-                "secondary",
-              )
-            : "") + button("complete-meal-plan", "เสร็จสิ้น", plan.id, "primary")
-        : "") + button("remove-meal-plan", "ลบแผน", plan.id, "text-button danger");
-  const statusLabel =
-    plan.status === "completed" ? "เสร็จสิ้นแล้ว" : plan.status === "cooked" ? "ทำแล้ว" : "วางแผน";
-  return (
-    '<article class="meal-plan-list-row"><div class="meal-plan-list-main"><div class="meal-plan-list-title"><h3>🍲 ' +
-    esc(plan.name) +
-    '</h3><span class="meal-plan-status' +
-    (plan.status !== "planned" ? " is-cooked" : "") +
-    '">' +
-    statusLabel +
-    '</span></div><p class="meal-plan-summary">' +
-    esc(dateFormat.format(localDay(plan.date))) +
-    " · " +
-    plan.servings +
-    " ที่ · " +
-    ingredients +
-    "</p>" +
-    (shortages.length
-      ? '<p class="meal-plan-shortage">ของขาด: ' +
-        shortages
-          .map(
-            (item) =>
-              esc(item.name) + " " + amountFormat.format(item.missing) + " " + esc(item.unit),
-          )
-          .join(" · ") +
-        "</p>"
-      : plan.status === "planned"
-        ? '<p class="meal-plan-available">วัตถุดิบครบ</p>'
-        : "") +
-    '</div><div class="meal-plan-list-actions">' +
-    actions +
-    "</div></article>"
-  );
-}
-
-function mealCollectionSection(
-  title,
-  items,
-  emptyMessage,
-  renderItem,
-  listClass = "meal-plan-list",
-) {
-  return (
-    '<section class="section meal-page-section"><div class="section-head"><h2>' +
-    esc(title) +
-    "</h2><span>" +
-    items.length +
-    " รายการ</span></div>" +
-    (items.length
-      ? '<div class="' + listClass + '">' + items.map(renderItem).join("") + "</div>"
-      : '<p class="meal-page-empty">' + esc(emptyMessage) + "</p>") +
-    "</section>"
-  );
-}
-
 function expiryCalendar(items, plans = stock?.mealPlans || []) {
   const firstDay = new Date(calendarYear, calendarMonth, 1);
   const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
@@ -2345,6 +2270,7 @@ function draw() {
   $("#shopping-vue").hidden = true;
   $("#recipes-vue").hidden = true;
   $("#settings-vue").hidden = true;
+  $("#meals-vue").hidden = true;
   $(".tabs")
     .querySelectorAll("[data-tab]")
     .forEach((link) => {
@@ -2508,19 +2434,14 @@ function draw() {
         ? empty("ไม่พบของที่ตรงกัน", "ลองเปลี่ยนชื่อ หมวด หรือที่เก็บ", "clear-filter", "ล้างตัวกรอง")
         : empty("ยังไม่มีของในบ้าน", "เพิ่มของสด ของแห้ง หรือของใช้อื่น ๆ ที่ต้องการติดตาม", "add", "เพิ่มของชิ้นแรก");
   } else if (page === "meals") {
-    const plannedPlans = (stock.mealPlans || [])
-      .filter((plan) => plan.status === "planned")
-      .sort((a, b) => a.date.localeCompare(b.date));
-    const cookedPlans = (stock.mealPlans || [])
-      .filter((plan) => plan.status !== "planned")
-      .sort((a, b) => b.date.localeCompare(a.date));
-    html += mealCollectionSection(
-      "แผนทำอาหาร",
-      [...plannedPlans, ...cookedPlans],
-      "ยังไม่มีแผนทำอาหาร กด “วางแผนทำอาหาร” เพื่อเริ่ม",
-      mealPlanListRow,
-      "meal-plan-table-list",
+    const mealsView = $("#meals-vue");
+    mealsView.mealsSnapshot = { plans: stock.mealPlans || [], items: stock.items };
+    mealsView.dispatchEvent(
+      new CustomEvent("home-stock:meals", { detail: mealsView.mealsSnapshot }),
     );
+    $("#content").hidden = true;
+    mealsView.hidden = false;
+    return;
   } else if (page === "recipes") {
     const recipes = [...(stock.recipes || [])].sort(
       (a, b) => (b.createdAt || 0) - (a.createdAt || 0),

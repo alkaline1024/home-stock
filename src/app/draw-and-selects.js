@@ -28,6 +28,7 @@ function draw() {
   $("#shopping-vue").hidden = true;
   $("#recipes-vue").hidden = true;
   $("#settings-vue").hidden = true;
+  $("#meals-vue").hidden = true;
   $(".tabs")
     .querySelectorAll("[data-tab]")
     .forEach((link) => {
@@ -191,19 +192,14 @@ function draw() {
         ? empty("ไม่พบของที่ตรงกัน", "ลองเปลี่ยนชื่อ หมวด หรือที่เก็บ", "clear-filter", "ล้างตัวกรอง")
         : empty("ยังไม่มีของในบ้าน", "เพิ่มของสด ของแห้ง หรือของใช้อื่น ๆ ที่ต้องการติดตาม", "add", "เพิ่มของชิ้นแรก");
   } else if (page === "meals") {
-    const plannedPlans = (stock.mealPlans || [])
-      .filter((plan) => plan.status === "planned")
-      .sort((a, b) => a.date.localeCompare(b.date));
-    const cookedPlans = (stock.mealPlans || [])
-      .filter((plan) => plan.status !== "planned")
-      .sort((a, b) => b.date.localeCompare(a.date));
-    html += mealCollectionSection(
-      "แผนทำอาหาร",
-      [...plannedPlans, ...cookedPlans],
-      "ยังไม่มีแผนทำอาหาร กด “วางแผนทำอาหาร” เพื่อเริ่ม",
-      mealPlanListRow,
-      "meal-plan-table-list",
+    const mealsView = $("#meals-vue");
+    mealsView.mealsSnapshot = { plans: stock.mealPlans || [], items: stock.items };
+    mealsView.dispatchEvent(
+      new CustomEvent("home-stock:meals", { detail: mealsView.mealsSnapshot }),
     );
+    $("#content").hidden = true;
+    mealsView.hidden = false;
+    return;
   } else if (page === "recipes") {
     const recipes = [...(stock.recipes || [])].sort(
       (a, b) => (b.createdAt || 0) - (a.createdAt || 0),

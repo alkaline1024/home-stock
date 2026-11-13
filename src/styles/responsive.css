@@ -165,19 +165,9 @@
     max-width: 100%;
     margin-left: auto;
   }
-  .meal-plan-list-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-  }
-  .meal-plan-list-actions {
-    min-width: 0;
-    justify-content: flex-start;
-  }
-  .meal-plan-list-actions > button,
   .meal-plan-actions > button {
     max-width: 100%;
   }
-  .meal-plan-list-title h3,
   .meal-plan-card h4,
   .meal-plan-summary,
   .meal-plan-ingredients,

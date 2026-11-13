@@ -164,37 +164,6 @@
   gap: 8px;
   margin-top: 12px;
 }
-.meal-plan-table-list {
-  display: grid;
-  margin-top: 4px;
-}
-.meal-plan-list-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 18px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-}
-.meal-plan-list-main {
-  min-width: 0;
-}
-.meal-plan-list-title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.meal-plan-list-title h3 {
-  font-size: 1rem;
-}
-.meal-plan-list-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 6px;
-}
 .shortage-dropdown {
   position: relative;
 }
